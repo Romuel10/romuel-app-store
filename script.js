@@ -13,6 +13,7 @@ let apps=[],currentApp=null,currentUser=null,currentRating=0,authMode="signin",r
 let favorites=new Set(JSON.parse(localStorage.getItem("romuelapps_favorites")||"[]"));
 let profile=null,isAdmin=false,reportedReviewId=null;
 let selectedAvatarFile=null,removeAvatarRequested=false;
+let pendingAppSlug=new URLSearchParams(location.search).get("app");
 
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const initials=s=>s.trim().split(/\s+/).slice(0,2).map(x=>x[0]?.toUpperCase()||"").join("");
@@ -21,6 +22,28 @@ const imageAssets=xs=>(xs||[]).filter(a=>[".png",".jpg",".jpeg",".webp"].some(e=
 const isIconName=n=>/(^|[-_.])(icon|logo|appicon|app-icon)([-_.]|$)/i.test(n);
 const fmtDate=s=>{try{return new Intl.DateTimeFormat("fr-FR",{day:"2-digit",month:"long",year:"numeric"}).format(new Date(s))}catch{return""}};
 const slugify=s=>s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+
+function appPageUrl(app){
+  const u=new URL(location.origin+location.pathname);
+  u.searchParams.set("app",app.id);
+  return u.toString();
+}
+
+function setAppUrl(app,replace=false){
+  const url=app?appPageUrl(app):(location.origin+location.pathname);
+  history[replace?"replaceState":"pushState"]({app:app?.id||null},"",url);
+}
+
+async function trackDownload(app){
+  try{
+    await sb.from("download_events").insert({
+      app_id:app.id,
+      version:app.version,
+      user_id:currentUser?.id||null
+    });
+  }catch(e){console.warn("download tracking",e)}
+}
+
 
 function nameOf(r){const t=(r.name||r.tag_name||"Application").trim();return t.replace(/\s+[-–—]?\s*v?\d+(?:\.\d+){1,3}.*$/i,"").trim()||t}
 function versionOf(r){const m=`${r.name||""} ${r.tag_name||""}`.match(/v?(\d+(?:\.\d+){1,3})/i);return m?m[1]:(r.tag_name||"—")}
@@ -233,8 +256,10 @@ async function syncFavorite(appId,shouldFavorite){
 }
 
 
-function openDetails(app){
+function openDetails(app,options={}){
   currentApp=app;
+  if(!options.skipUrl)setAppUrl(app);
+  document.title=`${app.name} — Romuel Apps`;
   $("modalIconWrap").innerHTML=iconHtml(app);
   $("modalTitle").textContent=app.name;
   $("modalMeta").textContent=`Version ${app.version} • Mise à jour le ${fmtDate(app.published)}`;
@@ -254,7 +279,14 @@ function openDetails(app){
   modal.classList.add("show");modal.setAttribute("aria-hidden","false");document.body.classList.add("modal-open");
   loadReviewsForCurrentApp();
 }
-function closeModal(){modal.classList.remove("show");modal.setAttribute("aria-hidden","true");document.body.classList.remove("modal-open");currentApp=null}
+function closeModal(options={}){
+  modal.classList.remove("show");
+  modal.setAttribute("aria-hidden","true");
+  document.body.classList.remove("modal-open");
+  currentApp=null;
+  document.title="Romuel Apps";
+  if(!options.skipUrl)setAppUrl(null);
+}
 
 function openAuth(){
   authModal.classList.add("show");authModal.setAttribute("aria-hidden","false");document.body.classList.add("modal-open");
@@ -289,9 +321,24 @@ async function loadApps(){
     apps=parse(await res.json());
     elStatus.textContent=apps.length?`${apps.length} application${apps.length>1?"s":""} disponible${apps.length>1?"s":""}.`:"Aucune Release avec un fichier APK n'a été trouvée.";
     filter();await loadReviewStats();
+    if(pendingAppSlug){
+      const target=apps.find(a=>a.id===pendingAppSlug);
+      if(target)openDetails(target,{skipUrl:true});
+      pendingAppSlug=null;
+    }
   }catch(e){console.error(e);elStatus.className="status error";elStatus.textContent="Le chargement automatique a échoué. Appuie sur « Actualiser ».";elApps.innerHTML=""}
   finally{elReload.disabled=false}
 }
+
+window.addEventListener("popstate",()=>{
+  const slug=new URLSearchParams(location.search).get("app");
+  if(slug){
+    const app=apps.find(a=>a.id===slug);
+    if(app && currentApp?.id!==slug)openDetails(app,{skipUrl:true});
+  }else if(currentApp){
+    closeModal({skipUrl:true});
+  }
+});
 
 elApps.addEventListener("click",e=>{const btn=e.target.closest("[data-details]");if(!btn)return;const app=currentFiltered()[Number(btn.dataset.details)];if(app)openDetails(app)});
 modal.addEventListener("click",e=>{if(e.target.matches("[data-close-modal]"))closeModal()});
@@ -410,12 +457,58 @@ async function loadAdminReports(){
     </article>`;
   }).join(""):'<p class="form-message">Aucun signalement en attente.</p>';
 }
+
+async function loadAdminDashboard(){
+  if(!isAdmin)return;
+
+  const totalGithub=apps.reduce((sum,a)=>sum+Number(a.downloads||0),0);
+  $("adminAppsCount").textContent=apps.length;
+  $("adminGithubDownloads").textContent=totalGithub.toLocaleString("fr-FR");
+
+  const now=new Date();
+  const startToday=new Date(now); startToday.setHours(0,0,0,0);
+  const weekAgo=new Date(now.getTime()-7*24*60*60*1000);
+
+  const [
+    {count:todayClicks},
+    {count:weekClicks},
+    {count:reviewsCount},
+    {count:usersCount},
+    {data:trackedRows}
+  ]=await Promise.all([
+    sb.from("download_events").select("*",{count:"exact",head:true}).gte("created_at",startToday.toISOString()),
+    sb.from("download_events").select("*",{count:"exact",head:true}).gte("created_at",weekAgo.toISOString()),
+    sb.from("reviews").select("*",{count:"exact",head:true}),
+    sb.from("profiles").select("*",{count:"exact",head:true}),
+    sb.from("download_events").select("app_id").gte("created_at",weekAgo.toISOString())
+  ]);
+
+  $("adminTodayClicks").textContent=Number(todayClicks||0).toLocaleString("fr-FR");
+  $("adminWeekClicks").textContent=Number(weekClicks||0).toLocaleString("fr-FR");
+  $("adminReviewsCount").textContent=Number(reviewsCount||0).toLocaleString("fr-FR");
+  $("adminUsersCount").textContent=Number(usersCount||0).toLocaleString("fr-FR");
+
+  const tracked={};
+  for(const row of trackedRows||[])tracked[row.app_id]=(tracked[row.app_id]||0)+1;
+
+  $("adminAppsStats").innerHTML=apps.length?apps.map(app=>{
+    const st=reviewStats[app.id]||{avg:0,count:0};
+    return `<div class="admin-app-row">
+      <div class="app-name">${esc(app.name)}</div>
+      <div class="mini-stat">⬇ ${Number(app.downloads||0).toLocaleString("fr-FR")} GitHub</div>
+      <div class="mini-stat">7j : ${Number(tracked[app.id]||0).toLocaleString("fr-FR")} clics</div>
+      <div class="mini-stat">★ ${st.count?st.avg.toFixed(1):"—"} • ${st.count} avis</div>
+    </div>`;
+  }).join(""):'<p class="form-message">Aucune application.</p>';
+}
+
 function openAdmin(){
   if(!isAdmin)return;
   $("adminModal").classList.add("show");
   $("adminModal").setAttribute("aria-hidden","false");
   document.body.classList.add("modal-open");
   loadAdminReports();
+  loadAdminDashboard();
 }
 function closeAdmin(){
   $("adminModal").classList.remove("show");
@@ -531,6 +624,21 @@ $("adminReports").addEventListener("click",async e=>{
   if(currentApp){await loadReviewsForCurrentApp();await loadReviewStats()}
 });
 
-$("shareBtn").addEventListener("click",async()=>{const data={title:"Romuel Apps",text:`Découvre ${$("modalTitle").textContent} sur Romuel Apps`,url:location.href};try{if(navigator.share)await navigator.share(data);else{await navigator.clipboard.writeText(location.href);alert("Lien copié.")}}catch{}});
+$("shareBtn").addEventListener("click",async()=>{
+  if(!currentApp)return;
+  const url=appPageUrl(currentApp);
+  const data={title:`${currentApp.name} — Romuel Apps`,text:`Découvre ${currentApp.name} sur Romuel Apps`,url};
+  try{
+    if(navigator.share)await navigator.share(data);
+    else{await navigator.clipboard.writeText(url);alert("Lien de l’application copié.")}
+  }catch{}
+});
 $("themeBtn").addEventListener("click",()=>{document.body.classList.toggle("light");$("themeBtn").textContent=document.body.classList.contains("light")?"☀":"☾"});
+document.addEventListener("click",async e=>{
+  const a=e.target.closest("a.download, #modalDownload");
+  if(!a)return;
+  const app=currentApp || apps.find(x=>x.apk===a.href || x.apk===a.getAttribute("href"));
+  if(app)trackDownload(app);
+});
+
 elQ.addEventListener("input",filter);elReload.addEventListener("click",loadApps);loadApps();

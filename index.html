@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#07111f">
   <title>Romuel Apps</title>
-  <link rel="stylesheet" href="./style.css?v=5">
+  <link rel="stylesheet" href="./style.css?v=9">
 </head>
 <body>
 <header class="topbar">
@@ -25,7 +25,7 @@
       </div>
       <button class="icon-btn" id="themeBtn" type="button" aria-label="Changer le thème">☾</button>
       <button class="account-btn" id="profileBtn" type="button">Mon profil</button>
-      <button class="account-btn hidden" id="adminBtn" type="button">Modération</button>
+      <button class="account-btn hidden" id="adminBtn" type="button">Admin</button>
     </div>
   </div>
 </header>
@@ -226,9 +226,31 @@
   <section class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="adminTitle">
     <button class="modal-close" type="button" data-close-admin aria-label="Fermer">×</button>
     <span class="eyebrow">ADMINISTRATION</span>
-    <h2 id="adminTitle">Modération</h2>
-    <p class="meta">Signalements en attente et gestion des avis.</p>
-    <div id="adminReports" class="admin-reports"></div>
+    <h2 id="adminTitle">Tableau de bord</h2>
+    <p class="meta">Statistiques du store, applications et modération.</p>
+
+    <section class="admin-stats-grid" id="adminStatsGrid">
+      <div class="admin-stat-card"><span>Applications</span><strong id="adminAppsCount">0</strong></div>
+      <div class="admin-stat-card"><span>Téléchargements GitHub</span><strong id="adminGithubDownloads">0</strong></div>
+      <div class="admin-stat-card"><span>Clics aujourd’hui</span><strong id="adminTodayClicks">0</strong></div>
+      <div class="admin-stat-card"><span>Clics 7 jours</span><strong id="adminWeekClicks">0</strong></div>
+      <div class="admin-stat-card"><span>Avis</span><strong id="adminReviewsCount">0</strong></div>
+      <div class="admin-stat-card"><span>Utilisateurs</span><strong id="adminUsersCount">0</strong></div>
+    </section>
+
+    <section class="admin-section">
+      <div class="section-title-row">
+        <div><h3>Performances des applications</h3><p>Vue rapide des téléchargements et des avis.</p></div>
+      </div>
+      <div id="adminAppsStats" class="admin-apps-stats"></div>
+    </section>
+
+    <section class="admin-section">
+      <div class="section-title-row">
+        <div><h3>Modération</h3><p>Signalements en attente.</p></div>
+      </div>
+      <div id="adminReports" class="admin-reports"></div>
+    </section>
   </section>
 </div>
 
@@ -267,6 +289,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="./script.js?v=5"></script>
+<script src="./script.js?v=9"></script>
 </body>
 </html>

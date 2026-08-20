@@ -1,20 +1,38 @@
-# Romuel Apps v8 — import réel de photo de profil
-
-Cette version corrige l'erreur `permission denied for table profiles` et remplace l'URL de photo par un vrai sélecteur de fichier.
+# Romuel Apps v9 — pages partageables, captures, dashboard admin et statistiques
 
 ## Nouvelles fonctions
-- choisir une photo depuis le téléphone
-- aperçu avant enregistrement
-- PNG / JPG / WebP
-- taille maximale : 5 Mo
-- upload dans Supabase Storage
-- suppression de la photo
-- nom de profil enregistré sans erreur de permission
-- toutes les fonctions v7 conservées
 
-## Réglage Supabase requis
+### 1. Fiches d’application partageables
+Chaque application possède maintenant une URL dédiée, par exemple :
 
-Exécuter une seule fois le SQL fourni dans la conversation pour :
-1. autoriser `updated_at` si nécessaire ;
-2. créer le bucket public `avatars` ;
-3. créer les politiques Storage pour que chaque utilisateur gère uniquement son propre dossier.
+`https://romuelapps.pages.dev/?app=spa-effectifs`
+
+Le bouton **Partager** envoie directement ce lien.
+
+### 2. Captures d’écran
+Dans une Release GitHub :
+- l’image dont le nom contient `logo` ou `icon` devient l’icône ;
+- les autres PNG/JPG/WebP deviennent automatiquement les captures d’écran.
+
+Exemple :
+- `spa-effectifs-logo.png`
+- `screenshot-1.png`
+- `screenshot-2.png`
+
+### 3. Tableau de bord administrateur
+Le bouton **Admin** affiche :
+- nombre d’applications ;
+- téléchargements GitHub cumulés ;
+- clics aujourd’hui ;
+- clics sur 7 jours ;
+- nombre d’avis ;
+- nombre d’utilisateurs ;
+- statistiques par application ;
+- signalements à modérer.
+
+### 4. Statistiques de téléchargement
+Les téléchargements GitHub restent visibles.
+Romuel Apps enregistre aussi les clics de téléchargement dans Supabase pour donner des statistiques par jour/semaine à l’administrateur.
+
+## Supabase
+Exécuter une seule fois le fichier `supabase-v9.sql` avant d’utiliser les nouvelles statistiques.

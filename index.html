@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#07111f">
   <title>Romuel Apps</title>
-  <link rel="stylesheet" href="./style.css?v=10.1">
+  <link rel="stylesheet" href="./style.css?v=11">
 </head>
 <body>
 <header class="topbar">
@@ -34,8 +34,8 @@
   <section class="hero">
     <div class="hero-copy">
       <span class="eyebrow">STORE INDÉPENDANT</span>
-      <h2>Découvre mes applications</h2>
-      <p>Télécharge les dernières versions, consulte les nouveautés et partage ton avis.</p>
+      <h2>Découvre, installe et suis les nouveautés</h2>
+      <p>Un store simple à utiliser : nouvelles applications, mises à jour, avis, favoris et téléchargement direct.</p>
     </div>
     <div class="hero-badge">
       <strong id="appCountHero">0</strong>
@@ -51,28 +51,34 @@
     <select id="categoryFilter" class="sort-select" aria-label="Filtrer par catégorie">
       <option value="all">Toutes les catégories</option>
     </select>
-    <button id="reload" class="secondary-btn" type="button">Actualiser</button>
+    <button id="reload" class="secondary-btn" type="button">↻ Actualiser</button>
   </section>
 
   <div id="status" class="status">Chargement des applications…</div>
 
   <section class="store-tabs" aria-label="Sections du store">
     <button class="store-tab active" data-store-tab="home">Accueil</button>
-    <button class="store-tab" data-store-tab="all">Toutes</button>
+    <button class="store-tab" data-store-tab="all">Toutes les apps</button>
     <button class="store-tab" data-store-tab="favorites">Mes favoris</button>
+  </section>
+
+  <section class="quick-help">
+    <div class="quick-help-item"><span>1</span><div><strong>Choisis une application</strong><small>Parcours les nouveautés ou utilise la recherche.</small></div></div>
+    <div class="quick-help-item"><span>2</span><div><strong>Consulte les détails</strong><small>Version, captures, notes et historique.</small></div></div>
+    <div class="quick-help-item"><span>3</span><div><strong>Télécharge l’APK</strong><small>Le bouton de téléchargement est directement dans la fiche.</small></div></div>
   </section>
 
   <section id="homeView">
     <section class="featured-section">
-      <div class="section-head"><div><span class="eyebrow">NOUVEAUTÉS</span><h3>Dernières applications</h3></div></div>
+      <div class="section-head"><div><span class="eyebrow">NOUVEAUTÉS</span><h3>Nouvelles applications</h3></div></div>
       <div id="newApps" class="horizontal-list"></div>
     </section>
     <section class="featured-section">
-      <div class="section-head"><div><span class="eyebrow">POPULAIRES</span><h3>Les plus téléchargées</h3></div></div>
+      <div class="section-head"><div><span class="eyebrow">POPULAIRES</span><h3>Les plus populaires</h3></div><button class="text-action" type="button" data-go-all>Voir tout</button></div>
       <div id="popularApps" class="horizontal-list"></div>
     </section>
     <section class="featured-section">
-      <div class="section-head"><div><span class="eyebrow">MIEUX NOTÉES</span><h3>Les préférées des utilisateurs</h3></div></div>
+      <div class="section-head"><div><span class="eyebrow">MIEUX NOTÉES</span><h3>Les mieux notées</h3></div><button class="text-action" type="button" data-go-all>Voir tout</button></div>
       <div id="ratedApps" class="horizontal-list"></div>
     </section>
   </section>
@@ -318,6 +324,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="./script.js?v=10.1"></script>
+<script src="./script.js?v=11"></script>
 </body>
 </html>

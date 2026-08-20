@@ -157,13 +157,13 @@ function featureCard(a){
 }
 
 function renderHome(){
-  const recent=[...apps].sort((a,b)=>new Date(b.published)-new Date(a.published)).slice(0,8);
-  const popular=[...apps].sort((a,b)=>(b.downloads||0)-(a.downloads||0)).slice(0,8);
+  const recent=[...apps].sort((a,b)=>new Date(b.published)-new Date(a.published)).slice(0,6);
+  const popular=[...apps].sort((a,b)=>(b.downloads||0)-(a.downloads||0)).slice(0,6);
   const rated=[...apps].sort((a,b)=>{
     const A=reviewStats[a.id]||{avg:0,count:0},B=reviewStats[b.id]||{avg:0,count:0};
     if(B.avg!==A.avg)return B.avg-A.avg;
     return B.count-A.count;
-  }).slice(0,8);
+  }).slice(0,6);
 
   $("newApps").innerHTML=recent.length?recent.map(featureCard).join(""):'<div class="empty-state">Aucune application.</div>';
   $("popularApps").innerHTML=popular.length?popular.map(featureCard).join(""):'<div class="empty-state">Aucune application.</div>';
@@ -747,6 +747,12 @@ document.addEventListener("click",async e=>{
   const app=currentApp || apps.find(x=>x.apk===a.href || x.apk===a.getAttribute("href"));
   if(app)trackDownload(app);
 });
+
+document.querySelectorAll("[data-go-all]").forEach(btn=>btn.addEventListener("click",()=>{
+  currentStoreTab="all";
+  refreshStoreView();
+  document.querySelector(".store-tabs")?.scrollIntoView({behavior:"smooth",block:"start"});
+}));
 
 document.querySelectorAll(".store-tab").forEach(btn=>btn.addEventListener("click",()=>{
   currentStoreTab=btn.dataset.storeTab;

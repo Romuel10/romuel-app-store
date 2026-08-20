@@ -1,27 +1,36 @@
-# Romuel Apps v10.1
+# Romuel Apps v11 — interface responsive et mieux organisée
 
-Correction importante de la v10 :
-- corrige le blocage sur « Chargement des applications… »
-- active réellement Accueil / Toutes / Mes favoris
-- active le filtre par catégorie
-- conserve Nouveautés / Populaires / Mieux notées
-- conserve profils, avis, favoris, modération, statistiques et historique des versions
+Cette version améliore surtout l'expérience sur téléphone.
 
-## Publier une nouvelle application
-Dans le dépôt GitHub des Releases, crée une nouvelle Release.
+## Corrigé
+- plus de défilement horizontal obligatoire
+- cartes adaptées à la largeur de l'écran
+- captures d'écran en grille responsive
+- fiche application plein écran sur mobile
+- boutons et tableaux Admin adaptés aux petits écrans
+- textes longs coupés proprement au lieu d'élargir la page
 
-Exemple :
-Titre : `Ma Nouvelle App v1.0.0`
+## Nouvelle organisation
+La page d'accueil est plus simple pour un nouvel utilisateur :
 
-Description :
-`Description de mon application.
-Catégorie: Outils
-- Première version`
+1. Choisir une application
+2. Consulter ses détails
+3. Télécharger l'APK
 
-Assets :
-- `ma-nouvelle-app.apk`
-- `ma-nouvelle-app-logo.png`
-- `screenshot-1.png`
-- `screenshot-2.png`
+Puis les applications sont organisées en :
+- Nouvelles applications
+- Les plus populaires
+- Les mieux notées
+- Toutes les apps
+- Mes favoris
 
-Publie la Release. Romuel Apps la récupère automatiquement.
+Chaque section d'accueil affiche jusqu'à 6 applications pour éviter une page trop longue.
+Le bouton `Voir tout` ouvre le catalogue complet.
+
+## Responsive
+- ordinateur : 3 cartes par ligne
+- tablette : 2 cartes par ligne
+- téléphone : 1 carte par ligne
+- aucun contenu important ne doit nécessiter de faire défiler la page vers la droite
+
+Toutes les fonctions précédentes sont conservées.

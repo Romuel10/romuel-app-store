@@ -1,14 +1,12 @@
-# Romuel Apps v11.1 — correction du bouton Détails
+# Romuel Apps v11.2 — correction définitive du bouton Détails
 
-Cette version corrige le bouton **Détails** sur l'accueil, le catalogue et les cartes responsive.
+Le bug venait du fait que la v11 ne contenait plus le gestionnaire JavaScript qui ouvrait la fiche.
 
-## Correction technique
-Les boutons utilisent maintenant directement l'identifiant unique de l'application (`data-app-id`) au lieu d'un index dans la liste.
-
-Cela évite les erreurs quand :
-- la liste est filtrée ;
-- les favoris sont affichés ;
-- l'ordre change ;
-- une section comme Nouveautés/Populaires/Mieux notées est utilisée.
+Cette version rétablit :
+- Détails depuis Nouvelles applications
+- Détails depuis Populaires
+- Détails depuis Mieux notées
+- Détails depuis Toutes les apps
+- Détails depuis Mes favoris
 
 Aucune modification Supabase n'est nécessaire.

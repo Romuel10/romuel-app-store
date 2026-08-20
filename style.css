@@ -338,5 +338,6 @@ button,a,input,select,textarea{max-width:100%}
   .admin-stats-grid{grid-template-columns:1fr}
 }
 
-.details,[data-app-id]{cursor:pointer;position:relative;z-index:2;pointer-events:auto}
-.card,.feature-card{position:relative}
+/* V11.2 — boutons Détails tactiles */
+.details{cursor:pointer;pointer-events:auto;touch-action:manipulation;position:relative;z-index:5}
+.feature-card .details,.card .details{pointer-events:auto}

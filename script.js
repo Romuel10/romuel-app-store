@@ -448,6 +448,31 @@ window.addEventListener("popstate",()=>{
 });
 
 
+
+// V11.2 — gestion fiable de tous les boutons "Détails"
+document.addEventListener("click",e=>{
+  const featureBtn=e.target.closest("[data-feature-app]");
+  if(featureBtn){
+    e.preventDefault();
+    const app=apps.find(a=>a.id===featureBtn.dataset.featureApp);
+    if(app) openDetails(app);
+    return;
+  }
+
+  const detailBtn=e.target.closest("[data-details]");
+  if(detailBtn){
+    e.preventDefault();
+
+    let list=currentFiltered();
+    if(currentStoreTab==="favorites"){
+      list=list.filter(a=>favorites.has(a.id));
+    }
+
+    const app=list[Number(detailBtn.dataset.details)];
+    if(app) openDetails(app);
+  }
+});
+
 modal.addEventListener("click",e=>{if(e.target.matches("[data-close-modal]"))closeModal()});
 authModal.addEventListener("click",e=>{if(e.target.matches("[data-close-auth]"))closeAuth()});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeModal();closeAuth();closeProfile();closeReport();closeAdmin()}});

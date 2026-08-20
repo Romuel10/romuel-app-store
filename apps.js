@@ -16,6 +16,6 @@ const apps = [
       "Création de SPA réservée aux utilisateurs autorisés"
     ],
     downloadUrl: "https://github.com/Romuel10/spa-effectifs-releases/releases/download/v3.11.9/SPA.Effectifs.apk",
-    icon: "assets/spa-effectifs.png"
+    icon: "spa-effectifs.png"
   }
 ];

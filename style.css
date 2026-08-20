@@ -42,3 +42,10 @@ footer{border-top:1px solid var(--line);padding:28px 0 42px}.footer-inner{displa
 .screens-gallery img{height:310px;max-width:78vw;border-radius:18px;border:1px solid var(--line);object-fit:cover;scroll-snap-align:start;background:var(--surface2)}
 .favorite-active{border-color:var(--accent)!important;color:var(--accent)!important}
 @media(max-width:650px){.toolbar{grid-template-columns:1fr}.sort-select{width:100%}.screens-gallery img{height:250px}}
+
+.header-user{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px}.header-avatar{width:34px;height:34px;border-radius:50%;object-fit:cover;border:1px solid var(--line);background:var(--surface2)}
+.auth-form textarea{width:100%;border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--text);padding:13px;min-height:120px;resize:vertical;margin-bottom:14px}
+.review-actions{display:flex;gap:10px;align-items:center;margin-top:10px}.report-btn{border:0;background:transparent;color:var(--muted);padding:0;font-weight:700;cursor:pointer}.report-btn:hover{color:var(--danger)}
+.admin-reports{display:grid;gap:14px;margin-top:20px}.admin-report-card{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:18px}.admin-report-card h3{margin:0 0 8px}.admin-report-meta{color:var(--muted);font-size:13px;margin-bottom:10px}.admin-report-reason{padding:12px;background:var(--surface2);border-radius:14px;color:var(--text);margin:10px 0}.admin-actions{display:flex;flex-wrap:wrap;gap:10px}.admin-actions button{min-height:42px;border-radius:12px;padding:0 14px;border:1px solid var(--line);background:var(--surface2);color:var(--text);font-weight:800}.admin-actions .danger{color:var(--danger)}.admin-actions .success{color:var(--accent2)}
+.profile-preview{display:flex;align-items:center;gap:12px;margin:12px 0 18px}.profile-preview img{width:64px;height:64px;border-radius:50%;object-fit:cover;background:var(--surface2);border:1px solid var(--line)}
+@media(max-width:650px){.header-user{display:none!important}.top-actions{gap:6px}.account-btn{padding:0 10px}}

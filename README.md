@@ -1,25 +1,16 @@
-# Romuel Apps v6
-
-Cette version développe encore le store sans changer le système existant.
+# Romuel Apps v7 — profils, favoris synchronisés et modération
 
 ## Nouvelles fonctions
-- compteur réel de téléchargements lu depuis GitHub Releases
-- tri : plus récentes / plus téléchargées / mieux notées
-- favoris enregistrés sur l'appareil
-- galerie de captures d'écran dans la fiche application
-- comptes Supabase, notes et commentaires conservés
-- fiches internes et partage conservés
+- profil utilisateur : nom affiché + avatar URL
+- favoris synchronisés avec Supabase pour les utilisateurs connectés
+- favoris locaux conservés pour les visiteurs non connectés
+- bouton Signaler sur les avis des autres utilisateurs
+- espace Modération visible uniquement si `profiles.is_admin = true`
+- administrateur : rejeter un signalement, masquer un avis ou supprimer un avis
+- toutes les fonctions v6 conservées : téléchargements, tri, captures, notes, commentaires
 
-## Ajouter des captures d'écran
-Dans une Release d'application, ajoute :
-- l'APK
-- un fichier logo dont le nom contient `logo` ou `icon`
-- puis autant d'images PNG/JPG/WebP que tu veux
+## Important
+La table `profiles`, `favorites`, `review_reports` et les politiques RLS doivent avoir été créées avec le SQL v7 fourni auparavant.
 
-Exemple :
-- `spa-effectifs-logo.png`
-- `screenshot-1.png`
-- `screenshot-2.png`
-- `screenshot-3.png`
-
-Le logo sera utilisé comme icône et les autres images apparaîtront automatiquement comme captures d'écran.
+Le compte administrateur doit avoir :
+`profiles.is_admin = true`

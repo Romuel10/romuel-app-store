@@ -19,8 +19,13 @@
     </div>
 
     <div class="top-actions">
+      <div id="headerUser" class="header-user hidden">
+        <img id="headerAvatar" class="header-avatar" alt="">
+        <span id="headerUserName"></span>
+      </div>
       <button class="icon-btn" id="themeBtn" type="button" aria-label="Changer le thème">☾</button>
-      <button class="account-btn" id="accountBtn" type="button">Se connecter</button>
+      <button class="account-btn" id="profileBtn" type="button">Mon profil</button>
+      <button class="account-btn hidden" id="adminBtn" type="button">Modération</button>
     </div>
   </div>
 </header>
@@ -158,6 +163,61 @@
 
       <div id="reviewsList" class="reviews-list"></div>
     </section>
+  </section>
+</div>
+
+<!-- Profil -->
+<div id="profileModal" class="modal" aria-hidden="true">
+  <div class="modal-backdrop" data-close-profile></div>
+  <section class="auth-card" role="dialog" aria-modal="true" aria-labelledby="profileTitle">
+    <button class="modal-close" type="button" data-close-profile aria-label="Fermer">×</button>
+    <span class="eyebrow">MON COMPTE</span>
+    <h2 id="profileTitle">Mon profil</h2>
+
+    <div id="profileLoggedOut">
+      <p class="form-message">Connecte-toi pour gérer ton profil et retrouver tes favoris sur tous tes appareils.</p>
+      <button class="primary-btn full-btn" id="profileLoginBtn" type="button">Se connecter</button>
+    </div>
+
+    <form id="profileForm" class="auth-form hidden">
+      <label for="profileName">Nom affiché</label>
+      <input id="profileName" type="text" maxlength="60" placeholder="Ton nom public">
+
+      <label for="profileAvatar">Photo de profil (URL)</label>
+      <input id="profileAvatar" type="url" placeholder="https://...">
+
+      <button class="primary-btn" type="submit">Enregistrer mon profil</button>
+      <button class="secondary-btn full-btn" id="profileSignOutBtn" type="button">Se déconnecter</button>
+      <p id="profileMessage" class="form-message"></p>
+    </form>
+  </section>
+</div>
+
+<!-- Signalement -->
+<div id="reportModal" class="modal" aria-hidden="true">
+  <div class="modal-backdrop" data-close-report></div>
+  <section class="auth-card" role="dialog" aria-modal="true" aria-labelledby="reportTitle">
+    <button class="modal-close" type="button" data-close-report aria-label="Fermer">×</button>
+    <span class="eyebrow">SIGNALEMENT</span>
+    <h2 id="reportTitle">Signaler cet avis</h2>
+    <form id="reportForm" class="auth-form">
+      <label for="reportReason">Pourquoi souhaites-tu signaler cet avis ?</label>
+      <textarea id="reportReason" minlength="2" maxlength="500" placeholder="Spam, insulte, contenu trompeur…" required></textarea>
+      <button class="primary-btn" type="submit">Envoyer le signalement</button>
+      <p id="reportMessage" class="form-message"></p>
+    </form>
+  </section>
+</div>
+
+<!-- Administration -->
+<div id="adminModal" class="modal" aria-hidden="true">
+  <div class="modal-backdrop" data-close-admin></div>
+  <section class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="adminTitle">
+    <button class="modal-close" type="button" data-close-admin aria-label="Fermer">×</button>
+    <span class="eyebrow">ADMINISTRATION</span>
+    <h2 id="adminTitle">Modération</h2>
+    <p class="meta">Signalements en attente et gestion des avis.</p>
+    <div id="adminReports" class="admin-reports"></div>
   </section>
 </div>
 

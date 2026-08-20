@@ -11,6 +11,7 @@ const elApps=$("apps"),elStatus=$("status"),elQ=$("q"),elReload=$("reload");
 const modal=$("modal"),authModal=$("authModal");
 let apps=[],currentApp=null,currentUser=null,currentRating=0,authMode="signin",reviewStats={};
 let favorites=new Set(JSON.parse(localStorage.getItem("romuelapps_favorites")||"[]"));
+let profile=null,isAdmin=false,reportedReviewId=null;
 
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const initials=s=>s.trim().split(/\s+/).slice(0,2).map(x=>x[0]?.toUpperCase()||"").join("");
@@ -101,6 +102,7 @@ async function loadReviewsForCurrentApp(){
         <span class="review-date">${esc(fmtDate(r.created_at))}</span>
       </div>
       <p class="review-comment">${esc(r.comment)}</p>
+      ${currentUser && currentUser.id!==r.user_id ? `<div class="review-actions"><button class="report-btn" type="button" data-report-review="${r.id}">🚩 Signaler</button></div>` : ""}
     </article>`).join(""):'<p class="form-message">Sois le premier à donner ton avis.</p>';
 
   updateReviewComposer(rows);
@@ -119,6 +121,61 @@ function updateReviewComposer(rows=[]){
 }
 
 function paintStars(n){document.querySelectorAll("#starPicker button").forEach(b=>b.classList.toggle("active",Number(b.dataset.rating)<=n))}
+async function loadProfile(){
+  if(!currentUser){profile=null;isAdmin=false;refreshProfileUI();return}
+  const {data,error}=await sb.from("profiles").select("id,display_name,avatar_url,is_admin").eq("id",currentUser.id).maybeSingle();
+  if(error){console.warn(error);return}
+  profile=data||null;
+  isAdmin=!!profile?.is_admin;
+  refreshProfileUI();
+}
+
+function refreshProfileUI(){
+  const loggedIn=!!currentUser;
+  $("profileLoggedOut").classList.toggle("hidden",loggedIn);
+  $("profileForm").classList.toggle("hidden",!loggedIn);
+  $("adminBtn").classList.toggle("hidden",!isAdmin);
+
+  if(loggedIn){
+    $("profileName").value=profile?.display_name||"";
+    $("profileAvatar").value=profile?.avatar_url||"";
+    $("headerUser").classList.remove("hidden");
+    $("headerUserName").textContent=profile?.display_name||currentUser.email||"Utilisateur";
+    if(profile?.avatar_url){
+      $("headerAvatar").src=profile.avatar_url;
+      $("headerAvatar").style.display="";
+    }else{
+      $("headerAvatar").removeAttribute("src");
+      $("headerAvatar").style.display="none";
+    }
+  }else{
+    $("headerUser").classList.add("hidden");
+  }
+}
+
+async function loadFavoritesFromSupabase(){
+  if(!currentUser)return;
+  const {data,error}=await sb.from("favorites").select("app_id").eq("user_id",currentUser.id);
+  if(error){console.warn(error);return}
+  favorites=new Set((data||[]).map(x=>x.app_id));
+  localStorage.setItem("romuelapps_favorites",JSON.stringify([...favorites]));
+  filter();
+}
+
+async function syncFavorite(appId,shouldFavorite){
+  if(!currentUser){
+    localStorage.setItem("romuelapps_favorites",JSON.stringify([...favorites]));
+    return;
+  }
+  if(shouldFavorite){
+    const {error}=await sb.from("favorites").upsert({user_id:currentUser.id,app_id:appId});
+    if(error)console.warn(error);
+  }else{
+    const {error}=await sb.from("favorites").delete().eq("user_id",currentUser.id).eq("app_id",appId);
+    if(error)console.warn(error);
+  }
+}
+
 
 function openDetails(app){
   currentApp=app;
@@ -161,9 +218,10 @@ function setAuthMode(mode){
 function refreshAuthUI(){
   $("authLoggedOut").classList.toggle("hidden",!!currentUser);
   $("authLoggedIn").classList.toggle("hidden",!currentUser);
-  $("accountBtn").textContent=currentUser?(currentUser.email||"Mon compte"):"Se connecter";
   if(currentUser)$("currentUserEmail").textContent=currentUser.email||"Utilisateur connecté";
   if(currentApp)loadReviewsForCurrentApp();
+  loadProfile();
+  if(currentUser)loadFavoritesFromSupabase();
 }
 
 async function loadApps(){
@@ -182,9 +240,8 @@ async function loadApps(){
 elApps.addEventListener("click",e=>{const btn=e.target.closest("[data-details]");if(!btn)return;const app=currentFiltered()[Number(btn.dataset.details)];if(app)openDetails(app)});
 modal.addEventListener("click",e=>{if(e.target.matches("[data-close-modal]"))closeModal()});
 authModal.addEventListener("click",e=>{if(e.target.matches("[data-close-auth]"))closeAuth()});
-document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeModal();closeAuth()}});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeModal();closeAuth();closeProfile();closeReport();closeAdmin()}});
 
-$("accountBtn").addEventListener("click",openAuth);
 $("loginFromReviewBtn").addEventListener("click",openAuth);
 $("signInTab").addEventListener("click",()=>setAuthMode("signin"));
 $("signUpTab").addEventListener("click",()=>setAuthMode("signup"));
@@ -195,7 +252,7 @@ $("authForm").addEventListener("submit",async e=>{
   const msg=$("authMessage");msg.className="form-message";msg.textContent="Traitement…";
   let result;
   if(authMode==="signin")result=await sb.auth.signInWithPassword({email,password});
-  else result=await sb.auth.signUp({email,password,options:{emailRedirectTo:location.origin}});
+  else result=await sb.auth.signUp({email,password,options:{emailRedirectTo:location.origin,data:{display_name:email.split("@")[0]}}});
   if(result.error){msg.className="form-message error";msg.textContent=result.error.message;return}
   if(authMode==="signup"&&!result.data.session){msg.className="form-message success";msg.textContent="Compte créé. Vérifie ton e-mail pour confirmer l'inscription.";return}
   msg.className="form-message success";msg.textContent="Connexion réussie.";
@@ -233,16 +290,139 @@ $("deleteReviewBtn").addEventListener("click",async()=>{
   await loadReviewsForCurrentApp();await loadReviewStats();
 });
 
-$("favoriteBtn").addEventListener("click",()=>{
+$("favoriteBtn").addEventListener("click",async()=>{
   if(!currentApp)return;
-  if(favorites.has(currentApp.id))favorites.delete(currentApp.id);else favorites.add(currentApp.id);
+  const shouldFavorite=!favorites.has(currentApp.id);
+  if(shouldFavorite)favorites.add(currentApp.id);else favorites.delete(currentApp.id);
   localStorage.setItem("romuelapps_favorites",JSON.stringify([...favorites]));
+  await syncFavorite(currentApp.id,shouldFavorite);
   $("favoriteBtn").textContent=favorites.has(currentApp.id)?"♥ Favori":"♡ Favori";
   $("favoriteBtn").classList.toggle("favorite-active",favorites.has(currentApp.id));
   filter();
 });
 
 $("sortSelect").addEventListener("change",filter);
+
+
+function openProfile(){
+  $("profileModal").classList.add("show");
+  $("profileModal").setAttribute("aria-hidden","false");
+  document.body.classList.add("modal-open");
+  refreshProfileUI();
+}
+function closeProfile(){
+  $("profileModal").classList.remove("show");
+  $("profileModal").setAttribute("aria-hidden","true");
+  document.body.classList.remove("modal-open");
+}
+function openReport(reviewId){
+  if(!currentUser){openAuth();return}
+  reportedReviewId=reviewId;
+  $("reportReason").value="";
+  $("reportMessage").textContent="";
+  $("reportModal").classList.add("show");
+  $("reportModal").setAttribute("aria-hidden","false");
+  document.body.classList.add("modal-open");
+}
+function closeReport(){
+  $("reportModal").classList.remove("show");
+  $("reportModal").setAttribute("aria-hidden","true");
+  document.body.classList.remove("modal-open");
+  reportedReviewId=null;
+}
+async function loadAdminReports(){
+  if(!isAdmin)return;
+  const {data,error}=await sb.from("review_reports")
+    .select("id,reason,status,created_at,review_id,reporter_id,reviews(id,app_id,user_id,user_name,rating,comment,moderation_status,created_at)")
+    .eq("status","pending")
+    .order("created_at",{ascending:false});
+  const box=$("adminReports");
+  if(error){box.innerHTML=`<p class="form-message error">${esc(error.message)}</p>`;return}
+  const rows=data||[];
+  box.innerHTML=rows.length?rows.map(x=>{
+    const r=x.reviews||{};
+    return `<article class="admin-report-card">
+      <h3>${esc(r.user_name||"Utilisateur")} • ${esc(r.app_id||"")}</h3>
+      <div class="admin-report-meta">${esc(fmtDate(x.created_at))} • Signalement #${x.id}</div>
+      <p class="review-comment">${esc(r.comment||"Avis indisponible")}</p>
+      <div class="admin-report-reason"><strong>Motif :</strong> ${esc(x.reason)}</div>
+      <div class="admin-actions">
+        <button type="button" class="success" data-admin-action="dismiss" data-report-id="${x.id}">Rejeter le signalement</button>
+        <button type="button" data-admin-action="hide" data-report-id="${x.id}" data-review-id="${r.id||""}">Masquer l’avis</button>
+        <button type="button" class="danger" data-admin-action="delete" data-report-id="${x.id}" data-review-id="${r.id||""}">Supprimer l’avis</button>
+      </div>
+    </article>`;
+  }).join(""):'<p class="form-message">Aucun signalement en attente.</p>';
+}
+function openAdmin(){
+  if(!isAdmin)return;
+  $("adminModal").classList.add("show");
+  $("adminModal").setAttribute("aria-hidden","false");
+  document.body.classList.add("modal-open");
+  loadAdminReports();
+}
+function closeAdmin(){
+  $("adminModal").classList.remove("show");
+  $("adminModal").setAttribute("aria-hidden","true");
+  document.body.classList.remove("modal-open");
+}
+
+$("profileBtn").addEventListener("click",openProfile);
+$("profileLoginBtn").addEventListener("click",()=>{closeProfile();openAuth()});
+$("profileSignOutBtn").addEventListener("click",async()=>{await sb.auth.signOut();closeProfile()});
+$("adminBtn").addEventListener("click",openAdmin);
+
+$("profileModal").addEventListener("click",e=>{if(e.target.matches("[data-close-profile]"))closeProfile()});
+$("reportModal").addEventListener("click",e=>{if(e.target.matches("[data-close-report]"))closeReport()});
+$("adminModal").addEventListener("click",e=>{if(e.target.matches("[data-close-admin]"))closeAdmin()});
+
+$("profileForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  if(!currentUser)return;
+  const display_name=$("profileName").value.trim();
+  const avatar_url=$("profileAvatar").value.trim()||null;
+  const msg=$("profileMessage"); msg.className="form-message"; msg.textContent="Enregistrement…";
+  const {error}=await sb.from("profiles").update({display_name,avatar_url,updated_at:new Date().toISOString()}).eq("id",currentUser.id);
+  if(error){msg.className="form-message error";msg.textContent=error.message;return}
+  msg.className="form-message success";msg.textContent="Profil enregistré.";
+  await loadProfile();
+});
+
+$("reviewsList").addEventListener("click",e=>{
+  const btn=e.target.closest("[data-report-review]");
+  if(btn)openReport(Number(btn.dataset.reportReview));
+});
+
+$("reportForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  if(!currentUser||!reportedReviewId)return;
+  const reason=$("reportReason").value.trim();
+  const msg=$("reportMessage");msg.className="form-message";msg.textContent="Envoi…";
+  const {error}=await sb.from("review_reports").insert({review_id:reportedReviewId,reporter_id:currentUser.id,reason});
+  if(error){
+    msg.className="form-message error";
+    msg.textContent=error.code==="23505"?"Tu as déjà signalé cet avis.":error.message;
+    return;
+  }
+  msg.className="form-message success";msg.textContent="Signalement envoyé.";
+  setTimeout(closeReport,700);
+});
+
+$("adminReports").addEventListener("click",async e=>{
+  const btn=e.target.closest("[data-admin-action]"); if(!btn)return;
+  const action=btn.dataset.adminAction,reportId=Number(btn.dataset.reportId),reviewId=Number(btn.dataset.reviewId);
+  if(action==="dismiss"){
+    await sb.from("review_reports").update({status:"dismissed"}).eq("id",reportId);
+  }else if(action==="hide"){
+    if(reviewId)await sb.from("reviews").update({moderation_status:"hidden"}).eq("id",reviewId);
+    await sb.from("review_reports").update({status:"reviewed"}).eq("id",reportId);
+  }else if(action==="delete"){
+    if(reviewId)await sb.from("reviews").delete().eq("id",reviewId);
+    await sb.from("review_reports").update({status:"reviewed"}).eq("id",reportId);
+  }
+  await loadAdminReports();
+  if(currentApp){await loadReviewsForCurrentApp();await loadReviewStats()}
+});
 
 $("shareBtn").addEventListener("click",async()=>{const data={title:"Romuel Apps",text:`Découvre ${$("modalTitle").textContent} sur Romuel Apps`,url:location.href};try{if(navigator.share)await navigator.share(data);else{await navigator.clipboard.writeText(location.href);alert("Lien copié.")}}catch{}});
 $("themeBtn").addEventListener("click",()=>{document.body.classList.toggle("light");$("themeBtn").textContent=document.body.classList.contains("light")?"☀":"☾"});

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#07111f">
   <title>Romuel Apps</title>
-  <link rel="stylesheet" href="./style.css?v=11.4">
+  <link rel="stylesheet" href="./style.css?v=12">
 </head>
 <body>
 <header class="topbar">
@@ -60,6 +60,7 @@
     <button class="store-tab active" data-store-tab="home">Accueil</button>
     <button class="store-tab" data-store-tab="all">Toutes les apps</button>
     <button class="store-tab" data-store-tab="favorites">Mes favoris</button>
+    <button class="store-tab hidden" id="gendarmerieTab" data-store-tab="gendarmerie">🔒 Gendarmerie</button>
   </section>
 
   <section class="quick-help">
@@ -86,6 +87,18 @@
   <section id="catalogView" class="hidden">
     <section class="section-head"><div><span class="eyebrow">CATALOGUE</span><h3 id="catalogTitle">Toutes les applications</h3></div></section>
     <section id="apps" class="grid"></section>
+  </section>
+
+  <section id="gendarmerieView" class="hidden">
+    <section class="private-hero">
+      <div>
+        <span class="eyebrow">ESPACE PROTÉGÉ</span>
+        <h3>Applications réservées Gendarmerie</h3>
+        <p>Ces applications ne sont visibles et téléchargeables que par les comptes autorisés.</p>
+      </div>
+      <span class="lock-pill">🔒 Accès contrôlé</span>
+    </section>
+    <section id="privateApps" class="grid"></section>
   </section>
 </main>
 
@@ -282,6 +295,31 @@
 
     <section class="admin-section">
       <div class="section-title-row">
+        <div><h3>Accès Gendarmerie</h3><p>Autorise ou retire l’accès aux applications privées.</p></div>
+      </div>
+      <div id="adminUsersAccess" class="admin-users-access"></div>
+    </section>
+
+    <section class="admin-section">
+      <div class="section-title-row">
+        <div><h3>Publier une application privée</h3><p>L’APK sera stocké dans un bucket privé Supabase.</p></div>
+      </div>
+      <form id="privateAppForm" class="private-app-form">
+        <input id="privateAppName" required placeholder="Nom de l’application">
+        <input id="privateAppVersion" required placeholder="Version, ex. 1.0.0">
+        <input id="privateAppCategory" placeholder="Catégorie, ex. Gestion">
+        <textarea id="privateAppDescription" required placeholder="Description"></textarea>
+        <label>APK privé</label>
+        <input id="privateAppApk" type="file" accept=".apk,application/vnd.android.package-archive" required>
+        <label>Logo (optionnel)</label>
+        <input id="privateAppLogo" type="file" accept="image/png,image/jpeg,image/webp">
+        <button class="primary-btn" type="submit">Publier dans l’espace Gendarmerie</button>
+        <p id="privateAppMessage" class="form-message"></p>
+      </form>
+    </section>
+
+    <section class="admin-section">
+      <div class="section-title-row">
         <div><h3>Modération</h3><p>Signalements en attente.</p></div>
       </div>
       <div id="adminReports" class="admin-reports"></div>
@@ -324,6 +362,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="./script.js?v=11.4"></script>
+<script src="./script.js?v=12"></script>
 </body>
 </html>

@@ -11,6 +11,7 @@ const elApps=$("apps"),elStatus=$("status"),elQ=$("q"),elReload=$("reload");
 const modal=$("modal"),authModal=$("authModal");
 let apps=[],currentApp=null,currentUser=null,currentRating=0,authMode="signin",reviewStats={};
 let currentStoreTab="home";
+let privateApps=[];
 let favorites=new Set(JSON.parse(localStorage.getItem("romuelapps_favorites")||"[]"));
 let profile=null,isAdmin=false,reportedReviewId=null;
 let selectedAvatarFile=null,removeAvatarRequested=false;
@@ -174,9 +175,11 @@ function refreshStoreView(){
   $("appCountHero").textContent=apps.length;
   document.querySelectorAll(".store-tab").forEach(b=>b.classList.toggle("active",b.dataset.storeTab===currentStoreTab));
   $("homeView").classList.toggle("hidden",currentStoreTab!=="home");
-  $("catalogView").classList.toggle("hidden",currentStoreTab==="home");
+  $("catalogView").classList.toggle("hidden",currentStoreTab==="home" || currentStoreTab==="gendarmerie");
+  $("gendarmerieView").classList.toggle("hidden",currentStoreTab!=="gendarmerie");
 
   if(currentStoreTab==="home"){renderHome();return}
+  if(currentStoreTab==="gendarmerie"){loadPrivateApps();return}
 
   let list=currentFiltered();
   if(currentStoreTab==="favorites"){
@@ -302,8 +305,20 @@ async function loadProfile(){
   profile=data||null;
   isAdmin=!!profile?.is_admin;
   refreshProfileUI();
+  refreshPrivateAccessUI();
 }
 
+
+function hasGendarmerieAccess(){
+  return !!currentUser && (isAdmin || profile?.access_level==="gendarme");
+}
+function refreshPrivateAccessUI(){
+  const allowed=hasGendarmerieAccess();
+  $("gendarmerieTab")?.classList.toggle("hidden",!allowed);
+  if(!allowed && currentStoreTab==="gendarmerie"){
+    currentStoreTab="home";
+  }
+}
 function refreshProfileUI(){
   const loggedIn=!!currentUser;
   $("profileLoggedOut").classList.toggle("hidden",loggedIn);
@@ -416,8 +431,77 @@ function refreshAuthUI(){
   if(currentApp)loadReviewsForCurrentApp();
   loadProfile();
   if(currentUser)loadFavoritesFromSupabase();
+  refreshPrivateAccessUI();
 }
 
+
+async function loadPrivateApps(){
+  if(!hasGendarmerieAccess()){
+    privateApps=[];
+    $("privateApps").innerHTML="";
+    return;
+  }
+  const {data,error}=await sb.from("private_apps")
+    .select("id,slug,name,version,category,description,apk_path,logo_path,created_at")
+    .order("created_at",{ascending:false});
+  if(error){
+    $("privateApps").innerHTML=`<div class="empty-state">Impossible de charger l’espace privé.</div>`;
+    console.warn(error);
+    return;
+  }
+  privateApps=data||[];
+  renderPrivateApps();
+}
+
+async function signedAsset(path,expires=300){
+  if(!path)return "";
+  const {data,error}=await sb.storage.from("gendarmerie-apps").createSignedUrl(path,expires);
+  if(error)throw error;
+  return data.signedUrl;
+}
+
+function renderPrivateApps(){
+  const box=$("privateApps");
+  if(!privateApps.length){
+    box.innerHTML='<div class="empty-state">Aucune application privée publiée.</div>';
+    return;
+  }
+
+  box.innerHTML=privateApps.map(a=>`
+    <article class="card private-card">
+      <div class="head">
+        <div class="fallback">🔒</div>
+        <div>
+          <h3>${esc(a.name)}</h3>
+          <p class="meta">Version ${esc(a.version)}</p>
+          <div class="detail-badges"><span class="private-badge">Gendarmerie</span><span class="category-badge">${esc(a.category||"Privé")}</span></div>
+        </div>
+      </div>
+      <p class="desc">${esc(a.description||"Application réservée.")}</p>
+      <div class="actions">
+        <button class="download" type="button" data-private-download="${esc(a.id)}">Télécharger</button>
+      </div>
+    </article>
+  `).join("");
+
+  // Charger les logos privés avec URL signée.
+  privateApps.forEach(async a=>{
+    if(!a.logo_path)return;
+    try{
+      const url=await signedAsset(a.logo_path,300);
+      const btn=box.querySelector(`[data-private-download="${CSS.escape(a.id)}"]`);
+      const card=btn?.closest(".card");
+      const fb=card?.querySelector(".fallback");
+      if(fb){
+        const img=document.createElement("img");
+        img.className="icon";
+        img.src=url;
+        img.alt=`Logo ${a.name}`;
+        fb.replaceWith(img);
+      }
+    }catch(e){console.warn(e)}
+  });
+}
 async function loadApps(){
   elStatus.className="status";elStatus.textContent="Chargement des applications…";elReload.disabled=true;
   try{
@@ -762,6 +846,102 @@ $("adminReports").addEventListener("click",async e=>{
   if(currentApp){await loadReviewsForCurrentApp();await loadReviewStats()}
 });
 
+
+document.addEventListener("click",async e=>{
+  const btn=e.target.closest("[data-private-download]");
+  if(!btn)return;
+  if(!hasGendarmerieAccess()){
+    alert("Accès réservé.");
+    return;
+  }
+  const app=privateApps.find(x=>String(x.id)===btn.dataset.privateDownload);
+  if(!app)return;
+  btn.disabled=true;
+  const old=btn.textContent;
+  btn.textContent="Préparation…";
+  try{
+    const url=await signedAsset(app.apk_path,120);
+    location.href=url;
+  }catch(err){
+    alert("Téléchargement impossible.");
+    console.warn(err);
+  }finally{
+    btn.disabled=false;
+    btn.textContent=old;
+  }
+});
+
+async function loadAdminUsersAccess(){
+  if(!isAdmin)return;
+  const {data,error}=await sb.from("profiles")
+    .select("id,display_name,access_level,is_admin,created_at")
+    .order("created_at",{ascending:true});
+  const box=$("adminUsersAccess");
+  if(error){box.innerHTML=`<p class="form-message error">${esc(error.message)}</p>`;return}
+  box.innerHTML=(data||[]).map(u=>`
+    <div class="user-access-row">
+      <div>
+        <strong>${esc(u.display_name||"Utilisateur")}</strong>
+        <div class="user-id">${esc(u.id)}</div>
+      </div>
+      <span class="access-pill">${u.is_admin?"Admin":u.access_level==="gendarme"?"Gendarme":"Public"}</span>
+      ${u.is_admin?'<span></span>':`<button class="secondary-btn" type="button" data-set-access="${esc(u.id)}" data-next-access="${u.access_level==="gendarme"?"public":"gendarme"}">${u.access_level==="gendarme"?"Retirer accès":"Autoriser Gendarmerie"}</button>`}
+    </div>
+  `).join("") || '<p class="form-message">Aucun utilisateur.</p>';
+}
+
+$("adminUsersAccess").addEventListener("click",async e=>{
+  const btn=e.target.closest("[data-set-access]");
+  if(!btn)return;
+  const userId=btn.dataset.setAccess,next=btn.dataset.nextAccess;
+  btn.disabled=true;
+  const {error}=await sb.rpc("set_user_access",{target_user:userId,new_access:next});
+  if(error){alert(error.message);btn.disabled=false;return}
+  await loadAdminUsersAccess();
+});
+
+$("privateAppForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  if(!isAdmin)return;
+  const msg=$("privateAppMessage");
+  msg.className="form-message";
+  msg.textContent="Publication…";
+
+  try{
+    const name=$("privateAppName").value.trim();
+    const version=$("privateAppVersion").value.trim();
+    const category=$("privateAppCategory").value.trim()||"Privé";
+    const description=$("privateAppDescription").value.trim();
+    const apk=$("privateAppApk").files?.[0];
+    const logo=$("privateAppLogo").files?.[0];
+    if(!apk)throw new Error("Choisis un APK.");
+
+    const slug=slugify(name);
+    const base=`${slug}/${Date.now()}`;
+    const apkPath=`${base}/${apk.name}`;
+
+    const upApk=await sb.storage.from("gendarmerie-apps").upload(apkPath,apk,{upsert:false,contentType:apk.type||"application/vnd.android.package-archive"});
+    if(upApk.error)throw upApk.error;
+
+    let logoPath=null;
+    if(logo){
+      logoPath=`${base}/${logo.name}`;
+      const upLogo=await sb.storage.from("gendarmerie-apps").upload(logoPath,logo,{upsert:false,contentType:logo.type});
+      if(upLogo.error)throw upLogo.error;
+    }
+
+    const ins=await sb.from("private_apps").insert({slug,name,version,category,description,apk_path:apkPath,logo_path:logoPath,created_by:currentUser.id});
+    if(ins.error)throw ins.error;
+
+    msg.className="form-message success";
+    msg.textContent="Application privée publiée.";
+    e.target.reset();
+    await loadPrivateApps();
+  }catch(err){
+    msg.className="form-message error";
+    msg.textContent=err.message||"Publication impossible.";
+  }
+});
 $("shareBtn").addEventListener("click",async()=>{
   if(!currentApp)return;
   const url=appPageUrl(currentApp);

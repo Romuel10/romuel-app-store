@@ -1,36 +1,14 @@
-# Romuel Apps v11 — interface responsive et mieux organisée
+# Romuel Apps v11.1 — correction du bouton Détails
 
-Cette version améliore surtout l'expérience sur téléphone.
+Cette version corrige le bouton **Détails** sur l'accueil, le catalogue et les cartes responsive.
 
-## Corrigé
-- plus de défilement horizontal obligatoire
-- cartes adaptées à la largeur de l'écran
-- captures d'écran en grille responsive
-- fiche application plein écran sur mobile
-- boutons et tableaux Admin adaptés aux petits écrans
-- textes longs coupés proprement au lieu d'élargir la page
+## Correction technique
+Les boutons utilisent maintenant directement l'identifiant unique de l'application (`data-app-id`) au lieu d'un index dans la liste.
 
-## Nouvelle organisation
-La page d'accueil est plus simple pour un nouvel utilisateur :
+Cela évite les erreurs quand :
+- la liste est filtrée ;
+- les favoris sont affichés ;
+- l'ordre change ;
+- une section comme Nouveautés/Populaires/Mieux notées est utilisée.
 
-1. Choisir une application
-2. Consulter ses détails
-3. Télécharger l'APK
-
-Puis les applications sont organisées en :
-- Nouvelles applications
-- Les plus populaires
-- Les mieux notées
-- Toutes les apps
-- Mes favoris
-
-Chaque section d'accueil affiche jusqu'à 6 applications pour éviter une page trop longue.
-Le bouton `Voir tout` ouvre le catalogue complet.
-
-## Responsive
-- ordinateur : 3 cartes par ligne
-- tablette : 2 cartes par ligne
-- téléphone : 1 carte par ligne
-- aucun contenu important ne doit nécessiter de faire défiler la page vers la droite
-
-Toutes les fonctions précédentes sont conservées.
+Aucune modification Supabase n'est nécessaire.

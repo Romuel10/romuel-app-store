@@ -337,3 +337,6 @@ button,a,input,select,textarea{max-width:100%}
   .hero h2{font-size:30px}
   .admin-stats-grid{grid-template-columns:1fr}
 }
+
+.details,[data-app-id]{cursor:pointer;position:relative;z-index:2;pointer-events:auto}
+.card,.feature-card{position:relative}

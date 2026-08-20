@@ -183,8 +183,19 @@
       <label for="profileName">Nom affiché</label>
       <input id="profileName" type="text" maxlength="60" placeholder="Ton nom public">
 
-      <label for="profileAvatar">Photo de profil (URL)</label>
-      <input id="profileAvatar" type="url" placeholder="https://...">
+      <label>Photo de profil</label>
+      <div class="avatar-uploader">
+        <div class="avatar-preview-wrap">
+          <img id="profileAvatarPreview" class="profile-avatar-preview" alt="Aperçu de la photo de profil">
+          <div id="profileAvatarFallback" class="profile-avatar-fallback">👤</div>
+        </div>
+        <div class="avatar-upload-actions">
+          <label class="secondary-btn file-label" for="profileAvatarFile">Choisir une photo</label>
+          <input id="profileAvatarFile" type="file" accept="image/png,image/jpeg,image/webp" hidden>
+          <button id="removeAvatarBtn" class="danger-link" type="button">Supprimer la photo</button>
+          <small>PNG, JPG ou WebP • 5 Mo maximum</small>
+        </div>
+      </div>
 
       <button class="primary-btn" type="submit">Enregistrer mon profil</button>
       <button class="secondary-btn full-btn" id="profileSignOutBtn" type="button">Se déconnecter</button>

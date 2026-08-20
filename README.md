@@ -1,16 +1,20 @@
-# Romuel Apps v7 — profils, favoris synchronisés et modération
+# Romuel Apps v8 — import réel de photo de profil
+
+Cette version corrige l'erreur `permission denied for table profiles` et remplace l'URL de photo par un vrai sélecteur de fichier.
 
 ## Nouvelles fonctions
-- profil utilisateur : nom affiché + avatar URL
-- favoris synchronisés avec Supabase pour les utilisateurs connectés
-- favoris locaux conservés pour les visiteurs non connectés
-- bouton Signaler sur les avis des autres utilisateurs
-- espace Modération visible uniquement si `profiles.is_admin = true`
-- administrateur : rejeter un signalement, masquer un avis ou supprimer un avis
-- toutes les fonctions v6 conservées : téléchargements, tri, captures, notes, commentaires
+- choisir une photo depuis le téléphone
+- aperçu avant enregistrement
+- PNG / JPG / WebP
+- taille maximale : 5 Mo
+- upload dans Supabase Storage
+- suppression de la photo
+- nom de profil enregistré sans erreur de permission
+- toutes les fonctions v7 conservées
 
-## Important
-La table `profiles`, `favorites`, `review_reports` et les politiques RLS doivent avoir été créées avec le SQL v7 fourni auparavant.
+## Réglage Supabase requis
 
-Le compte administrateur doit avoir :
-`profiles.is_admin = true`
+Exécuter une seule fois le SQL fourni dans la conversation pour :
+1. autoriser `updated_at` si nécessaire ;
+2. créer le bucket public `avatars` ;
+3. créer les politiques Storage pour que chaque utilisateur gère uniquement son propre dossier.

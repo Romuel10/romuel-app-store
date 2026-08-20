@@ -12,6 +12,7 @@ const modal=$("modal"),authModal=$("authModal");
 let apps=[],currentApp=null,currentUser=null,currentRating=0,authMode="signin",reviewStats={};
 let favorites=new Set(JSON.parse(localStorage.getItem("romuelapps_favorites")||"[]"));
 let profile=null,isAdmin=false,reportedReviewId=null;
+let selectedAvatarFile=null,removeAvatarRequested=false;
 
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const initials=s=>s.trim().split(/\s+/).slice(0,2).map(x=>x[0]?.toUpperCase()||"").join("");
@@ -121,6 +122,59 @@ function updateReviewComposer(rows=[]){
 }
 
 function paintStars(n){document.querySelectorAll("#starPicker button").forEach(b=>b.classList.toggle("active",Number(b.dataset.rating)<=n))}
+
+function setAvatarPreview(url=""){
+  const img=$("profileAvatarPreview"),fallback=$("profileAvatarFallback");
+  if(url){
+    img.src=url;
+    img.style.display="block";
+    fallback.style.display="none";
+  }else{
+    img.removeAttribute("src");
+    img.style.display="none";
+    fallback.style.display="grid";
+  }
+}
+
+function avatarFileExt(file){
+  const byType={"image/png":"png","image/jpeg":"jpg","image/webp":"webp"};
+  return byType[file.type]||"jpg";
+}
+
+async function uploadAvatarIfNeeded(){
+  if(!currentUser)return profile?.avatar_url||null;
+
+  if(removeAvatarRequested){
+    const {data:files}=await sb.storage.from("avatars").list(currentUser.id);
+    if(files?.length){
+      await sb.storage.from("avatars").remove(files.map(f=>`${currentUser.id}/${f.name}`));
+    }
+    return null;
+  }
+
+  if(!selectedAvatarFile)return profile?.avatar_url||null;
+
+  if(selectedAvatarFile.size>5*1024*1024)throw new Error("La photo ne doit pas dépasser 5 Mo.");
+
+  const ext=avatarFileExt(selectedAvatarFile);
+  const path=`${currentUser.id}/avatar.${ext}`;
+
+  const {data:files}=await sb.storage.from("avatars").list(currentUser.id);
+  if(files?.length){
+    await sb.storage.from("avatars").remove(files.map(f=>`${currentUser.id}/${f.name}`));
+  }
+
+  const {error:uploadError}=await sb.storage.from("avatars").upload(path,selectedAvatarFile,{
+    upsert:true,
+    contentType:selectedAvatarFile.type,
+    cacheControl:"3600"
+  });
+  if(uploadError)throw uploadError;
+
+  const {data}=sb.storage.from("avatars").getPublicUrl(path);
+  return `${data.publicUrl}?v=${Date.now()}`;
+}
+
 async function loadProfile(){
   if(!currentUser){profile=null;isAdmin=false;refreshProfileUI();return}
   const {data,error}=await sb.from("profiles").select("id,display_name,avatar_url,is_admin").eq("id",currentUser.id).maybeSingle();
@@ -138,7 +192,9 @@ function refreshProfileUI(){
 
   if(loggedIn){
     $("profileName").value=profile?.display_name||"";
-    $("profileAvatar").value=profile?.avatar_url||"";
+    setAvatarPreview(profile?.avatar_url||"");
+    selectedAvatarFile=null;
+    removeAvatarRequested=false;
     $("headerUser").classList.remove("hidden");
     $("headerUserName").textContent=profile?.display_name||currentUser.email||"Utilisateur";
     if(profile?.avatar_url){
@@ -379,13 +435,64 @@ $("adminModal").addEventListener("click",e=>{if(e.target.matches("[data-close-ad
 $("profileForm").addEventListener("submit",async e=>{
   e.preventDefault();
   if(!currentUser)return;
+
   const display_name=$("profileName").value.trim();
-  const avatar_url=$("profileAvatar").value.trim()||null;
-  const msg=$("profileMessage"); msg.className="form-message"; msg.textContent="Enregistrement…";
-  const {error}=await sb.from("profiles").update({display_name,avatar_url,updated_at:new Date().toISOString()}).eq("id",currentUser.id);
-  if(error){msg.className="form-message error";msg.textContent=error.message;return}
-  msg.className="form-message success";msg.textContent="Profil enregistré.";
-  await loadProfile();
+  const msg=$("profileMessage");
+  msg.className="form-message";
+  msg.textContent="Enregistrement…";
+
+  try{
+    const avatar_url=await uploadAvatarIfNeeded();
+
+    // On met à jour uniquement les colonnes autorisées par Supabase.
+    const {error}=await sb.from("profiles")
+      .update({display_name,avatar_url})
+      .eq("id",currentUser.id);
+
+    if(error)throw error;
+
+    selectedAvatarFile=null;
+    removeAvatarRequested=false;
+    msg.className="form-message success";
+    msg.textContent="Profil enregistré.";
+    await loadProfile();
+  }catch(error){
+    msg.className="form-message error";
+    msg.textContent=error.message||"Impossible d’enregistrer le profil.";
+  }
+});
+
+$("profileAvatarFile").addEventListener("change",e=>{
+  const file=e.target.files?.[0];
+  if(!file)return;
+
+  if(!["image/png","image/jpeg","image/webp"].includes(file.type)){
+    $("profileMessage").className="form-message error";
+    $("profileMessage").textContent="Choisis une image PNG, JPG ou WebP.";
+    e.target.value="";
+    return;
+  }
+
+  if(file.size>5*1024*1024){
+    $("profileMessage").className="form-message error";
+    $("profileMessage").textContent="La photo ne doit pas dépasser 5 Mo.";
+    e.target.value="";
+    return;
+  }
+
+  selectedAvatarFile=file;
+  removeAvatarRequested=false;
+  setAvatarPreview(URL.createObjectURL(file));
+  $("profileMessage").textContent="";
+});
+
+$("removeAvatarBtn").addEventListener("click",()=>{
+  selectedAvatarFile=null;
+  removeAvatarRequested=true;
+  $("profileAvatarFile").value="";
+  setAvatarPreview("");
+  $("profileMessage").className="form-message";
+  $("profileMessage").textContent="La photo sera supprimée après Enregistrer mon profil.";
 });
 
 $("reviewsList").addEventListener("click",e=>{

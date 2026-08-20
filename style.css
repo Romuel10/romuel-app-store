@@ -72,3 +72,29 @@ footer{border-top:1px solid var(--line);padding:28px 0 42px}.footer-inner{displa
   .admin-app-row{grid-template-columns:1fr 1fr}
   .admin-app-row .app-name{grid-column:1/-1}
 }
+
+/* v10 store */
+.store-tabs{display:flex;gap:8px;overflow-x:auto;padding:4px 0 18px}
+.store-tab{min-height:44px;padding:0 16px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--muted);font-weight:850;white-space:nowrap}
+.store-tab.active{background:linear-gradient(135deg,var(--accent2),var(--accent));color:#06131c;border-color:transparent}
+.featured-section{margin-top:26px}
+.horizontal-list{display:flex;gap:16px;overflow-x:auto;padding:4px 2px 10px;scroll-snap-type:x mandatory}
+.feature-card{width:min(330px,86vw);flex:0 0 min(330px,86vw);scroll-snap-align:start;background:linear-gradient(180deg,var(--surface2),var(--surface));border:1px solid var(--line);border-radius:24px;padding:18px;display:flex;flex-direction:column;gap:14px}
+.feature-card .head .icon,.feature-card .head .fallback{width:72px;height:72px;flex-basis:72px;border-radius:20px}
+.feature-card h4{margin:0 0 5px;font-size:20px}
+.feature-card .feature-actions{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:auto}
+.feature-card .feature-actions a,.feature-card .feature-actions button{min-height:44px;border-radius:13px;display:flex;align-items:center;justify-content:center;text-decoration:none;font-weight:850}
+.category-badge,.new-badge{display:inline-flex;align-items:center;min-height:26px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:900;letter-spacing:.04em}
+.category-badge{background:var(--surface2);border:1px solid var(--line);color:var(--muted)}
+.new-badge{background:rgba(117,241,210,.15);border:1px solid rgba(117,241,210,.35);color:var(--accent2)}
+.detail-badges{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.versions-section{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:20px;margin-top:14px}
+.versions-section h3{margin:0 0 6px}.versions-section p{margin:0;color:var(--muted)}
+.versions-list{display:grid;gap:10px;margin-top:14px}
+.version-row{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
+.version-row:first-child{border-top:0}
+.version-pill{padding:6px 9px;border-radius:10px;background:var(--surface2);font-weight:900}
+.version-row .version-date{color:var(--muted);font-size:12px}
+.version-row a{color:var(--accent);text-decoration:none;font-weight:800}
+.empty-state{padding:24px;border:1px dashed var(--line);border-radius:18px;color:var(--muted);text-align:center}
+@media(max-width:650px){.toolbar{grid-template-columns:1fr}.store-tabs{padding-bottom:12px}}

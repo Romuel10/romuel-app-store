@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#07111f">
   <title>Romuel Apps</title>
-  <link rel="stylesheet" href="./style.css?v=9.1">
+  <link rel="stylesheet" href="./style.css?v=10">
 </head>
 <body>
 <header class="topbar">
@@ -90,6 +90,10 @@
         <span class="eyebrow">APPLICATION</span>
         <h2 id="modalTitle"></h2>
         <p id="modalMeta" class="meta"></p>
+        <div class="detail-badges">
+          <span id="modalCategory" class="category-badge"></span>
+          <span id="modalNewBadge" class="new-badge hidden">Nouveau</span>
+        </div>
         <div class="rating-line">
           <span id="modalStars" class="stars">☆☆☆☆☆</span>
           <span id="modalRatingText">Aucun avis</span>
@@ -124,6 +128,16 @@
         </div>
       </div>
       <div id="screensGallery" class="screens-gallery"></div>
+    </section>
+
+    <section class="versions-section">
+      <div class="section-title-row">
+        <div>
+          <h3>Historique des versions</h3>
+          <p>Les dernières versions disponibles de cette application.</p>
+        </div>
+      </div>
+      <div id="versionsList" class="versions-list"></div>
     </section>
 
     <section class="reviews-section">
@@ -289,6 +303,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="./script.js?v=9.1"></script>
+<script src="./script.js?v=10"></script>
 </body>
 </html>

@@ -1,19 +1,41 @@
-# Romuel Apps v9.1 — correction icône / captures
+# Romuel Apps v10 — vrai store
 
-Cette version corrige le bug où une capture d'écran pouvait devenir l'icône de l'application.
+## Nouveautés
+- page d'accueil avec **Nouveautés**
+- section **Populaires**
+- section **Mieux notées**
+- catégories automatiques
+- filtre par catégorie
+- onglet **Mes favoris**
+- badge **Nouveau** pendant 30 jours
+- historique des versions dans chaque fiche
+- recherche améliorée
+- toutes les fonctions précédentes conservées : comptes, avis, profils, favoris synchronisés, signalements, modération, statistiques admin
 
-## Règle
-Une image devient l'icône uniquement si son nom contient :
-- `logo`
-- ou `icon`
+## Définir une catégorie
+Le site peut deviner une catégorie, mais tu peux la forcer dans la description d'une Release GitHub avec :
 
-Exemples :
+`Catégorie: Gestion`
+
+ou :
+
+`Category: Éducation`
+
+## Logo et captures
+Règle stricte :
+- seul un fichier contenant `logo` ou `icon` devient l'icône
+- les fichiers `screenshot`, `capture`, `screen`, `preview` restent des captures
+
+Exemple recommandé :
 - `spa-effectifs-logo.png`
-- `spa-effectifs-icon.png`
-
-Les autres images sont traitées comme captures d'écran :
 - `screenshot-1.png`
-- `capture-2.jpg`
-- `preview-home.webp`
+- `screenshot-2.png`
+- `screenshot-3.png`
 
-Si aucun logo n'est fourni, Romuel Apps affiche les initiales de l'application au lieu de prendre une capture au hasard.
+## Historique des versions
+Romuel Apps regroupe automatiquement toutes les Releases portant le même nom d'application.
+Exemple :
+- `SPA Effectifs v3.11.9`
+- `SPA Effectifs v3.12.0`
+
+La fiche affichera les deux versions, la plus récente en premier.

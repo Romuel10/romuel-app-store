@@ -433,7 +433,7 @@ async function loadApps(){
       if(target)openDetails(target,{skipUrl:true});
       pendingAppSlug=null;
     }
-  }catch(e){console.error(e);elStatus.className="status error";elStatus.textContent="Le chargement automatique a échoué. Appuie sur « Actualiser ».";elApps.innerHTML=""}
+  }catch(e){console.error(e);elStatus.className="status error";elStatus.textContent="Impossible de charger les applications. Vérifie la connexion puis appuie sur « Actualiser ».";elApps.innerHTML=""}
   finally{elReload.disabled=false}
 }
 
@@ -447,7 +447,7 @@ window.addEventListener("popstate",()=>{
   }
 });
 
-elApps.addEventListener("click",e=>{const btn=e.target.closest("[data-details]");if(!btn)return;const app=currentFiltered()[Number(btn.dataset.details)];if(app)openDetails(app)});
+
 modal.addEventListener("click",e=>{if(e.target.matches("[data-close-modal]"))closeModal()});
 authModal.addEventListener("click",e=>{if(e.target.matches("[data-close-auth]"))closeAuth()});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeModal();closeAuth();closeProfile();closeReport();closeAdmin()}});
@@ -511,7 +511,7 @@ $("favoriteBtn").addEventListener("click",async()=>{
   refreshStoreView();
 });
 
-$("sortSelect").addEventListener("change",filter);
+
 
 
 function openProfile(){

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#07111f">
   <title>Romuel Apps</title>
-  <link rel="stylesheet" href="./style.css?v=10">
+  <link rel="stylesheet" href="./style.css?v=10.1">
 </head>
 <body>
 <header class="topbar">
@@ -48,24 +48,39 @@
       <span>⌕</span>
       <input id="q" type="search" placeholder="Rechercher une application…" aria-label="Rechercher une application">
     </div>
-    <select id="sortSelect" class="sort-select" aria-label="Trier les applications">
-      <option value="recent">Plus récentes</option>
-      <option value="popular">Plus téléchargées</option>
-      <option value="rating">Mieux notées</option>
+    <select id="categoryFilter" class="sort-select" aria-label="Filtrer par catégorie">
+      <option value="all">Toutes les catégories</option>
     </select>
     <button id="reload" class="secondary-btn" type="button">Actualiser</button>
   </section>
 
   <div id="status" class="status">Chargement des applications…</div>
 
-  <section class="section-head">
-    <div>
-      <span class="eyebrow">CATALOGUE</span>
-      <h3>Applications disponibles</h3>
-    </div>
+  <section class="store-tabs" aria-label="Sections du store">
+    <button class="store-tab active" data-store-tab="home">Accueil</button>
+    <button class="store-tab" data-store-tab="all">Toutes</button>
+    <button class="store-tab" data-store-tab="favorites">Mes favoris</button>
   </section>
 
-  <section id="apps" class="grid"></section>
+  <section id="homeView">
+    <section class="featured-section">
+      <div class="section-head"><div><span class="eyebrow">NOUVEAUTÉS</span><h3>Dernières applications</h3></div></div>
+      <div id="newApps" class="horizontal-list"></div>
+    </section>
+    <section class="featured-section">
+      <div class="section-head"><div><span class="eyebrow">POPULAIRES</span><h3>Les plus téléchargées</h3></div></div>
+      <div id="popularApps" class="horizontal-list"></div>
+    </section>
+    <section class="featured-section">
+      <div class="section-head"><div><span class="eyebrow">MIEUX NOTÉES</span><h3>Les préférées des utilisateurs</h3></div></div>
+      <div id="ratedApps" class="horizontal-list"></div>
+    </section>
+  </section>
+
+  <section id="catalogView" class="hidden">
+    <section class="section-head"><div><span class="eyebrow">CATALOGUE</span><h3 id="catalogTitle">Toutes les applications</h3></div></section>
+    <section id="apps" class="grid"></section>
+  </section>
 </main>
 
 <footer>
@@ -303,6 +318,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="./script.js?v=10"></script>
+<script src="./script.js?v=10.1"></script>
 </body>
 </html>

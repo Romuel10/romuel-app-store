@@ -1,41 +1,27 @@
-# Romuel Apps v10 — vrai store
+# Romuel Apps v10.1
 
-## Nouveautés
-- page d'accueil avec **Nouveautés**
-- section **Populaires**
-- section **Mieux notées**
-- catégories automatiques
-- filtre par catégorie
-- onglet **Mes favoris**
-- badge **Nouveau** pendant 30 jours
-- historique des versions dans chaque fiche
-- recherche améliorée
-- toutes les fonctions précédentes conservées : comptes, avis, profils, favoris synchronisés, signalements, modération, statistiques admin
+Correction importante de la v10 :
+- corrige le blocage sur « Chargement des applications… »
+- active réellement Accueil / Toutes / Mes favoris
+- active le filtre par catégorie
+- conserve Nouveautés / Populaires / Mieux notées
+- conserve profils, avis, favoris, modération, statistiques et historique des versions
 
-## Définir une catégorie
-Le site peut deviner une catégorie, mais tu peux la forcer dans la description d'une Release GitHub avec :
+## Publier une nouvelle application
+Dans le dépôt GitHub des Releases, crée une nouvelle Release.
 
-`Catégorie: Gestion`
+Exemple :
+Titre : `Ma Nouvelle App v1.0.0`
 
-ou :
+Description :
+`Description de mon application.
+Catégorie: Outils
+- Première version`
 
-`Category: Éducation`
-
-## Logo et captures
-Règle stricte :
-- seul un fichier contenant `logo` ou `icon` devient l'icône
-- les fichiers `screenshot`, `capture`, `screen`, `preview` restent des captures
-
-Exemple recommandé :
-- `spa-effectifs-logo.png`
+Assets :
+- `ma-nouvelle-app.apk`
+- `ma-nouvelle-app-logo.png`
 - `screenshot-1.png`
 - `screenshot-2.png`
-- `screenshot-3.png`
 
-## Historique des versions
-Romuel Apps regroupe automatiquement toutes les Releases portant le même nom d'application.
-Exemple :
-- `SPA Effectifs v3.11.9`
-- `SPA Effectifs v3.12.0`
-
-La fiche affichera les deux versions, la plus récente en premier.
+Publie la Release. Romuel Apps la récupère automatiquement.

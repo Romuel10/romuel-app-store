@@ -1,36 +1,40 @@
-# Romuel Apps
+# Romuel Apps — version automatique
 
-Mini plateforme web pour publier et distribuer tes applications Android.
+Cette version n'utilise plus `apps.js`.
 
-## Modifier les applications
+Le site lit automatiquement les Releases publiques du dépôt :
 
-Ouvre `apps.js` puis modifie le tableau `apps`.
+`Romuel10/romuel-apps-releases-`
 
-Pour chaque application :
-- `name` : nom
-- `version` : version
-- `updated` : date
-- `category` : catégorie
-- `description` : description
-- `tags` : mots-clés
-- `changes` : nouveautés
-- `downloadUrl` : lien direct de l'APK
-- `icon` : chemin vers une image, par exemple `assets/mon-logo.png`
+## Ajouter une nouvelle application
 
-## Publication avec GitHub Pages
+1. Ouvrir le dépôt `romuel-apps-releases-`.
+2. Créer une nouvelle Release.
+3. Utiliser un titre de la forme :
+   `Nom de l'application v1.0.0`
+4. Ajouter une courte description.
+5. Joindre :
+   - un fichier `.apk`
+   - un logo `.png`, `.jpg`, `.jpeg` ou `.webp`
+6. Publier la Release.
 
-1. Crée un dépôt GitHub, par exemple `romuel-apps`.
-2. Envoie tous les fichiers de ce dossier dans le dépôt.
-3. Va dans `Settings` > `Pages`.
-4. Choisis `Deploy from a branch`.
-5. Sélectionne la branche `main` et le dossier `/root`.
-6. Enregistre.
+Le site affichera automatiquement la version la plus récente de chaque application.
 
-## APK avec GitHub Releases
+## Mettre une application à jour
 
-Dans ton dépôt d'application :
-1. Va dans `Releases`.
-2. Crée une nouvelle release.
-3. Ajoute ton fichier `.apk`.
-4. Copie le lien du fichier APK.
-5. Colle ce lien dans `downloadUrl` dans `apps.js`.
+Créer une nouvelle Release avec le même nom d'application et une version plus récente.
+
+Exemple :
+- `SPA Effectifs v3.11.9`
+- puis `SPA Effectifs v3.12.0`
+
+Le site gardera automatiquement la Release la plus récente.
+
+## Fichiers du site
+
+- `index.html`
+- `style.css`
+- `script.js`
+- `README.md`
+
+Il n'y a plus de fichier `apps.js` à modifier.

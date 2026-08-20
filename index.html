@@ -3,98 +3,48 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#0f172a" />
+  <meta name="theme-color" content="#07111f" />
   <title>Romuel Apps</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <header class="topbar">
-    <div class="container nav">
-      <a class="brand" href="#home" aria-label="Romuel Apps">
-        <div class="brand-mark">R</div>
-        <div>
-          <strong>Romuel Apps</strong>
-          <span>Mes applications</span>
-        </div>
-      </a>
-      <nav>
-        <a href="#apps">Applications</a>
-        <a href="#about">À propos</a>
-      </nav>
+    <div class="brand">
+      <div class="brand-logo">R</div>
+      <div>
+        <h1>Romuel Apps</h1>
+        <p>Mes applications</p>
+      </div>
     </div>
   </header>
 
-  <main>
-    <section id="home" class="hero">
-      <div class="container hero-grid">
-        <div>
-          <span class="eyebrow">Plateforme officielle</span>
-          <h1>Télécharge mes applications simplement.</h1>
-          <p>Retrouve ici les dernières versions de mes applications Android, leurs nouveautés et les liens de téléchargement.</p>
-          <div class="hero-actions">
-            <a class="btn primary" href="#apps">Voir les applications</a>
-            <a class="btn secondary" href="#about">En savoir plus</a>
-          </div>
-        </div>
-        <div class="hero-card">
-          <div class="phone">
-            <div class="phone-top"></div>
-            <div class="phone-content">
-              <div class="mini-app-icon">R</div>
-              <h3>Romuel Apps</h3>
-              <p>Une seule adresse pour toutes mes applications.</p>
-              <div class="fake-line wide"></div>
-              <div class="fake-line"></div>
-              <div class="fake-button">Télécharger</div>
-            </div>
-          </div>
-        </div>
-      </div>
+  <main class="container">
+    <section class="hero">
+      <h2>Applications disponibles</h2>
+      <p>Télécharge directement les dernières versions de mes applications Android.</p>
     </section>
 
-    <section id="apps" class="section">
-      <div class="container">
-        <div class="section-head">
-          <div>
-            <span class="eyebrow">Catalogue</span>
-            <h2>Mes applications</h2>
-          </div>
-          <div class="search-wrap">
-            <input id="searchInput" type="search" placeholder="Rechercher une application..." aria-label="Rechercher une application">
-          </div>
-        </div>
-
-        <div id="categoryFilters" class="filters"></div>
-        <div id="appsGrid" class="apps-grid"></div>
-        <p id="emptyState" class="empty hidden">Aucune application trouvée.</p>
-      </div>
+    <section class="controls" aria-label="Recherche">
+      <input
+        id="searchInput"
+        type="search"
+        placeholder="Rechercher une application..."
+        autocomplete="off"
+      />
+      <button id="refreshBtn" type="button">Actualiser</button>
     </section>
 
-    <section id="about" class="section alt">
-      <div class="container about-grid">
-        <div>
-          <span class="eyebrow">À propos</span>
-          <h2>Une plateforme simple et directe.</h2>
-        </div>
-        <div class="about-card">
-          <p>Cette plateforme permet de centraliser les applications que je développe. Chaque fiche contient la version, la date de mise à jour, une courte description et un bouton de téléchargement.</p>
-          <p class="muted">Les fichiers APK peuvent être hébergés dans GitHub Releases. Il suffit ensuite de remplacer le lien dans le fichier <code>apps.js</code>.</p>
-        </div>
-      </div>
+    <section id="status" class="status">
+      Chargement des applications…
     </section>
+
+    <section id="appsGrid" class="apps-grid" aria-live="polite"></section>
   </main>
 
   <footer>
-    <div class="container footer-inner">
-      <span>© <span id="year"></span> Romuel Apps</span>
-      <span>Développé avec GitHub Pages</span>
-    </div>
+    <p>Romuel Apps • Distribution Android</p>
   </footer>
 
-  <script src="apps.js"></script>
   <script src="script.js"></script>
 </body>
 </html>

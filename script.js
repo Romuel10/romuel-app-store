@@ -310,7 +310,7 @@ async function ensureOwnProfile(){
 
 async function loadProfile(){
   if(!currentUser){profile=null;isAdmin=false;refreshProfileUI();return}
-  const {data,error}=await sb.from("profiles").select("id,display_name,avatar_url,is_admin").eq("id",currentUser.id).maybeSingle();
+  const {data,error}=await sb.from("profiles").select("id,display_name,avatar_url,is_admin,access_level").eq("id",currentUser.id).maybeSingle();
   if(error){console.warn(error);return}
   profile=data||null;
   isAdmin=!!profile?.is_admin;
@@ -434,14 +434,20 @@ function setAuthMode(mode){
   $("authPassword").autocomplete=mode==="signin"?"current-password":"new-password";
   $("authMessage").textContent="";
 }
-function refreshAuthUI(){
+async function refreshAuthUI(){
   $("authLoggedOut").classList.toggle("hidden",!!currentUser);
   $("authLoggedIn").classList.toggle("hidden",!currentUser);
-  if(currentUser)$("currentUserEmail").textContent=currentUser.email||"Utilisateur connecté";
-  if(currentApp)loadReviewsForCurrentApp();
-  if(currentUser) await ensureOwnProfile();
-  loadProfile();
-  if(currentUser)loadFavoritesFromSupabase();
+
+  if(currentUser){
+    $("currentUserEmail").textContent=currentUser.email||"Utilisateur connecté";
+    await ensureOwnProfile();
+    await loadProfile();
+    await loadFavoritesFromSupabase();
+  }else{
+    await loadProfile();
+  }
+
+  if(currentApp)await loadReviewsForCurrentApp();
   refreshPrivateAccessUI();
 }
 
@@ -596,8 +602,15 @@ $("authForm").addEventListener("submit",async e=>{
 });
 
 $("signOutBtn").addEventListener("click",async()=>{await sb.auth.signOut();closeAuth()});
-sb.auth.onAuthStateChange((_event,session)=>{currentUser=session?.user||null;refreshAuthUI()});
-(async()=>{const {data}=await sb.auth.getSession();currentUser=data.session?.user||null;refreshAuthUI()})();
+sb.auth.onAuthStateChange(async(_event,session)=>{
+  currentUser=session?.user||null;
+  await refreshAuthUI();
+});
+(async()=>{
+  const {data}=await sb.auth.getSession();
+  currentUser=data.session?.user||null;
+  await refreshAuthUI();
+})();
 
 document.querySelectorAll("#starPicker button").forEach(btn=>btn.addEventListener("click",()=>{currentRating=Number(btn.dataset.rating);paintStars(currentRating)}));
 
@@ -891,6 +904,7 @@ async function loadAdminUsersAccess(){
     <div class="user-access-row">
       <div>
         <strong>${esc(u.display_name||"Utilisateur")}</strong>
+        <div class="user-id">${esc(u.email||"")}</div>
         <div class="user-id">${esc(u.id)}</div>
       </div>
       <span class="access-pill">${u.is_admin?"Admin":u.access_level==="gendarme"?"Gendarme":"Public"}</span>

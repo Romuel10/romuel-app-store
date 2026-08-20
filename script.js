@@ -919,21 +919,47 @@ document.addEventListener("click",async e=>{
 
 async function loadAdminUsersAccess(){
   if(!isAdmin)return;
-  const {data,error}=await sb.rpc("admin_list_users");
+
   const box=$("adminUsersAccess");
-  if(error){box.innerHTML=`<p class="form-message error">${esc(error.message)}</p>`;return}
-  box.innerHTML=(data||[]).map(u=>`
-    <div class="user-access-row">
-      <div>
-        <strong>${esc(u.display_name||"Utilisateur")}</strong>
-        <div class="user-id">${esc(u.email||"")}</div>
-        <div class="user-id">${esc(u.id)}</div>
-      </div>
-      <span class="access-pill">${u.is_admin?"Admin":u.access_level==="gendarme"?"Gendarme":"Public"}</span>
-      ${u.is_admin?'<span></span>':`<button class="secondary-btn" type="button" data-set-access="${esc(u.id)}" data-next-access="${u.access_level==="gendarme"?"public":"gendarme"}">${u.access_level==="gendarme"?"Retirer accès":"Autoriser Gendarmerie"}</button>`}
-    </div>
-  `).join("") || '<p class="form-message">Aucun utilisateur.</p>';
+  box.innerHTML='<p class="form-message">Chargement des comptes…</p>';
+
+  try{
+    const {data,error}=await sb.rpc("admin_list_users");
+    if(error)throw error;
+
+    const rows=Array.isArray(data)?data:[];
+    if(!rows.length){
+      box.innerHTML='<p class="form-message">Aucun utilisateur trouvé.</p>';
+      return;
+    }
+
+    box.innerHTML=rows.map(u=>{
+      const access=u.is_admin ? "admin" : (u.access_level||"public");
+      const label=u.is_admin ? "Admin" : access==="gendarme" ? "Gendarme" : "Public";
+      const button=u.is_admin
+        ? ''
+        : `<button class="secondary-btn" type="button"
+              data-set-access="${esc(u.id)}"
+              data-next-access="${access==="gendarme"?"public":"gendarme"}">
+              ${access==="gendarme"?"Retirer accès":"Autoriser Gendarmerie"}
+           </button>`;
+
+      return `<div class="user-access-row">
+        <div>
+          <strong>${esc(u.display_name||"Utilisateur")}</strong>
+          <div class="user-id">${esc(u.email||"")}</div>
+        </div>
+        <span class="access-pill">${label}</span>
+        ${button}
+      </div>`;
+    }).join("");
+  }catch(err){
+    console.error("admin_list_users:",err);
+    box.innerHTML=`<p class="form-message error">Impossible de charger les comptes : ${esc(err.message||String(err))}</p>`;
+  }
 }
+
+$("refreshAdminUsersBtn")?.addEventListener("click",loadAdminUsersAccess);
 
 $("adminUsersAccess").addEventListener("click",async e=>{
   const btn=e.target.closest("[data-set-access]");
@@ -941,8 +967,18 @@ $("adminUsersAccess").addEventListener("click",async e=>{
   const userId=btn.dataset.setAccess,next=btn.dataset.nextAccess;
   btn.disabled=true;
   const {error}=await sb.rpc("set_user_access",{target_user:userId,new_access:next});
-  if(error){alert(error.message);btn.disabled=false;return}
+  if(error){
+    alert(error.message);
+    btn.disabled=false;
+    return;
+  }
+
   await loadAdminUsersAccess();
+
+  if(currentUser?.id===userId){
+    await loadProfile();
+    refreshPrivateAccessUI();
+  }
 });
 
 $("privateAppForm").addEventListener("submit",async e=>{

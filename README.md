@@ -1,14 +1,13 @@
-# Romuel Apps v12.3 — correction interface non cliquable
+# Romuel Apps v12.4 — correction liste des comptes Admin
 
-Cette version corrige un blocage provoqué par la gestion de session Supabase.
+Cette version corrige l'affichage de `Admin > Accès Gendarmerie`.
 
-Cause :
-- le callback `onAuthStateChange` lançait directement d'autres requêtes Supabase ;
-- cela peut bloquer la gestion d'authentification et rendre l'interface inerte selon le navigateur.
+Améliorations :
+- lecture robuste de `admin_list_users()`;
+- affichage du nom + e-mail;
+- statut clair : Public / Gendarme / Admin;
+- bouton Autoriser Gendarmerie / Retirer accès;
+- bouton Actualiser;
+- message d'erreur visible si Supabase refuse la requête.
 
-Correction :
-- les requêtes profil/favoris sont maintenant lancées après le callback Auth ;
-- les erreurs Supabase n'empêchent plus le reste de l'interface de fonctionner ;
-- les modales cachées ne peuvent plus intercepter les clics.
-
-Aucun nouveau SQL n'est nécessaire.
+Aucun nouveau SQL n'est nécessaire si `admin_list_users()` et `set_user_access()` existent déjà.

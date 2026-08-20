@@ -19,7 +19,8 @@ const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&
 const initials=s=>s.trim().split(/\s+/).slice(0,2).map(x=>x[0]?.toUpperCase()||"").join("");
 const asset=(xs,exts)=>(xs||[]).find(a=>exts.some(e=>a.name.toLowerCase().endsWith(e)));
 const imageAssets=xs=>(xs||[]).filter(a=>[".png",".jpg",".jpeg",".webp"].some(e=>a.name.toLowerCase().endsWith(e)));
-const isIconName=n=>/(^|[-_.])(icon|logo|appicon|app-icon)([-_.]|$)/i.test(n);
+const isIconName=n=>/(logo|icon|appicon|app-icon)/i.test(n);
+const isScreenshotName=n=>/(screenshot|screen-shot|screen|capture|preview)/i.test(n);
 const fmtDate=s=>{try{return new Intl.DateTimeFormat("fr-FR",{day:"2-digit",month:"long",year:"numeric"}).format(new Date(s))}catch{return""}};
 const slugify=s=>s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
 
@@ -57,8 +58,17 @@ function parse(rs){
     const apk=asset(r.assets,[".apk"]); if(!apk)return;
     const name=nameOf(r),key=name.toLowerCase(); if(seen.has(key))return; seen.add(key);
     const imgs=imageAssets(r.assets);
-    const iconAsset=imgs.find(x=>isIconName(x.name))||imgs[0];
-    const screenshots=imgs.filter(x=>x!==iconAsset).map(x=>x.browser_download_url);
+
+    // Une image devient icône uniquement si son nom contient "logo" ou "icon".
+    // Une capture d'écran ne peut donc plus être choisie automatiquement comme icône.
+    const iconAsset=imgs.find(x=>isIconName(x.name));
+
+    const otherImages=imgs.filter(x=>x!==iconAsset);
+    const screenshots=[
+      ...otherImages.filter(x=>isScreenshotName(x.name)),
+      ...otherImages.filter(x=>!isScreenshotName(x.name))
+    ].map(x=>x.browser_download_url);
+
     out.push({
       id:slugify(name),name,version:versionOf(r),description:descriptionOf(r),changes:changesOf(r),
       apk:apk.browser_download_url,downloads:apk.download_count||0,

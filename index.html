@@ -1,50 +1,23 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#07111f" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#07111f">
   <title>Romuel Apps</title>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="./style.css?v=2">
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">
-      <div class="brand-logo">R</div>
-      <div>
-        <h1>Romuel Apps</h1>
-        <p>Mes applications</p>
-      </div>
-    </div>
-  </header>
-
-  <main class="container">
-    <section class="hero">
-      <h2>Applications disponibles</h2>
-      <p>Télécharge directement les dernières versions de mes applications Android.</p>
-    </section>
-
-    <section class="controls" aria-label="Recherche">
-      <input
-        id="searchInput"
-        type="search"
-        placeholder="Rechercher une application..."
-        autocomplete="off"
-      />
-      <button id="refreshBtn" type="button">Actualiser</button>
-    </section>
-
-    <section id="status" class="status">
-      Chargement des applications…
-    </section>
-
-    <section id="appsGrid" class="apps-grid" aria-live="polite"></section>
-  </main>
-
-  <footer>
-    <p>Romuel Apps • Distribution Android</p>
-  </footer>
-
-  <script src="script.js"></script>
+<header>
+  <div class="brand"><div class="r">R</div><div><h1>Romuel Apps</h1><p>Mes applications</p></div></div>
+</header>
+<main>
+  <section class="hero"><h2>Applications disponibles</h2><p>Télécharge directement les dernières versions de mes applications Android.</p></section>
+  <div class="tools"><input id="q" placeholder="Rechercher une application…"><button id="reload">Actualiser</button></div>
+  <div id="status">Chargement des applications…</div>
+  <section id="apps" class="grid"></section>
+</main>
+<footer>Romuel Apps • Distribution Android</footer>
+<script src="./script.js?v=2"></script>
 </body>
 </html>

@@ -438,16 +438,25 @@ async function refreshAuthUI(){
   $("authLoggedOut").classList.toggle("hidden",!!currentUser);
   $("authLoggedIn").classList.toggle("hidden",!currentUser);
 
-  if(currentUser){
-    $("currentUserEmail").textContent=currentUser.email||"Utilisateur connecté";
-    await ensureOwnProfile();
-    await loadProfile();
-    await loadFavoritesFromSupabase();
-  }else{
-    await loadProfile();
+  try{
+    if(currentUser){
+      $("currentUserEmail").textContent=currentUser.email||"Utilisateur connecté";
+      await ensureOwnProfile();
+      await loadProfile();
+      await loadFavoritesFromSupabase();
+    }else{
+      await loadProfile();
+    }
+  }catch(err){
+    console.warn("Profil/Favoris:",err);
   }
 
-  if(currentApp)await loadReviewsForCurrentApp();
+  try{
+    if(currentApp)await loadReviewsForCurrentApp();
+  }catch(err){
+    console.warn("Avis:",err);
+  }
+
   refreshPrivateAccessUI();
 }
 
@@ -602,14 +611,27 @@ $("authForm").addEventListener("submit",async e=>{
 });
 
 $("signOutBtn").addEventListener("click",async()=>{await sb.auth.signOut();closeAuth()});
-sb.auth.onAuthStateChange(async(_event,session)=>{
+sb.auth.onAuthStateChange((_event,session)=>{
   currentUser=session?.user||null;
-  await refreshAuthUI();
+
+  // IMPORTANT: ne pas lancer d'autres appels Supabase directement
+  // dans le callback Auth. On les décale au tour suivant.
+  setTimeout(()=>{
+    refreshAuthUI().catch(err=>console.warn("Auth UI:",err));
+  },0);
 });
+
 (async()=>{
-  const {data}=await sb.auth.getSession();
-  currentUser=data.session?.user||null;
-  await refreshAuthUI();
+  try{
+    const {data,error}=await sb.auth.getSession();
+    if(error)throw error;
+    currentUser=data.session?.user||null;
+    await refreshAuthUI();
+  }catch(err){
+    console.warn("Session:",err);
+    currentUser=null;
+    await refreshAuthUI();
+  }
 })();
 
 document.querySelectorAll("#starPicker button").forEach(btn=>btn.addEventListener("click",()=>{currentRating=Number(btn.dataset.rating);paintStars(currentRating)}));

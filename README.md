@@ -1,13 +1,14 @@
-# Romuel Apps v12.2 — correction profil / comptes
+# Romuel Apps v12.3 — correction interface non cliquable
 
-Cette version corrige deux bugs importants de la v12.1 :
+Cette version corrige un blocage provoqué par la gestion de session Supabase.
 
-- correction JavaScript de `refreshAuthUI` : la fonction utilise maintenant correctement `await` ;
-- chargement de `access_level` dans le profil, afin qu'un compte autorisé Gendarmerie soit réellement reconnu comme Gendarme après connexion.
+Cause :
+- le callback `onAuthStateChange` lançait directement d'autres requêtes Supabase ;
+- cela peut bloquer la gestion d'authentification et rendre l'interface inerte selon le navigateur.
 
-Amélioration :
-- l'e-mail de chaque utilisateur apparaît maintenant dans Admin > Accès Gendarmerie pour identifier facilement les comptes.
+Correction :
+- les requêtes profil/favoris sont maintenant lancées après le callback Auth ;
+- les erreurs Supabase n'empêchent plus le reste de l'interface de fonctionner ;
+- les modales cachées ne peuvent plus intercepter les clics.
 
-La modification du nom et de la photo de profil reste compatible avec les réglages Supabase déjà effectués.
-
-Aucun nouveau SQL n'est nécessaire si le SQL v12.1 a déjà été exécuté.
+Aucun nouveau SQL n'est nécessaire.

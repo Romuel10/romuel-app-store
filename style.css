@@ -409,3 +409,9 @@ button,a,input,select,textarea{max-width:100%}
   .private-hero{align-items:flex-start;flex-direction:column}
   .user-access-row{grid-template-columns:1fr}
 }
+
+/* V12.3 — sécurité interaction */
+body{pointer-events:auto}
+.modal:not(.show){display:none!important;pointer-events:none!important}
+.modal.show{pointer-events:auto}
+button,a,input,select,textarea,[role="button"]{pointer-events:auto}

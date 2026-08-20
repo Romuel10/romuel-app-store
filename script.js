@@ -171,6 +171,7 @@ function renderHome(){
 }
 
 function refreshStoreView(){
+  $("appCountHero").textContent=apps.length;
   document.querySelectorAll(".store-tab").forEach(b=>b.classList.toggle("active",b.dataset.storeTab===currentStoreTab));
   $("homeView").classList.toggle("hidden",currentStoreTab!=="home");
   $("catalogView").classList.toggle("hidden",currentStoreTab==="home");
@@ -424,6 +425,11 @@ async function loadApps(){
     const res=await fetch(API,{headers:{"Accept":"application/vnd.github+json"},cache:"no-store",signal:c.signal});clearTimeout(t);
     if(!res.ok)throw new Error(`GitHub: ${res.status}`);
     apps=parse(await res.json());
+
+    // V11.4 : mettre à jour immédiatement le compteur de l'accueil
+    // sans attendre de passer par "Toutes les apps".
+    $("appCountHero").textContent=apps.length;
+
     const cats=[...new Set(apps.map(a=>a.category))].sort((a,b)=>a.localeCompare(b,"fr"));
     $("categoryFilter").innerHTML='<option value="all">Toutes les catégories</option>'+cats.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join("");
     elStatus.textContent=apps.length?`${apps.length} application${apps.length>1?"s":""} disponible${apps.length>1?"s":""}.`:"Aucune Release avec un fichier APK n'a été trouvée.";

@@ -1,13 +1,9 @@
-# Romuel Apps v11.3 — galerie de captures horizontale
+# Romuel Apps v11.4 — correction compteur d’applications
 
-Cette version conserve toutes les corrections de la v11.2.
+Correction du dernier bug d’affichage :
 
-## Changement
-Seule la galerie **Captures d’écran** utilise maintenant un défilement horizontal.
-
-- glisser à gauche / droite sur mobile ;
-- chaque capture reste lisible ;
-- effet d’alignement (`scroll-snap`) entre les images ;
-- le reste du site reste responsive sans défilement horizontal global.
+- le nombre d’applications se met maintenant à jour dès le chargement de la page ;
+- il n’est plus nécessaire de passer de **Accueil** à **Toutes les apps** pour voir le bon chiffre ;
+- le compteur reste synchronisé après Actualiser et lors des changements d’onglet.
 
 Aucune modification Supabase n’est nécessaire.

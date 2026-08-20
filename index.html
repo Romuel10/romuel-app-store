@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#07111f">
   <title>Romuel Apps</title>
-  <link rel="stylesheet" href="./style.css?v=4">
+  <link rel="stylesheet" href="./style.css?v=5">
 </head>
 <body>
 <header class="topbar">
@@ -17,7 +17,11 @@
         <p>Applications Android</p>
       </div>
     </div>
-    <button class="icon-btn" id="themeBtn" type="button" aria-label="Changer le thème">☾</button>
+
+    <div class="top-actions">
+      <button class="icon-btn" id="themeBtn" type="button" aria-label="Changer le thème">☾</button>
+      <button class="account-btn" id="accountBtn" type="button">Se connecter</button>
+    </div>
   </div>
 </header>
 
@@ -26,7 +30,7 @@
     <div class="hero-copy">
       <span class="eyebrow">STORE INDÉPENDANT</span>
       <h2>Découvre mes applications</h2>
-      <p>Télécharge les dernières versions, consulte les nouveautés et bientôt partage ton avis.</p>
+      <p>Télécharge les dernières versions, consulte les nouveautés et partage ton avis.</p>
     </div>
     <div class="hero-badge">
       <strong id="appCountHero">0</strong>
@@ -64,6 +68,7 @@
   </div>
 </footer>
 
+<!-- Fiche application -->
 <div id="modal" class="modal" aria-hidden="true">
   <div class="modal-backdrop" data-close-modal></div>
   <section class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
@@ -76,8 +81,8 @@
         <h2 id="modalTitle"></h2>
         <p id="modalMeta" class="meta"></p>
         <div class="rating-line">
-          <span class="stars muted-stars">★★★★★</span>
-          <span id="modalRatingText">Aucun avis pour le moment</span>
+          <span id="modalStars" class="stars">☆☆☆☆☆</span>
+          <span id="modalRatingText">Aucun avis</span>
         </div>
       </div>
     </div>
@@ -99,41 +104,81 @@
       </section>
     </div>
 
-    <section class="screens-section">
-      <div class="section-title-row">
-        <h3>Captures d’écran</h3>
-        <span>Bientôt</span>
-      </div>
-      <div class="screens-placeholder">
-        <div>📱</div>
-        <p>Les captures d’écran de l’application pourront être ajoutées ici.</p>
-      </div>
-    </section>
-
     <section class="reviews-section">
       <div class="section-title-row">
         <div>
           <h3>Avis des utilisateurs</h3>
-          <p>Notes et commentaires seront activés avec la base de données.</p>
+          <p id="reviewSummaryText">Aucun avis pour le moment.</p>
         </div>
-        <span class="coming">Bientôt</span>
       </div>
 
-      <div class="rating-summary">
-        <div class="rating-score">
-          <strong>—</strong>
-          <span class="stars muted-stars">★★★★★</span>
-          <small>0 avis</small>
+      <div id="reviewComposer" class="review-composer">
+        <div id="loggedOutReview" class="review-login-note">
+          <p>Connecte-toi pour donner une note et écrire un commentaire.</p>
+          <button class="secondary-btn" id="loginFromReviewBtn" type="button">Se connecter</button>
         </div>
-        <div class="review-placeholder">
-          <p>Aucun avis pour le moment.</p>
-          <button type="button" disabled>Donner mon avis</button>
-        </div>
+
+        <form id="reviewForm" class="review-form hidden">
+          <label>Ta note</label>
+          <div id="starPicker" class="star-picker" role="radiogroup" aria-label="Choisir une note">
+            <button type="button" data-rating="1">★</button>
+            <button type="button" data-rating="2">★</button>
+            <button type="button" data-rating="3">★</button>
+            <button type="button" data-rating="4">★</button>
+            <button type="button" data-rating="5">★</button>
+          </div>
+
+          <label for="reviewComment">Ton commentaire</label>
+          <textarea id="reviewComment" minlength="2" maxlength="1000" placeholder="Partage ton expérience…" required></textarea>
+
+          <div class="form-actions">
+            <button class="primary-btn" type="submit">Publier mon avis</button>
+            <button class="danger-link hidden" id="deleteReviewBtn" type="button">Supprimer mon avis</button>
+          </div>
+          <p id="reviewMessage" class="form-message"></p>
+        </form>
       </div>
+
+      <div id="reviewsList" class="reviews-list"></div>
     </section>
   </section>
 </div>
 
-<script src="./script.js?v=4"></script>
+<!-- Auth -->
+<div id="authModal" class="modal" aria-hidden="true">
+  <div class="modal-backdrop" data-close-auth></div>
+  <section class="auth-card" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+    <button class="modal-close" type="button" data-close-auth aria-label="Fermer">×</button>
+    <span class="eyebrow">COMPTE ROMUEL APPS</span>
+    <h2 id="authTitle">Connexion</h2>
+
+    <div id="authLoggedOut">
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="signInTab" type="button">Connexion</button>
+        <button class="auth-tab" id="signUpTab" type="button">Créer un compte</button>
+      </div>
+
+      <form id="authForm" class="auth-form">
+        <label for="authEmail">E-mail</label>
+        <input id="authEmail" type="email" required autocomplete="email">
+
+        <label for="authPassword">Mot de passe</label>
+        <input id="authPassword" type="password" minlength="6" required autocomplete="current-password">
+
+        <button class="primary-btn" id="authSubmitBtn" type="submit">Se connecter</button>
+        <p id="authMessage" class="form-message"></p>
+      </form>
+    </div>
+
+    <div id="authLoggedIn" class="hidden">
+      <p class="signed-in-label">Connecté avec :</p>
+      <strong id="currentUserEmail"></strong>
+      <button class="secondary-btn full-btn" id="signOutBtn" type="button">Se déconnecter</button>
+    </div>
+  </section>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./script.js?v=5"></script>
 </body>
 </html>

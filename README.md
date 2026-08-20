@@ -1,22 +1,20 @@
-# Romuel Apps v4
+# Romuel Apps v5 — comptes, notes et commentaires
 
-Nouvelle interface de store moderne.
+Cette version connecte Romuel Apps à Supabase.
 
-## Inclus
-- design entièrement revu
-- thème sombre / clair
-- recherche
-- fiches détaillées internes
-- bouton partager
-- zone captures d'écran prête
-- zone notes et avis prête
-- récupération automatique des APK depuis GitHub Releases
+Fonctions :
+- créer un compte par e-mail / mot de passe
+- se connecter / se déconnecter
+- donner 1 à 5 étoiles
+- publier un commentaire
+- modifier son avis en le republiant
+- supprimer son propre avis
+- afficher la moyenne et le nombre d'avis
+- conserver GitHub Releases pour les APK
 
-## Avis / commentaires
-Les zones sont prêtes visuellement mais aucun faux avis n'est affiché.
-La prochaine étape sera de connecter une base de données (Supabase) pour :
-- comptes utilisateurs
-- notes en étoiles
-- commentaires
-- modération
-- comptage réel des avis
+## Important dans Supabase
+Dans Authentication > URL Configuration :
+- Site URL : `https://romuelapps.pages.dev`
+- Redirect URLs : ajoute `https://romuelapps.pages.dev/**`
+
+Cela permet aux e-mails de confirmation de revenir vers le bon site.

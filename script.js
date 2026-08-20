@@ -298,6 +298,16 @@ async function uploadAvatarIfNeeded(){
   return `${data.publicUrl}?v=${Date.now()}`;
 }
 
+async function ensureOwnProfile(){
+  if(!currentUser)return;
+  const display=currentUser.user_metadata?.display_name
+    || currentUser.user_metadata?.full_name
+    || currentUser.email?.split("@")[0]
+    || "Utilisateur";
+  const {error}=await sb.rpc("ensure_my_profile",{default_display_name:display});
+  if(error)console.warn("Profil:",error.message);
+}
+
 async function loadProfile(){
   if(!currentUser){profile=null;isAdmin=false;refreshProfileUI();return}
   const {data,error}=await sb.from("profiles").select("id,display_name,avatar_url,is_admin").eq("id",currentUser.id).maybeSingle();
@@ -429,6 +439,7 @@ function refreshAuthUI(){
   $("authLoggedIn").classList.toggle("hidden",!currentUser);
   if(currentUser)$("currentUserEmail").textContent=currentUser.email||"Utilisateur connecté";
   if(currentApp)loadReviewsForCurrentApp();
+  if(currentUser) await ensureOwnProfile();
   loadProfile();
   if(currentUser)loadFavoritesFromSupabase();
   refreshPrivateAccessUI();
@@ -873,9 +884,7 @@ document.addEventListener("click",async e=>{
 
 async function loadAdminUsersAccess(){
   if(!isAdmin)return;
-  const {data,error}=await sb.from("profiles")
-    .select("id,display_name,access_level,is_admin,created_at")
-    .order("created_at",{ascending:true});
+  const {data,error}=await sb.rpc("admin_list_users");
   const box=$("adminUsersAccess");
   if(error){box.innerHTML=`<p class="form-message error">${esc(error.message)}</p>`;return}
   box.innerHTML=(data||[]).map(u=>`

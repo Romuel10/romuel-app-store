@@ -43,6 +43,11 @@
       <span>⌕</span>
       <input id="q" type="search" placeholder="Rechercher une application…" aria-label="Rechercher une application">
     </div>
+    <select id="sortSelect" class="sort-select" aria-label="Trier les applications">
+      <option value="recent">Plus récentes</option>
+      <option value="popular">Plus téléchargées</option>
+      <option value="rating">Mieux notées</option>
+    </select>
     <button id="reload" class="secondary-btn" type="button">Actualiser</button>
   </section>
 
@@ -84,11 +89,13 @@
           <span id="modalStars" class="stars">☆☆☆☆☆</span>
           <span id="modalRatingText">Aucun avis</span>
         </div>
+        <p id="modalDownloads" class="download-count">0 téléchargement</p>
       </div>
     </div>
 
     <div class="detail-actions">
       <a id="modalDownload" class="primary-btn" href="#">Télécharger APK</a>
+      <button class="secondary-btn" type="button" id="favoriteBtn">♡ Favori</button>
       <button class="secondary-btn" type="button" id="shareBtn">Partager</button>
     </div>
 
@@ -103,6 +110,16 @@
         <div id="modalChanges" class="changes"></div>
       </section>
     </div>
+
+    <section id="screensSection" class="screens-section hidden">
+      <div class="section-title-row">
+        <div>
+          <h3>Captures d’écran</h3>
+          <p>Découvre l’application avant de l’installer.</p>
+        </div>
+      </div>
+      <div id="screensGallery" class="screens-gallery"></div>
+    </section>
 
     <section class="reviews-section">
       <div class="section-title-row">

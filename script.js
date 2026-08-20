@@ -10,10 +10,13 @@ const $=id=>document.getElementById(id);
 const elApps=$("apps"),elStatus=$("status"),elQ=$("q"),elReload=$("reload");
 const modal=$("modal"),authModal=$("authModal");
 let apps=[],currentApp=null,currentUser=null,currentRating=0,authMode="signin",reviewStats={};
+let favorites=new Set(JSON.parse(localStorage.getItem("romuelapps_favorites")||"[]"));
 
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const initials=s=>s.trim().split(/\s+/).slice(0,2).map(x=>x[0]?.toUpperCase()||"").join("");
 const asset=(xs,exts)=>(xs||[]).find(a=>exts.some(e=>a.name.toLowerCase().endsWith(e)));
+const imageAssets=xs=>(xs||[]).filter(a=>[".png",".jpg",".jpeg",".webp"].some(e=>a.name.toLowerCase().endsWith(e)));
+const isIconName=n=>/(^|[-_.])(icon|logo|appicon|app-icon)([-_.]|$)/i.test(n);
 const fmtDate=s=>{try{return new Intl.DateTimeFormat("fr-FR",{day:"2-digit",month:"long",year:"numeric"}).format(new Date(s))}catch{return""}};
 const slugify=s=>s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
 
@@ -28,14 +31,29 @@ function parse(rs){
   rs.filter(r=>!r.draft&&!r.prerelease).sort((a,b)=>new Date(b.published_at||b.created_at)-new Date(a.published_at||a.created_at)).forEach(r=>{
     const apk=asset(r.assets,[".apk"]); if(!apk)return;
     const name=nameOf(r),key=name.toLowerCase(); if(seen.has(key))return; seen.add(key);
-    const img=asset(r.assets,[".png",".jpg",".jpeg",".webp"]);
-    out.push({id:slugify(name),name,version:versionOf(r),description:descriptionOf(r),changes:changesOf(r),apk:apk.browser_download_url,icon:img?.browser_download_url||"",published:r.published_at||r.created_at});
+    const imgs=imageAssets(r.assets);
+    const iconAsset=imgs.find(x=>isIconName(x.name))||imgs[0];
+    const screenshots=imgs.filter(x=>x!==iconAsset).map(x=>x.browser_download_url);
+    out.push({
+      id:slugify(name),name,version:versionOf(r),description:descriptionOf(r),changes:changesOf(r),
+      apk:apk.browser_download_url,downloads:apk.download_count||0,
+      icon:iconAsset?.browser_download_url||"",screenshots,
+      published:r.published_at||r.created_at
+    });
   });
   return out;
 }
 function iconHtml(a){const n=esc(a.name),ini=esc(initials(a.name));return a.icon?`<img class="icon" src="${esc(a.icon)}" alt="Logo ${n}" onerror="this.style.display='none';this.nextElementSibling.style.display='grid'"><div class="fallback" style="display:none">${ini}</div>`:`<div class="fallback">${ini}</div>`}
 function starsFrom(avg){const n=Math.round(Number(avg)||0);return "★★★★★".split("").map((s,i)=>i<n?"★":"☆").join("")}
-function currentFiltered(){const q=elQ.value.trim().toLowerCase();return !q?apps:apps.filter(a=>`${a.name} ${a.version} ${a.description}`.toLowerCase().includes(q))}
+function currentFiltered(){
+  const q=elQ.value.trim().toLowerCase();
+  let list=!q?[...apps]:apps.filter(a=>`${a.name} ${a.version} ${a.description}`.toLowerCase().includes(q));
+  const mode=$("sortSelect").value;
+  if(mode==="popular") list.sort((a,b)=>(b.downloads||0)-(a.downloads||0));
+  else if(mode==="rating") list.sort((a,b)=>(reviewStats[b.id]?.avg||0)-(reviewStats[a.id]?.avg||0));
+  else list.sort((a,b)=>new Date(b.published)-new Date(a.published));
+  return list;
+}
 
 function render(list){
   $("appCountHero").textContent=apps.length;
@@ -45,6 +63,7 @@ function render(list){
     return `<article class="card">
       <div class="head">${iconHtml(a)}<div><h3>${esc(a.name)}</h3><p class="meta">Version ${esc(a.version)} • ${esc(fmtDate(a.published))}</p></div></div>
       <div class="rating-mini"><span class="stars">${starsFrom(st.avg)}</span><span>${st.count?`${st.avg.toFixed(1)} (${st.count} avis)`:"Aucun avis"}</span></div>
+      <div class="rating-mini"><span>⬇ ${Number(a.downloads||0).toLocaleString("fr-FR")} téléchargement${a.downloads===1?"":"s"}</span>${favorites.has(a.id)?"<span>♥ Favori</span>":""}</div>
       <p class="desc">${esc(a.description)}</p>
       <div class="actions"><a class="download" href="${esc(a.apk)}">Télécharger</a><button class="details" type="button" data-details="${i}">Détails</button></div>
     </article>`;
@@ -108,7 +127,17 @@ function openDetails(app){
   $("modalMeta").textContent=`Version ${app.version} • Mise à jour le ${fmtDate(app.published)}`;
   $("modalDescription").textContent=app.description;
   $("modalDownload").href=app.apk;
+  $("modalDownloads").textContent=`${Number(app.downloads||0).toLocaleString("fr-FR")} téléchargement${app.downloads===1?"":"s"}`;
+  $("favoriteBtn").textContent=favorites.has(app.id)?"♥ Favori":"♡ Favori";
+  $("favoriteBtn").classList.toggle("favorite-active",favorites.has(app.id));
   if(app.changes?.length){$("modalChanges").innerHTML=app.changes.map(x=>`<p>• ${esc(x)}</p>`).join("");$("changesBlock").style.display=""}else{$("changesBlock").style.display="none"}
+  if(app.screenshots?.length){
+    $("screensGallery").innerHTML=app.screenshots.map((src,i)=>`<img src="${esc(src)}" alt="Capture ${i+1} de ${esc(app.name)}">`).join("");
+    $("screensSection").classList.remove("hidden");
+  }else{
+    $("screensGallery").innerHTML="";
+    $("screensSection").classList.add("hidden");
+  }
   modal.classList.add("show");modal.setAttribute("aria-hidden","false");document.body.classList.add("modal-open");
   loadReviewsForCurrentApp();
 }
@@ -203,6 +232,17 @@ $("deleteReviewBtn").addEventListener("click",async()=>{
   currentRating=0;$("reviewComment").value="";paintStars(0);msg.className="form-message success";msg.textContent="Ton avis a été supprimé.";
   await loadReviewsForCurrentApp();await loadReviewStats();
 });
+
+$("favoriteBtn").addEventListener("click",()=>{
+  if(!currentApp)return;
+  if(favorites.has(currentApp.id))favorites.delete(currentApp.id);else favorites.add(currentApp.id);
+  localStorage.setItem("romuelapps_favorites",JSON.stringify([...favorites]));
+  $("favoriteBtn").textContent=favorites.has(currentApp.id)?"♥ Favori":"♡ Favori";
+  $("favoriteBtn").classList.toggle("favorite-active",favorites.has(currentApp.id));
+  filter();
+});
+
+$("sortSelect").addEventListener("change",filter);
 
 $("shareBtn").addEventListener("click",async()=>{const data={title:"Romuel Apps",text:`Découvre ${$("modalTitle").textContent} sur Romuel Apps`,url:location.href};try{if(navigator.share)await navigator.share(data);else{await navigator.clipboard.writeText(location.href);alert("Lien copié.")}}catch{}});
 $("themeBtn").addEventListener("click",()=>{document.body.classList.toggle("light");$("themeBtn").textContent=document.body.classList.contains("light")?"☀":"☾"});

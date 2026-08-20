@@ -1,12 +1,13 @@
-# Romuel Apps v11.2 — correction définitive du bouton Détails
+# Romuel Apps v11.3 — galerie de captures horizontale
 
-Le bug venait du fait que la v11 ne contenait plus le gestionnaire JavaScript qui ouvrait la fiche.
+Cette version conserve toutes les corrections de la v11.2.
 
-Cette version rétablit :
-- Détails depuis Nouvelles applications
-- Détails depuis Populaires
-- Détails depuis Mieux notées
-- Détails depuis Toutes les apps
-- Détails depuis Mes favoris
+## Changement
+Seule la galerie **Captures d’écran** utilise maintenant un défilement horizontal.
 
-Aucune modification Supabase n'est nécessaire.
+- glisser à gauche / droite sur mobile ;
+- chaque capture reste lisible ;
+- effet d’alignement (`scroll-snap`) entre les images ;
+- le reste du site reste responsive sans défilement horizontal global.
+
+Aucune modification Supabase n’est nécessaire.

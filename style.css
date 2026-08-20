@@ -341,3 +341,51 @@ button,a,input,select,textarea{max-width:100%}
 /* V11.2 — boutons Détails tactiles */
 .details{cursor:pointer;pointer-events:auto;touch-action:manipulation;position:relative;z-index:5}
 .feature-card .details,.card .details{pointer-events:auto}
+
+/* =========================================================
+   V11.3 — captures d'écran en défilement horizontal
+   Le reste du site reste sans scroll horizontal.
+   ========================================================= */
+.screens-gallery{
+  display:flex!important;
+  gap:12px;
+  overflow-x:auto!important;
+  overflow-y:hidden;
+  padding:14px 2px 8px;
+  scroll-snap-type:x mandatory;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:thin;
+  max-width:100%;
+}
+
+.screens-gallery img{
+  flex:0 0 auto;
+  width:auto!important;
+  height:320px!important;
+  max-width:82vw!important;
+  object-fit:contain!important;
+  border-radius:18px;
+  border:1px solid var(--line);
+  background:var(--surface2);
+  scroll-snap-align:start;
+}
+
+@media(max-width:650px){
+  .screens-gallery{
+    margin-left:0;
+    margin-right:0;
+    padding-bottom:10px;
+  }
+
+  .screens-gallery img{
+    height:280px!important;
+    max-width:86vw!important;
+  }
+}
+
+@media(max-width:380px){
+  .screens-gallery img{
+    height:240px!important;
+    max-width:88vw!important;
+  }
+}

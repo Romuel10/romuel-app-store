@@ -3,9 +3,9 @@
 
 const apps = [
   {
-    name: "SPA Planning",
+    name: "SPA Effectifs",
     shortName: "SP",
-    version: "1.0.0",
+    version: "3.11.9",
     updated: "20 août 2026",
     category: "Gestion",
     description: "Application de gestion et de planification du personnel.",
@@ -15,7 +15,7 @@ const apps = [
       "Protection des données du personnel",
       "Création de SPA réservée aux utilisateurs autorisés"
     ],
-    downloadUrl: "#",
+    downloadUrl: "https://github.com/Romuel10/spa-effectifs-releases/releases/download/v3.11.9/SPA.Effectifs.apk",
     icon: ""
   },
   {

@@ -1,23 +1,22 @@
-# Romuel Apps — fiche Détails interne
+# Romuel Apps v4
 
-Cette version garde le chargement automatique depuis les Releases GitHub mais le bouton **Détails** n'ouvre plus GitHub.
+Nouvelle interface de store moderne.
 
-Il ouvre maintenant une fiche directement dans Romuel Apps avec :
-- logo
-- nom
-- version
-- date
-- description
-- nouveautés
-- bouton Télécharger APK
+## Inclus
+- design entièrement revu
+- thème sombre / clair
+- recherche
+- fiches détaillées internes
+- bouton partager
+- zone captures d'écran prête
+- zone notes et avis prête
+- récupération automatique des APK depuis GitHub Releases
 
-## Pour ajouter une application
-
-Créer une Release dans `Romuel10/romuel-apps-releases-` avec :
-- titre : `Nom de l'application v1.0.0`
-- description
-- éventuellement des nouveautés sous forme de puces (`- nouveauté`)
-- APK
-- logo PNG/JPG/WebP
-
-Le site se met à jour automatiquement.
+## Avis / commentaires
+Les zones sont prêtes visuellement mais aucun faux avis n'est affiché.
+La prochaine étape sera de connecter une base de données (Supabase) pour :
+- comptes utilisateurs
+- notes en étoiles
+- commentaires
+- modération
+- comptage réel des avis

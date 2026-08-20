@@ -5,65 +5,135 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#07111f">
   <title>Romuel Apps</title>
-  <link rel="stylesheet" href="./style.css?v=3">
+  <link rel="stylesheet" href="./style.css?v=4">
 </head>
 <body>
-<header>
-  <div class="brand">
-    <div class="r">R</div>
-    <div>
-      <h1>Romuel Apps</h1>
-      <p>Mes applications</p>
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="brand-mark">R</div>
+      <div>
+        <h1>Romuel Apps</h1>
+        <p>Applications Android</p>
+      </div>
     </div>
+    <button class="icon-btn" id="themeBtn" type="button" aria-label="Changer le thème">☾</button>
   </div>
 </header>
 
 <main>
   <section class="hero">
-    <h2>Applications disponibles</h2>
-    <p>Télécharge directement les dernières versions de mes applications Android.</p>
+    <div class="hero-copy">
+      <span class="eyebrow">STORE INDÉPENDANT</span>
+      <h2>Découvre mes applications</h2>
+      <p>Télécharge les dernières versions, consulte les nouveautés et bientôt partage ton avis.</p>
+    </div>
+    <div class="hero-badge">
+      <strong id="appCountHero">0</strong>
+      <span>applications</span>
+    </div>
   </section>
 
-  <div class="tools">
-    <input id="q" placeholder="Rechercher une application…" aria-label="Rechercher une application">
-    <button id="reload" type="button">Actualiser</button>
-  </div>
+  <section class="toolbar">
+    <div class="search-wrap">
+      <span>⌕</span>
+      <input id="q" type="search" placeholder="Rechercher une application…" aria-label="Rechercher une application">
+    </div>
+    <button id="reload" class="secondary-btn" type="button">Actualiser</button>
+  </section>
 
-  <div id="status">Chargement des applications…</div>
+  <div id="status" class="status">Chargement des applications…</div>
+
+  <section class="section-head">
+    <div>
+      <span class="eyebrow">CATALOGUE</span>
+      <h3>Applications disponibles</h3>
+    </div>
+  </section>
+
   <section id="apps" class="grid"></section>
 </main>
 
-<footer>Romuel Apps • Distribution Android</footer>
+<footer>
+  <div class="footer-inner">
+    <div>
+      <strong>Romuel Apps</strong>
+      <p>Distribution indépendante d'applications Android.</p>
+    </div>
+    <span>romuelapps.pages.dev</span>
+  </div>
+</footer>
 
 <div id="modal" class="modal" aria-hidden="true">
   <div class="modal-backdrop" data-close-modal></div>
-  <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <section class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <button class="modal-close" type="button" data-close-modal aria-label="Fermer">×</button>
 
-    <div class="modal-head">
+    <div class="app-detail-hero">
       <div id="modalIconWrap"></div>
-      <div>
+      <div class="app-detail-title">
+        <span class="eyebrow">APPLICATION</span>
         <h2 id="modalTitle"></h2>
         <p id="modalMeta" class="meta"></p>
+        <div class="rating-line">
+          <span class="stars muted-stars">★★★★★</span>
+          <span id="modalRatingText">Aucun avis pour le moment</span>
+        </div>
       </div>
     </div>
 
-    <div class="detail-block">
-      <h3>Description</h3>
-      <p id="modalDescription"></p>
+    <div class="detail-actions">
+      <a id="modalDownload" class="primary-btn" href="#">Télécharger APK</a>
+      <button class="secondary-btn" type="button" id="shareBtn">Partager</button>
     </div>
 
-    <div class="detail-block" id="changesBlock">
-      <h3>Nouveautés</h3>
-      <div id="modalChanges" class="changes"></div>
+    <div class="detail-grid">
+      <section class="detail-card">
+        <h3>Description</h3>
+        <p id="modalDescription"></p>
+      </section>
+
+      <section class="detail-card" id="changesBlock">
+        <h3>Nouveautés</h3>
+        <div id="modalChanges" class="changes"></div>
+      </section>
     </div>
 
-    <a id="modalDownload" class="download modal-download" href="#">
-      Télécharger APK
-    </a>
+    <section class="screens-section">
+      <div class="section-title-row">
+        <h3>Captures d’écran</h3>
+        <span>Bientôt</span>
+      </div>
+      <div class="screens-placeholder">
+        <div>📱</div>
+        <p>Les captures d’écran de l’application pourront être ajoutées ici.</p>
+      </div>
+    </section>
+
+    <section class="reviews-section">
+      <div class="section-title-row">
+        <div>
+          <h3>Avis des utilisateurs</h3>
+          <p>Notes et commentaires seront activés avec la base de données.</p>
+        </div>
+        <span class="coming">Bientôt</span>
+      </div>
+
+      <div class="rating-summary">
+        <div class="rating-score">
+          <strong>—</strong>
+          <span class="stars muted-stars">★★★★★</span>
+          <small>0 avis</small>
+        </div>
+        <div class="review-placeholder">
+          <p>Aucun avis pour le moment.</p>
+          <button type="button" disabled>Donner mon avis</button>
+        </div>
+      </div>
+    </section>
   </section>
 </div>
 
-<script src="./script.js?v=3"></script>
+<script src="./script.js?v=4"></script>
 </body>
 </html>

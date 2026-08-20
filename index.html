@@ -5,19 +5,65 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#07111f">
   <title>Romuel Apps</title>
-  <link rel="stylesheet" href="./style.css?v=2">
+  <link rel="stylesheet" href="./style.css?v=3">
 </head>
 <body>
 <header>
-  <div class="brand"><div class="r">R</div><div><h1>Romuel Apps</h1><p>Mes applications</p></div></div>
+  <div class="brand">
+    <div class="r">R</div>
+    <div>
+      <h1>Romuel Apps</h1>
+      <p>Mes applications</p>
+    </div>
+  </div>
 </header>
+
 <main>
-  <section class="hero"><h2>Applications disponibles</h2><p>Télécharge directement les dernières versions de mes applications Android.</p></section>
-  <div class="tools"><input id="q" placeholder="Rechercher une application…"><button id="reload">Actualiser</button></div>
+  <section class="hero">
+    <h2>Applications disponibles</h2>
+    <p>Télécharge directement les dernières versions de mes applications Android.</p>
+  </section>
+
+  <div class="tools">
+    <input id="q" placeholder="Rechercher une application…" aria-label="Rechercher une application">
+    <button id="reload" type="button">Actualiser</button>
+  </div>
+
   <div id="status">Chargement des applications…</div>
   <section id="apps" class="grid"></section>
 </main>
+
 <footer>Romuel Apps • Distribution Android</footer>
-<script src="./script.js?v=2"></script>
+
+<div id="modal" class="modal" aria-hidden="true">
+  <div class="modal-backdrop" data-close-modal></div>
+  <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <button class="modal-close" type="button" data-close-modal aria-label="Fermer">×</button>
+
+    <div class="modal-head">
+      <div id="modalIconWrap"></div>
+      <div>
+        <h2 id="modalTitle"></h2>
+        <p id="modalMeta" class="meta"></p>
+      </div>
+    </div>
+
+    <div class="detail-block">
+      <h3>Description</h3>
+      <p id="modalDescription"></p>
+    </div>
+
+    <div class="detail-block" id="changesBlock">
+      <h3>Nouveautés</h3>
+      <div id="modalChanges" class="changes"></div>
+    </div>
+
+    <a id="modalDownload" class="download modal-download" href="#">
+      Télécharger APK
+    </a>
+  </section>
+</div>
+
+<script src="./script.js?v=3"></script>
 </body>
 </html>

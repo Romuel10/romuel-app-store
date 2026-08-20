@@ -1,1 +1,41 @@
-*{box-sizing:border-box}body{margin:0;background:#07111f;color:#f7fbff;font-family:system-ui,-apple-system,Segoe UI,sans-serif}header{border-bottom:1px solid #20334d;background:#091524;padding:18px}.brand,main{width:min(1000px,calc(100% - 28px));margin:auto}.brand{display:flex;gap:14px;align-items:center}.r{width:58px;height:58px;border-radius:17px;background:linear-gradient(135deg,#71f0d2,#36d6e7);color:#07111f;display:grid;place-items:center;font-size:24px;font-weight:900}.brand h1{margin:0;font-size:30px}.brand p{margin:4px 0 0;color:#9fb0c5}main{padding:30px 0 45px}.hero{padding:22px;border:1px solid #20334d;border-radius:24px;background:#0e1b2d}.hero h2{font-size:34px;margin:0 0 10px}.hero p{color:#b7c4d4;line-height:1.5;margin:0}.tools{display:grid;grid-template-columns:1fr auto;gap:10px;margin:20px 0 12px}.tools input,.tools button{height:52px;border-radius:15px;border:1px solid #20334d;font:inherit}.tools input{background:#0e1b2d;color:white;padding:0 16px}.tools button{padding:0 20px;background:linear-gradient(135deg,#71f0d2,#36d6e7);font-weight:800;color:#07111f}#status{color:#9fb0c5;margin:10px 2px 18px}.error{color:#ff9a9a!important}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px}.card{background:#0e1b2d;border:1px solid #20334d;border-radius:24px;padding:20px;display:flex;flex-direction:column;gap:17px}.head{display:flex;align-items:center;gap:15px}.icon,.fallback{width:82px;height:82px;border-radius:21px;flex:0 0 82px}.icon{object-fit:cover;background:white}.fallback{display:grid;place-items:center;background:linear-gradient(135deg,#71f0d2,#36d6e7);color:#07111f;font-weight:900;font-size:25px}.card h3{font-size:23px;margin:0 0 5px}.meta{color:#9fb0c5;margin:0}.desc{color:#d8e1eb;line-height:1.5;margin:0}.actions{display:grid;grid-template-columns:1fr auto;gap:10px;margin-top:auto}.actions a{min-height:50px;border-radius:15px;display:flex;align-items:center;justify-content:center;text-decoration:none;font-weight:800}.download{background:linear-gradient(135deg,#71f0d2,#36d6e7);color:#07111f}.details{border:1px solid #20334d;color:white;padding:0 14px}footer{text-align:center;color:#8295aa;padding:25px}@media(max-width:560px){.tools,.actions{grid-template-columns:1fr}.brand h1{font-size:26px}.hero h2{font-size:29px}}
+*{box-sizing:border-box}
+:root{--bg:#07111f;--panel:#0e1b2d;--line:#20334d;--text:#f7fbff;--muted:#9fb0c5;--accent:#36d6e7;--accent2:#71f0d2;--danger:#ff9a9a}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,sans-serif}
+body.modal-open{overflow:hidden}
+header{border-bottom:1px solid var(--line);background:#091524;padding:18px;position:sticky;top:0;z-index:20}
+.brand,main{width:min(1000px,calc(100% - 28px));margin:auto}
+.brand{display:flex;gap:14px;align-items:center}
+.r{width:58px;height:58px;border-radius:17px;background:linear-gradient(135deg,var(--accent2),var(--accent));color:#07111f;display:grid;place-items:center;font-size:24px;font-weight:900}
+.brand h1{margin:0;font-size:30px}.brand p{margin:4px 0 0;color:var(--muted)}
+main{padding:30px 0 45px}
+.hero{padding:22px;border:1px solid var(--line);border-radius:24px;background:var(--panel)}
+.hero h2{font-size:34px;margin:0 0 10px}.hero p{color:#b7c4d4;line-height:1.5;margin:0}
+.tools{display:grid;grid-template-columns:1fr auto;gap:10px;margin:20px 0 12px}
+.tools input,.tools button{height:52px;border-radius:15px;border:1px solid var(--line);font:inherit}
+.tools input{background:var(--panel);color:white;padding:0 16px}
+.tools button{padding:0 20px;background:linear-gradient(135deg,var(--accent2),var(--accent));font-weight:800;color:#07111f}
+#status{color:var(--muted);margin:10px 2px 18px}.error{color:var(--danger)!important}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:24px;padding:20px;display:flex;flex-direction:column;gap:17px}
+.head{display:flex;align-items:center;gap:15px}.icon,.fallback{width:82px;height:82px;border-radius:21px;flex:0 0 82px}
+.icon{object-fit:cover;background:white}.fallback{display:grid;place-items:center;background:linear-gradient(135deg,var(--accent2),var(--accent));color:#07111f;font-weight:900;font-size:25px}
+.card h3{font-size:23px;margin:0 0 5px}.meta{color:var(--muted);margin:0}.desc{color:#d8e1eb;line-height:1.5;margin:0}
+.actions{display:grid;grid-template-columns:1fr auto;gap:10px;margin-top:auto}
+.actions a,.actions button,.modal-download{min-height:50px;border-radius:15px;display:flex;align-items:center;justify-content:center;text-decoration:none;font-weight:800;font:inherit}
+.download{background:linear-gradient(135deg,var(--accent2),var(--accent));color:#07111f}
+.details{border:1px solid var(--line);color:white;padding:0 14px;background:transparent;cursor:pointer}
+footer{text-align:center;color:#8295aa;padding:25px}
+
+.modal{position:fixed;inset:0;display:none;z-index:100}
+.modal.show{display:block}
+.modal-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(4px)}
+.modal-card{position:relative;z-index:1;width:min(620px,calc(100% - 28px));max-height:88vh;overflow:auto;margin:6vh auto;background:#0b1727;border:1px solid var(--line);border-radius:26px;padding:24px;box-shadow:0 28px 90px rgba(0,0,0,.5)}
+.modal-close{position:absolute;right:16px;top:12px;border:0;background:transparent;color:#fff;font-size:34px;line-height:1;cursor:pointer}
+.modal-head{display:flex;gap:16px;align-items:center;padding-right:34px}
+.modal-head h2{margin:0 0 6px;font-size:28px}
+.detail-block{margin-top:24px;padding-top:20px;border-top:1px solid var(--line)}
+.detail-block h3{margin:0 0 10px;font-size:18px}.detail-block p,.changes{color:#d8e1eb;line-height:1.6;margin:0}
+.changes p{margin:0 0 8px}
+.modal-download{margin-top:24px;width:100%;background:linear-gradient(135deg,var(--accent2),var(--accent));color:#07111f}
+@media(max-width:560px){.tools,.actions{grid-template-columns:1fr}.brand h1{font-size:26px}.hero h2{font-size:29px}.modal-card{margin:3vh auto;max-height:94vh;padding:20px}.modal-head h2{font-size:24px}}

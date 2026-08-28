@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#07111f">
   <title>Romuel Apps</title>
-  <link rel="stylesheet" href="./style.css?v=12.4">
+  <link rel="stylesheet" href="./style.css?v=13.3">
 </head>
 <body>
 <header class="topbar">
@@ -277,9 +277,135 @@
     <h2 id="adminTitle">Tableau de bord</h2>
     <p class="meta">Statistiques du store, applications et modération.</p>
 
+    <section class="admin-section publisher-section">
+      <div class="section-title-row publisher-heading">
+        <div>
+          <span class="eyebrow">CENTRE DE PUBLICATION</span>
+          <h3>Gérer les applications</h3>
+          <p>Publie, configure et mets à jour les applications sans passer par GitHub.</p>
+        </div>
+        <div class="publisher-heading-actions">
+          <button id="refreshPublisherBtn" class="secondary-btn" type="button">↻ Actualiser</button>
+          <button id="newPublisherAppBtn" class="primary-btn" type="button">＋ Nouvelle application</button>
+        </div>
+      </div>
+
+      <div id="publisherSetupNotice" class="publisher-setup-notice hidden"></div>
+
+      <div class="publisher-layout publisher-form-closed">
+        <div>
+          <div id="publisherAppList" class="publisher-app-list">
+            <p class="form-message">Ouvre le tableau de bord pour charger les applications.</p>
+          </div>
+          <div id="legacyAppsBlock" class="legacy-apps-block hidden">
+            <h4>Anciennes publications GitHub</h4>
+            <p>Ces applications restent visibles. Recrée-les ici pour les gérer entièrement depuis la plateforme.</p>
+            <div id="legacyAppsList" class="publisher-app-list"></div>
+          </div>
+        </div>
+
+        <form id="publisherForm" class="publisher-form hidden">
+          <input id="publisherMode" type="hidden" value="create">
+          <input id="publisherAppId" type="hidden">
+
+          <div class="publisher-form-head">
+            <div>
+              <span class="eyebrow" id="publisherFormEyebrow">NOUVELLE APPLICATION</span>
+              <h3 id="publisherFormTitle">Créer une application</h3>
+            </div>
+            <button id="closePublisherFormBtn" class="icon-btn" type="button" aria-label="Fermer le formulaire">×</button>
+          </div>
+
+          <fieldset id="publisherMetadataFields" class="publisher-fieldset">
+            <legend>Informations</legend>
+            <div class="publisher-fields-grid">
+              <label class="publisher-field publisher-field-wide">
+                <span>Nom de l’application *</span>
+                <input id="publisherName" required maxlength="80" placeholder="Ex. SPA Effectifs">
+              </label>
+              <label class="publisher-field">
+                <span>Identifiant *</span>
+                <input id="publisherSlug" required maxlength="80" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" placeholder="spa-effectifs">
+                <small>Lettres minuscules, chiffres et tirets.</small>
+              </label>
+              <label class="publisher-field">
+                <span>Catégorie *</span>
+                <input id="publisherCategory" required maxlength="50" placeholder="Gestion">
+              </label>
+              <label class="publisher-field">
+                <span>Accès *</span>
+                <select id="publisherVisibility" required>
+                  <option value="public">Publique — visible par tous</option>
+                  <option value="gendarmerie">Gendarmerie — comptes autorisés</option>
+                </select>
+              </label>
+              <label class="publisher-field">
+                <span>État *</span>
+                <select id="publisherStatus" required>
+                  <option value="published">Publiée</option>
+                  <option value="draft">Brouillon / masquée</option>
+                </select>
+              </label>
+              <label class="publisher-field publisher-field-wide">
+                <span>Description *</span>
+                <textarea id="publisherDescription" required maxlength="4000" placeholder="Présente les fonctions principales de l’application."></textarea>
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset id="publisherVersionFields" class="publisher-fieldset">
+            <legend id="publisherVersionLegend">Première version</legend>
+            <div class="publisher-fields-grid">
+              <label class="publisher-field">
+                <span>Numéro de version *</span>
+                <input id="publisherVersion" maxlength="30" placeholder="1.0.0">
+              </label>
+              <label class="publisher-field">
+                <span>Fichier APK *</span>
+                <input id="publisherApk" type="file" accept=".apk,application/vnd.android.package-archive,application/octet-stream">
+                <small>Le fichier est envoyé dans l’espace sécurisé Supabase.</small>
+              </label>
+              <label class="publisher-field publisher-field-wide">
+                <span>Nouveautés de cette version</span>
+                <textarea id="publisherChanges" maxlength="3000" placeholder="Une nouveauté par ligne"></textarea>
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset id="publisherMediaFields" class="publisher-fieldset">
+            <legend>Visuels</legend>
+            <div class="publisher-fields-grid">
+              <label class="publisher-field">
+                <span>Logo</span>
+                <input id="publisherIcon" type="file" accept="image/png,image/jpeg,image/webp">
+                <small>PNG, JPG ou WebP • 5 Mo maximum.</small>
+              </label>
+              <label class="publisher-field">
+                <span>Nouvelles captures</span>
+                <input id="publisherScreenshots" type="file" multiple accept="image/png,image/jpeg,image/webp">
+                <small>Plusieurs images possibles • 10 Mo chacune.</small>
+              </label>
+            </div>
+            <div id="publisherExistingScreens" class="publisher-existing-screens hidden"></div>
+          </fieldset>
+
+          <div id="publisherProgressWrap" class="publisher-progress-wrap hidden" aria-live="polite">
+            <div class="publisher-progress-track"><span id="publisherProgressBar"></span></div>
+            <p id="publisherProgressText">Préparation…</p>
+          </div>
+
+          <div class="publisher-form-actions">
+            <button id="publisherSubmitBtn" class="primary-btn" type="submit">Publier l’application</button>
+            <button id="cancelPublisherBtn" class="secondary-btn" type="button">Annuler</button>
+          </div>
+          <p id="publisherMessage" class="form-message"></p>
+        </form>
+      </div>
+    </section>
+
     <section class="admin-stats-grid" id="adminStatsGrid">
       <div class="admin-stat-card"><span>Applications</span><strong id="adminAppsCount">0</strong></div>
-      <div class="admin-stat-card"><span>Téléchargements GitHub</span><strong id="adminGithubDownloads">0</strong></div>
+      <div class="admin-stat-card"><span>Téléchargements</span><strong id="adminGithubDownloads">0</strong></div>
       <div class="admin-stat-card"><span>Clics aujourd’hui</span><strong id="adminTodayClicks">0</strong></div>
       <div class="admin-stat-card"><span>Clics 7 jours</span><strong id="adminWeekClicks">0</strong></div>
       <div class="admin-stat-card"><span>Avis</span><strong id="adminReviewsCount">0</strong></div>
@@ -299,24 +425,6 @@
         <button id="refreshAdminUsersBtn" class="secondary-btn" type="button">↻ Actualiser</button>
       </div>
       <div id="adminUsersAccess" class="admin-users-access"></div>
-    </section>
-
-    <section class="admin-section">
-      <div class="section-title-row">
-        <div><h3>Publier une application privée</h3><p>L’APK sera stocké dans un bucket privé Supabase.</p></div>
-      </div>
-      <form id="privateAppForm" class="private-app-form">
-        <input id="privateAppName" required placeholder="Nom de l’application">
-        <input id="privateAppVersion" required placeholder="Version, ex. 1.0.0">
-        <input id="privateAppCategory" placeholder="Catégorie, ex. Gestion">
-        <textarea id="privateAppDescription" required placeholder="Description"></textarea>
-        <label>APK privé</label>
-        <input id="privateAppApk" type="file" accept=".apk,application/vnd.android.package-archive" required>
-        <label>Logo (optionnel)</label>
-        <input id="privateAppLogo" type="file" accept="image/png,image/jpeg,image/webp">
-        <button class="primary-btn" type="submit">Publier dans l’espace Gendarmerie</button>
-        <p id="privateAppMessage" class="form-message"></p>
-      </form>
     </section>
 
     <section class="admin-section">
@@ -363,6 +471,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="./script.js?v=12.4"></script>
+<script src="https://cdn.jsdelivr.net/npm/tus-js-client@4/dist/tus.min.js"></script>
+<script src="./script.js?v=13.3"></script>
 </body>
 </html>

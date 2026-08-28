@@ -146,6 +146,30 @@ async function signedUrlMap(bucket,paths,expires=3600){
   return map;
 }
 
+async function restoreScreenshotRowsFromStorage(rows){
+  await Promise.all((rows||[]).map(async row=>{
+    if((row.app_screenshots||[]).some(screen=>screen.storage_path))return;
+    const folder=`${row.id}/screens`;
+    const {data,error}=await sb.storage.from("app-screenshots").list(folder,{
+      limit:100,
+      sortBy:{column:"name",order:"asc"}
+    });
+    if(error){
+      console.warn(`Captures ${row.slug}:`,error.message);
+      return;
+    }
+    row.app_screenshots=(data||[])
+      .filter(file=>file?.name&&/\.(png|jpe?g|webp)$/i.test(file.name))
+      .map((file,index)=>({
+        id:null,
+        storage_path:`${folder}/${file.name}`,
+        alt_text:`Capture de ${row.name}`,
+        sort_order:index
+      }));
+  }));
+  return rows;
+}
+
 function normalizePublisherApp(row,iconUrls,screenUrls){
   const screenshots=[...(row.app_screenshots||[])]
     .sort((a,b)=>(a.sort_order||0)-(b.sort_order||0))
@@ -214,6 +238,7 @@ async function fetchPublisherCatalog(visibility){
 
   publisherAvailable=true;
   const rows=data||[];
+  await restoreScreenshotRowsFromStorage(rows);
   const assetLifetime=visibility==="gendarmerie"?300:3600;
   const iconUrls=await signedUrlMap("app-icons",rows.map(x=>x.icon_path),assetLifetime);
   const screenUrls=await signedUrlMap("app-screenshots",rows.flatMap(x=>(x.app_screenshots||[]).map(s=>s.storage_path)),assetLifetime);
@@ -1097,7 +1122,13 @@ document.addEventListener("click",async e=>{
     const url=data.signedUrl;
     location.href=url;
   }catch(err){
-    alert(err?.statusCode===403?"Tu n’es pas autorisé à télécharger cette application.":"Téléchargement impossible.");
+    const status=Number(err?.statusCode||err?.status);
+    const missing=status===404||/not found|nosuchkey|introuvable/i.test(err?.message||"");
+    alert(status===403
+      ?"Tu n’es pas autorisé à télécharger cette application."
+      :missing
+        ?"Le fichier APK n’est pas encore présent. L’administrateur doit le renvoyer depuis Admin > Mise à jour."
+        :"Téléchargement impossible. Vérifie ta connexion puis réessaie.");
     console.warn(err);
   }finally{
     btn.disabled=false;
@@ -1336,10 +1367,21 @@ function setPublisherProgress(percent,textValue){
 
 async function uploadPublisherFile(bucket,path,file,onProgress=()=>{}){
   const contentType=file.type||(bucket==="app-apk"?"application/vnd.android.package-archive":"application/octet-stream");
+
+  const verifyUpload=async()=>{
+    for(const delay of [0,400,1000]){
+      if(delay)await new Promise(resolve=>setTimeout(resolve,delay));
+      const {data,error}=await sb.storage.from(bucket).createSignedUrl(path,60);
+      if(!error&&data?.signedUrl)return true;
+    }
+    return false;
+  };
+
   if(file.size<=6*1024*1024||!window.tus){
     onProgress(15);
     const {error}=await sb.storage.from(bucket).upload(path,file,{upsert:false,contentType,cacheControl:"3600"});
     if(error)throw error;
+    if(!await verifyUpload())throw new Error("Le fichier n’a pas été retrouvé dans Supabase Storage après son envoi.");
     onProgress(100);
     return path;
   }
@@ -1350,24 +1392,39 @@ async function uploadPublisherFile(bucket,path,file,onProgress=()=>{}){
   const storageHost=projectUrl.hostname.endsWith(".supabase.co")?projectUrl.hostname.replace(".supabase.co",".storage.supabase.co"):projectUrl.hostname;
   const endpoint=`${projectUrl.protocol}//${storageHost}/storage/v1/upload/resumable`;
 
-  await new Promise((resolve,reject)=>{
-    const upload=new tus.Upload(file,{
-      endpoint,
-      retryDelays:[0,3000,5000,10000,20000],
-      headers:{authorization:`Bearer ${session.access_token}`,apikey:SUPABASE_KEY,"x-upsert":"false"},
-      uploadDataDuringCreation:true,
-      removeFingerprintOnSuccess:true,
-      chunkSize:6*1024*1024,
-      metadata:{bucketName:bucket,objectName:path,contentType,cacheControl:"3600"},
-      onError:reject,
-      onProgress:(sent,total)=>onProgress(total?Math.round(sent/total*100):0),
-      onSuccess:resolve
-    });
-    upload.findPreviousUploads().then(previous=>{
-      if(previous.length)upload.resumeFromPreviousUpload(previous[0]);
+  let tusError=null;
+  try{
+    await new Promise((resolve,reject)=>{
+      const upload=new tus.Upload(file,{
+        endpoint,
+        retryDelays:[0,3000,5000,10000,20000],
+        headers:{authorization:`Bearer ${session.access_token}`,apikey:SUPABASE_KEY,"x-upsert":"false"},
+        uploadDataDuringCreation:true,
+        removeFingerprintOnSuccess:true,
+        storeFingerprintForResuming:false,
+        chunkSize:6*1024*1024,
+        metadata:{bucketName:bucket,objectName:path,contentType,cacheControl:"3600"},
+        onError:reject,
+        onProgress:(sent,total)=>onProgress(total?Math.round(sent/total*100):0),
+        onSuccess:resolve
+      });
       upload.start();
-    }).catch(()=>upload.start());
-  });
+    });
+  }catch(error){
+    tusError=error;
+  }
+
+  if(!tusError&&await verifyUpload())return path;
+
+  // Certains navigateurs Android peuvent annoncer la fin d'un envoi TUS
+  // alors que l'objet n'a pas été finalisé. On refait alors un envoi standard
+  // et on vérifie réellement la présence du fichier avant d'écrire en base.
+  onProgress(10);
+  const {error:fallbackError}=await sb.storage.from(bucket).upload(path,file,{upsert:true,contentType,cacheControl:"3600"});
+  const stored=await verifyUpload();
+  if(fallbackError&&!stored)throw fallbackError;
+  if(!stored)throw new Error("Le fichier n’a pas été enregistré dans Supabase Storage. Réessaie avec une connexion stable.");
+  onProgress(100);
   return path;
 }
 
@@ -1401,9 +1458,16 @@ async function uploadPublisherMedia(appId,icon,screens,progressStart=75){
 
 async function insertPublisherScreens(appId,paths,startOrder=0){
   if(!paths.length)return;
-  const rows=paths.map((storage_path,index)=>({app_id:appId,storage_path,sort_order:startOrder+index,created_by:currentUser.id}));
-  const {error}=await sb.from("app_screenshots").insert(rows);
+  const rows=paths.map((storage_path,index)=>({
+    app_id:appId,
+    storage_path,
+    alt_text:`Capture ${startOrder+index+1}`,
+    sort_order:startOrder+index,
+    created_by:currentUser.id
+  }));
+  const {data,error}=await sb.from("app_screenshots").insert(rows).select("id");
   if(error)throw error;
+  if((data||[]).length!==rows.length)throw new Error("Les captures ont été envoyées, mais leur enregistrement en base a échoué.");
 }
 
 function nextPublisherScreenOrder(app){
@@ -1484,13 +1548,16 @@ $("publisherForm").addEventListener("submit",async e=>{
       await insertPublisherScreens(appId,media.screenPaths,nextPublisherScreenOrder(current));
     }else{
       if(!current)throw new Error("Application introuvable. Actualise le tableau de bord.");
-      if((current.app_versions||[]).some(v=>v.version===version))throw new Error("Cette version existe déjà pour cette application.");
+      const existingVersion=(current.app_versions||[]).find(v=>v.version===version);
       const stamp=Date.now();
       const apkPath=`${appId}/versions/${slugify(version)||"version"}-${stamp}/${safeFileName(apk.name)}`;
       await uploadPublisherFile("app-apk",apkPath,apk,p=>setPublisherProgress(5+p*.65,`Envoi de l’APK… ${p}%`));
       const media=await uploadPublisherMedia(appId,icon,screens,72);
       const now=new Date().toISOString();
-      const {error:versionError}=await sb.from("app_versions").insert({app_id:appId,version,apk_path:apkPath,changes,published_at:now,created_by:currentUser.id});
+      const versionRequest=existingVersion
+        ? sb.from("app_versions").update({apk_path:apkPath,changes,published_at:now}).eq("id",existingVersion.id)
+        : sb.from("app_versions").insert({app_id:appId,version,apk_path:apkPath,changes,published_at:now,created_by:currentUser.id});
+      const {error:versionError}=await versionRequest;
       if(versionError)throw versionError;
       const updates={version,apk_path:apkPath,changes};
       if(media.iconPath)updates.icon_path=media.iconPath;
@@ -1499,7 +1566,7 @@ $("publisherForm").addEventListener("submit",async e=>{
       await insertPublisherScreens(appId,media.screenPaths,nextPublisherScreenOrder(current));
     }
 
-    const successText=mode==="update"?"La mise à jour est publiée.":mode==="edit"?"La configuration est enregistrée.":"L’application est publiée.";
+    const successText=mode==="update"?"La version et son APK sont enregistrés.":mode==="edit"?"La configuration est enregistrée.":"L’application est publiée.";
     await refreshAfterPublisherChange();
     const refreshed=publisherRowById(appId);
     if(refreshed)openPublisherForm(mode==="create"?"edit":mode,refreshed);

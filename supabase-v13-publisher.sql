@@ -1,5 +1,5 @@
 -- ============================================================================
--- ROMUEL APPS V13.3 — CENTRE DE PUBLICATION SUPABASE
+-- ROMUEL APPS V13.4 — CENTRE DE PUBLICATION SUPABASE
 -- À exécuter une seule fois dans Supabase > SQL Editor.
 -- Le script est idempotent : il peut être relancé sans supprimer les données.
 -- ============================================================================
@@ -55,6 +55,8 @@ grant execute on function public.is_admin() to anon, authenticated;
 grant execute on function public.has_gendarmerie_access() to anon, authenticated;
 
 -- Fonctions utilisées par Admin > Accès Gendarmerie.
+drop function if exists public.admin_list_users();
+
 create or replace function public.admin_list_users()
 returns table (
   id uuid,
@@ -263,6 +265,22 @@ alter table public.app_screenshots add column if not exists created_at timestamp
 
 do $$
 begin
+  if exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'app_screenshots'
+      and column_name = 'id'
+      and udt_name = 'uuid'
+      and column_default is null
+  ) then
+    alter table public.app_screenshots alter column id set default gen_random_uuid();
+  end if;
+end;
+$$;
+
+do $$
+begin
   if not exists (
     select 1 from pg_constraint
     where conrelid = 'public.app_screenshots'::regclass
@@ -289,6 +307,32 @@ begin
   ) then
     execute 'update public.app_screenshots set storage_path = path where storage_path is null';
   end if;
+end;
+$$;
+
+-- Certaines anciennes versions de la table avaient encore des colonnes
+-- obligatoires (par exemple image_path). Elles ne doivent plus empêcher
+-- l'enregistrement du nouveau format fondé sur storage_path.
+do $$
+declare
+  legacy_column record;
+begin
+  for legacy_column in
+    select column_name
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'app_screenshots'
+      and is_nullable = 'NO'
+      and column_name not in (
+        'id', 'app_id', 'storage_path', 'alt_text',
+        'sort_order', 'created_by', 'created_at'
+      )
+  loop
+    execute format(
+      'alter table public.app_screenshots alter column %I drop not null',
+      legacy_column.column_name
+    );
+  end loop;
 end;
 $$;
 
@@ -434,6 +478,40 @@ end;
 $$;
 
 grant execute on function public.storage_application_id(text) to anon, authenticated;
+
+-- Répare les publications interrompues après l'envoi des captures : les
+-- objets existent dans Storage, mais aucune ligne app_screenshots n'a été créée.
+insert into public.app_screenshots (
+  app_id,
+  storage_path,
+  alt_text,
+  sort_order,
+  created_by
+)
+select
+  a.id,
+  o.name,
+  'Capture de ' || a.name,
+  coalesce((
+    select max(existing.sort_order) + 1
+    from public.app_screenshots existing
+    where existing.app_id = a.id
+  ), 0) + (row_number() over (
+    partition by a.id
+    order by o.created_at, o.name
+  ) - 1)::integer,
+  a.created_by
+from storage.objects o
+join public.applications a
+  on o.name like a.id::text || '/screens/%'
+where o.bucket_id = 'app-screenshots'
+  and o.name ~* '\.(png|jpe?g|webp)$'
+  and not exists (
+    select 1
+    from public.app_screenshots s
+    where s.storage_path = o.name
+  )
+on conflict do nothing;
 
 drop policy if exists "Lire fichiers applications autorisees" on storage.objects;
 create policy "Lire fichiers applications autorisees"

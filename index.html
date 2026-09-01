@@ -3,18 +3,19 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#07111f">
-  <title>Romuel Apps</title>
-  <link rel="stylesheet" href="./style.css?v=13.4">
+  <meta name="theme-color" content="#f8f9fa">
+  <meta name="description" content="Mada Apps, le catalogue indépendant d'applications Android conçues pour Madagascar.">
+  <title>Mada Apps</title>
+  <link rel="stylesheet" href="./style.css?v=14.0">
 </head>
 <body>
 <header class="topbar">
   <div class="topbar-inner">
     <div class="brand">
-      <div class="brand-mark">R</div>
+      <div class="brand-mark" aria-hidden="true"><span>M</span></div>
       <div>
-        <h1>Romuel Apps</h1>
-        <p>Applications Android</p>
+        <h1>Mada Apps</h1>
+        <p>Applications pour Madagascar</p>
       </div>
     </div>
 
@@ -33,19 +34,26 @@
 <main>
   <section class="hero">
     <div class="hero-copy">
-      <span class="eyebrow">STORE INDÉPENDANT</span>
-      <h2>Découvre, installe et suis les nouveautés</h2>
-      <p>Un store simple à utiliser : nouvelles applications, mises à jour, avis, favoris et téléchargement direct.</p>
+      <span class="eyebrow">LE STORE MALAGASY</span>
+      <h2>Les applications utiles, réunies au même endroit</h2>
+      <p>Découvre des applications Android pensées pour Madagascar, consulte leurs captures et installe directement la dernière version.</p>
     </div>
-    <div class="hero-badge">
-      <strong id="appCountHero">0</strong>
-      <span>applications</span>
+    <div class="hero-showcase" aria-label="Nombre d’applications disponibles">
+      <div class="hero-app-tiles" aria-hidden="true">
+        <span class="hero-app-tile tile-math">ƒ</span>
+        <span class="hero-app-tile tile-law">§</span>
+        <span class="hero-app-tile tile-work">M</span>
+      </div>
+      <div class="hero-badge">
+        <strong id="appCountHero">0</strong>
+        <span>applications disponibles</span>
+      </div>
     </div>
   </section>
 
   <section class="toolbar">
     <div class="search-wrap">
-      <span>⌕</span>
+      <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m21 21-4.35-4.35m2.35-5.65a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       <input id="q" type="search" placeholder="Rechercher une application…" aria-label="Rechercher une application">
     </div>
     <select id="categoryFilter" class="sort-select" aria-label="Filtrer par catégorie">
@@ -57,29 +65,29 @@
   <div id="status" class="status">Chargement des applications…</div>
 
   <section class="store-tabs" aria-label="Sections du store">
-    <button class="store-tab active" data-store-tab="home">Accueil</button>
-    <button class="store-tab" data-store-tab="all">Toutes les apps</button>
-    <button class="store-tab" data-store-tab="favorites">Mes favoris</button>
-    <button class="store-tab hidden" id="gendarmerieTab" data-store-tab="gendarmerie">🔒 Gendarmerie</button>
+    <button class="store-tab active" data-store-tab="home"><span class="store-tab-icon">⌂</span><span>Pour vous</span></button>
+    <button class="store-tab" data-store-tab="all"><span class="store-tab-icon">▦</span><span>Applications</span></button>
+    <button class="store-tab" data-store-tab="favorites"><span class="store-tab-icon">♡</span><span>Favoris</span></button>
+    <button class="store-tab hidden" id="gendarmerieTab" data-store-tab="gendarmerie"><span class="store-tab-icon">⌑</span><span>Gendarmerie</span></button>
   </section>
 
   <section class="quick-help">
-    <div class="quick-help-item"><span>1</span><div><strong>Choisis une application</strong><small>Parcours les nouveautés ou utilise la recherche.</small></div></div>
-    <div class="quick-help-item"><span>2</span><div><strong>Consulte les détails</strong><small>Version, captures, notes et historique.</small></div></div>
-    <div class="quick-help-item"><span>3</span><div><strong>Télécharge l’APK</strong><small>Le bouton de téléchargement est directement dans la fiche.</small></div></div>
+    <div class="quick-help-item"><span>✓</span><div><strong>Fiches détaillées</strong><small>Captures, versions, taille et avis réunis.</small></div></div>
+    <div class="quick-help-item"><span>↓</span><div><strong>Installation directe</strong><small>Télécharge l’APK depuis sa fiche officielle.</small></div></div>
+    <div class="quick-help-item"><span>↻</span><div><strong>Mises à jour suivies</strong><small>Retrouve facilement les dernières versions.</small></div></div>
   </section>
 
   <section id="homeView">
     <section class="featured-section">
-      <div class="section-head"><div><span class="eyebrow">NOUVEAUTÉS</span><h3>Nouvelles applications</h3></div></div>
+      <div class="section-head"><div><span class="eyebrow">SÉLECTION MADA APPS</span><h3>Nouveautés pour vous</h3></div></div>
       <div id="newApps" class="horizontal-list"></div>
     </section>
     <section class="featured-section">
-      <div class="section-head"><div><span class="eyebrow">POPULAIRES</span><h3>Les plus populaires</h3></div><button class="text-action" type="button" data-go-all>Voir tout</button></div>
+      <div class="section-head"><div><span class="eyebrow">POPULAIRES</span><h3>Les plus téléchargées</h3></div><button class="text-action" type="button" data-go-all>Tout afficher</button></div>
       <div id="popularApps" class="horizontal-list"></div>
     </section>
     <section class="featured-section">
-      <div class="section-head"><div><span class="eyebrow">MIEUX NOTÉES</span><h3>Les mieux notées</h3></div><button class="text-action" type="button" data-go-all>Voir tout</button></div>
+      <div class="section-head"><div><span class="eyebrow">COMMUNAUTÉ</span><h3>Les mieux notées</h3></div><button class="text-action" type="button" data-go-all>Tout afficher</button></div>
       <div id="ratedApps" class="horizontal-list"></div>
     </section>
   </section>
@@ -105,10 +113,10 @@
 <footer>
   <div class="footer-inner">
     <div>
-      <strong>Romuel Apps</strong>
-      <p>Distribution indépendante d'applications Android.</p>
+      <strong>Mada Apps</strong>
+      <p>Le catalogue indépendant d’applications Android pour Madagascar.</p>
     </div>
-    <span>romuelapps.pages.dev</span>
+    <span>Catalogue Android indépendant</span>
   </div>
 </footer>
 
@@ -121,8 +129,9 @@
     <div class="app-detail-hero">
       <div id="modalIconWrap"></div>
       <div class="app-detail-title">
-        <span class="eyebrow">APPLICATION</span>
+        <span class="eyebrow">MADA APPS</span>
         <h2 id="modalTitle"></h2>
+        <p class="app-publisher">Proposée sur Mada Apps</p>
         <p id="modalMeta" class="meta"></p>
         <div class="detail-badges">
           <span id="modalCategory" class="category-badge"></span>
@@ -132,19 +141,24 @@
           <span id="modalStars" class="stars">☆☆☆☆☆</span>
           <span id="modalRatingText">Aucun avis</span>
         </div>
-        <p id="modalDownloads" class="download-count">0 téléchargement</p>
       </div>
     </div>
 
+    <div class="detail-facts" aria-label="Informations sur l’application">
+      <div class="detail-fact"><strong id="modalDownloads">0</strong><span>Téléchargements</span></div>
+      <div class="detail-fact"><strong id="modalSize">—</strong><span>Taille</span></div>
+      <div class="detail-fact"><strong id="modalVersion">—</strong><span>Version</span></div>
+    </div>
+
     <div class="detail-actions">
-      <a id="modalDownload" class="primary-btn" href="#">Télécharger APK</a>
+      <a id="modalDownload" class="primary-btn" href="#">Installer</a>
       <button class="secondary-btn" type="button" id="favoriteBtn">♡ Favori</button>
       <button class="secondary-btn" type="button" id="shareBtn">Partager</button>
     </div>
 
     <div class="detail-grid">
       <section class="detail-card">
-        <h3>Description</h3>
+        <h3>À propos de cette application</h3>
         <p id="modalDescription"></p>
       </section>
 
@@ -167,8 +181,8 @@
     <section class="versions-section">
       <div class="section-title-row">
         <div>
-          <h3>Historique des versions</h3>
-          <p>Les dernières versions disponibles de cette application.</p>
+          <h3>Versions disponibles</h3>
+          <p>Consulte les mises à jour et leur taille.</p>
         </div>
       </div>
       <div id="versionsList" class="versions-list"></div>
@@ -363,7 +377,7 @@
               <label class="publisher-field">
                 <span>Fichier APK *</span>
                 <input id="publisherApk" type="file" accept=".apk,application/vnd.android.package-archive,application/octet-stream">
-                <small>Le fichier est envoyé dans l’espace sécurisé Supabase.</small>
+                <small id="publisherApkSizeHint">Le fichier est envoyé dans l’espace sécurisé Supabase. Sa taille sera détectée automatiquement.</small>
               </label>
               <label class="publisher-field publisher-field-wide">
                 <span>Nouveautés de cette version</span>
@@ -441,7 +455,7 @@
   <div class="modal-backdrop" data-close-auth></div>
   <section class="auth-card" role="dialog" aria-modal="true" aria-labelledby="authTitle">
     <button class="modal-close" type="button" data-close-auth aria-label="Fermer">×</button>
-    <span class="eyebrow">COMPTE ROMUEL APPS</span>
+    <span class="eyebrow">COMPTE MADA APPS</span>
     <h2 id="authTitle">Connexion</h2>
 
     <div id="authLoggedOut">
@@ -472,6 +486,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/tus-js-client@4/dist/tus.min.js"></script>
-<script src="./script.js?v=13.4"></script>
+<script src="./script.js?v=14.0"></script>
 </body>
 </html>

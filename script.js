@@ -5,6 +5,7 @@ const API=`https://api.github.com/repos/${OWNER}/${REPO}/releases?per_page=100`;
 const SUPABASE_URL="https://gmlofgsgnbbcbefogpww.supabase.co";
 const SUPABASE_KEY="sb_publishable_5TlVWknK1BODxwWqw4efEA_y4DI-JRP";
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const STORE_NAME="Mada Apps";
 
 const $=id=>document.getElementById(id);
 const elApps=$("apps"),elStatus=$("status"),elQ=$("q"),elReload=$("reload");
@@ -13,10 +14,12 @@ let apps=[],currentApp=null,currentUser=null,currentRating=0,authMode="signin",r
 let currentStoreTab="home";
 let privateApps=[];
 let publisherApps=[],publisherScreens=[],publisherAvailable=true,isPublisherSubmitting=false;
-let favorites=new Set(JSON.parse(localStorage.getItem("romuelapps_favorites")||"[]"));
+const FAVORITES_KEY="madaapps_favorites";
+let favorites=new Set(JSON.parse(localStorage.getItem(FAVORITES_KEY)||localStorage.getItem("romuelapps_favorites")||"[]"));
 let profile=null,isAdmin=false,reportedReviewId=null;
 let selectedAvatarFile=null,removeAvatarRequested=false;
 let pendingAppSlug=new URLSearchParams(location.search).get("app");
+const storageSizeCache=new Map();
 
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const initials=s=>s.trim().split(/\s+/).slice(0,2).map(x=>x[0]?.toUpperCase()||"").join("");
@@ -30,6 +33,16 @@ const linesToArray=s=>String(s||"").split(/\r?\n/).map(x=>x.trim().replace(/^[-*
 const makeId=()=>crypto.randomUUID?crypto.randomUUID():"xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g,c=>{const r=Math.random()*16|0,v=c==="x"?r:(r&3|8);return v.toString(16)});
 const safeFileName=name=>String(name||"fichier").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-zA-Z0-9._-]+/g,"-").replace(/^-+|-+$/g,"")||"fichier";
 const isMissingPublisherSchema=error=>["42P01","PGRST205","PGRST200"].includes(error?.code)||/applications|app_versions|app_screenshots/i.test(error?.message||"")&&/not find|does not exist|schema cache|relation/i.test(error?.message||"");
+const formatBytes=bytes=>{
+  const value=Number(bytes||0);
+  if(!Number.isFinite(value)||value<=0)return "—";
+  const units=["o","Ko","Mo","Go"];
+  let size=value,index=0;
+  while(size>=1024&&index<units.length-1){size/=1024;index++}
+  const digits=index===0||size>=100?0:1;
+  return `${size.toLocaleString("fr-FR",{minimumFractionDigits:0,maximumFractionDigits:digits})} ${units[index]}`;
+};
+const compactCount=value=>new Intl.NumberFormat("fr-FR",{notation:"compact",maximumFractionDigits:1}).format(Number(value||0));
 
 function appPageUrl(app){
   const u=new URL(location.origin+location.pathname);
@@ -106,6 +119,7 @@ function parse(rs){
       description:descriptionOf(r),
       changes:changesOf(r),
       apk:apk.browser_download_url,
+      sizeBytes:Number(apk.size||0),
       downloads:apk.download_count||0,
       icon:iconAsset?.browser_download_url||"",
       screenshots,
@@ -122,6 +136,7 @@ function parse(rs){
     latest.versions=versions.map(v=>({
       version:v.version,
       apk:v.apk,
+      sizeBytes:v.sizeBytes,
       source:"github",
       published:v.published,
       changes:v.changes
@@ -144,6 +159,44 @@ async function signedUrlMap(bucket,paths,expires=3600){
     if(row?.signedUrl)map.set(row.path||unique[index],row.signedUrl);
   });
   return map;
+}
+
+async function storageFileSize(bucket,path){
+  if(!bucket||!path)return 0;
+  const cacheKey=`${bucket}:${path}`;
+  if(storageSizeCache.has(cacheKey))return storageSizeCache.get(cacheKey);
+
+  const request=(async()=>{
+    const cut=path.lastIndexOf("/");
+    const folder=cut>=0?path.slice(0,cut):"";
+    const fileName=cut>=0?path.slice(cut+1):path;
+    const {data,error}=await sb.storage.from(bucket).list(folder,{limit:20,search:fileName});
+    if(error){
+      console.warn(`Taille ${path}:`,error.message);
+      return 0;
+    }
+    const file=(data||[]).find(item=>item.name===fileName);
+    return Number(file?.metadata?.size||file?.metadata?.contentLength||file?.metadata?.["content-length"]||0);
+  })().catch(error=>{
+    console.warn(`Taille ${path}:`,error);
+    return 0;
+  });
+
+  storageSizeCache.set(cacheKey,request);
+  return request;
+}
+
+async function hydratePublisherFileSizes(rows,bucket="app-apk"){
+  await Promise.all((rows||[]).map(async row=>{
+    const versions=row.app_versions||[];
+    const sizes=await Promise.all([
+      storageFileSize(bucket,row.apk_path),
+      ...versions.map(version=>storageFileSize(bucket,version.apk_path))
+    ]);
+    row.apk_size_bytes=sizes[0]||0;
+    versions.forEach((version,index)=>{version.apk_size_bytes=sizes[index+1]||0});
+  }));
+  return rows;
 }
 
 async function restoreScreenshotRowsFromStorage(rows){
@@ -182,6 +235,7 @@ function normalizePublisherApp(row,iconUrls,screenUrls){
       version:v.version,
       apkPath:v.apk_path,
       apkBucket:"app-apk",
+      sizeBytes:Number(v.apk_size_bytes||0),
       source:"supabase",
       published:v.published_at,
       changes:Array.isArray(v.changes)?v.changes:[]
@@ -192,6 +246,7 @@ function normalizePublisherApp(row,iconUrls,screenUrls){
       version:row.version,
       apkPath:row.apk_path,
       apkBucket:"app-apk",
+      sizeBytes:Number(row.apk_size_bytes||0),
       source:"supabase",
       published:row.updated_at||row.published_at,
       changes:Array.isArray(row.changes)?row.changes:[]
@@ -212,6 +267,7 @@ function normalizePublisherApp(row,iconUrls,screenUrls){
     apk:"#",
     apkPath:row.apk_path,
     apkBucket:"app-apk",
+    sizeBytes:Number(row.apk_size_bytes||0),
     downloads:Number(row.download_count||0),
     icon:iconUrls.get(row.icon_path)||"",
     iconPath:row.icon_path||null,
@@ -238,7 +294,10 @@ async function fetchPublisherCatalog(visibility){
 
   publisherAvailable=true;
   const rows=data||[];
-  await restoreScreenshotRowsFromStorage(rows);
+  await Promise.all([
+    restoreScreenshotRowsFromStorage(rows),
+    hydratePublisherFileSizes(rows)
+  ]);
   const assetLifetime=visibility==="gendarmerie"?300:3600;
   const iconUrls=await signedUrlMap("app-icons",rows.map(x=>x.icon_path),assetLifetime);
   const screenUrls=await signedUrlMap("app-screenshots",rows.flatMap(x=>(x.app_screenshots||[]).map(s=>s.storage_path)),assetLifetime);
@@ -246,13 +305,21 @@ async function fetchPublisherCatalog(visibility){
 }
 
 function iconHtml(a){const n=esc(a.name),ini=esc(initials(a.name));return a.icon?`<img class="icon" src="${esc(a.icon)}" alt="Logo ${n}" onerror="this.style.display='none';this.nextElementSibling.style.display='grid'"><div class="fallback" style="display:none">${ini}</div>`:`<div class="fallback">${ini}</div>`}
-function downloadHtml(a,label="Télécharger"){
+function downloadHtml(a,label="Installer"){
   if(a.apkPath){
     return `<button class="download" type="button" data-secure-download="${esc(a.id)}" data-apk-path="${esc(a.apkPath)}" data-apk-bucket="${esc(a.apkBucket||"app-apk")}">${esc(label)}</button>`;
   }
   return `<a class="download" href="${esc(a.apk)}">${esc(label)}</a>`;
 }
 function starsFrom(avg){const n=Math.round(Number(avg)||0);return "★★★★★".split("").map((s,i)=>i<n?"★":"☆").join("")}
+function appFactsHtml(a,stats){
+  const rating=stats?.count?stats.avg.toFixed(1):"—";
+  return `<div class="app-card-facts">
+    <span><strong>${esc(rating)}</strong> ★</span>
+    <span><strong>${esc(formatBytes(a.sizeBytes))}</strong> Taille</span>
+    <span><strong>${esc(compactCount(a.downloads))}</strong> téléchargements</span>
+  </div>`;
+}
 function currentFiltered(){
   const q=elQ.value.trim().toLowerCase();
   const cat=$("categoryFilter").value;
@@ -266,10 +333,9 @@ function render(list){
   if(!list.length){elApps.innerHTML='<div class="card">Aucune application trouvée.</div>';return}
   elApps.innerHTML=list.map((a,i)=>{
     const st=reviewStats[a.id]||{avg:0,count:0};
-    return `<article class="card">
-      <div class="head">${iconHtml(a)}<div><h3>${esc(a.name)}</h3><p class="meta">Version ${esc(a.version)} • ${esc(fmtDate(a.published))}</p><div class="detail-badges"><span class="category-badge">${esc(a.category)}</span>${isNewApp(a)?'<span class="new-badge">Nouveau</span>':""}</div></div></div>
-      <div class="rating-mini"><span class="stars">${starsFrom(st.avg)}</span><span>${st.count?`${st.avg.toFixed(1)} (${st.count} avis)`:"Aucun avis"}</span></div>
-      <div class="rating-mini"><span>⬇ ${Number(a.downloads||0).toLocaleString("fr-FR")} téléchargement${a.downloads===1?"":"s"}</span>${favorites.has(a.id)?"<span>♥ Favori</span>":""}</div>
+    return `<article class="card app-card">
+      <div class="head">${iconHtml(a)}<div class="app-card-title"><h3>${esc(a.name)}</h3><p class="app-publisher-name">Mada Apps</p><p class="meta">Version ${esc(a.version)} • ${esc(fmtDate(a.published))}</p><div class="detail-badges"><span class="category-badge">${esc(a.category)}</span>${isNewApp(a)?'<span class="new-badge">Nouveau</span>':""}${favorites.has(a.id)?'<span class="favorite-badge">♥ Favori</span>':""}</div></div></div>
+      ${appFactsHtml(a,st)}
       <p class="desc">${esc(a.description)}</p>
       <div class="actions">${downloadHtml(a)}<button class="details" type="button" data-details="${i}">Détails</button></div>
     </article>`;
@@ -279,8 +345,8 @@ function render(list){
 function featureCard(a){
   const st=reviewStats[a.id]||{avg:0,count:0};
   return `<article class="feature-card">
-    <div class="head">${iconHtml(a)}<div><h4>${esc(a.name)}</h4><p class="meta">Version ${esc(a.version)}</p><span class="category-badge">${esc(a.category)}</span></div></div>
-    <div class="rating-mini"><span class="stars">${starsFrom(st.avg)}</span><span>${st.count?`${st.avg.toFixed(1)} (${st.count})`:"Aucun avis"}</span></div>
+    <div class="head">${iconHtml(a)}<div class="app-card-title"><h4>${esc(a.name)}</h4><p class="app-publisher-name">Mada Apps</p><p class="meta">Version ${esc(a.version)}</p></div></div>
+    ${appFactsHtml(a,st)}
     <p class="desc">${esc(a.description)}</p>
     <div class="feature-actions">${downloadHtml(a)}<button class="details" data-feature-app="${esc(a.id)}" type="button">Détails</button></div>
   </article>`;
@@ -493,13 +559,13 @@ async function loadFavoritesFromSupabase(){
   const {data,error}=await sb.from("favorites").select("app_id").eq("user_id",currentUser.id);
   if(error){console.warn(error);return}
   favorites=new Set((data||[]).map(x=>x.app_id));
-  localStorage.setItem("romuelapps_favorites",JSON.stringify([...favorites]));
+  localStorage.setItem(FAVORITES_KEY,JSON.stringify([...favorites]));
   filter();
 }
 
 async function syncFavorite(appId,shouldFavorite){
   if(!currentUser){
-    localStorage.setItem("romuelapps_favorites",JSON.stringify([...favorites]));
+    localStorage.setItem(FAVORITES_KEY,JSON.stringify([...favorites]));
     return;
   }
   if(shouldFavorite){
@@ -513,18 +579,20 @@ async function syncFavorite(appId,shouldFavorite){
 
 function versionDownloadHtml(app,version){
   if(version.apkPath){
-    return `<button class="version-download" type="button" data-secure-download="${esc(app.id)}" data-apk-path="${esc(version.apkPath)}" data-apk-bucket="${esc(version.apkBucket||app.apkBucket||"app-apk")}">APK</button>`;
+    return `<button class="version-download" type="button" data-secure-download="${esc(app.id)}" data-apk-path="${esc(version.apkPath)}" data-apk-bucket="${esc(version.apkBucket||app.apkBucket||"app-apk")}">Installer</button>`;
   }
-  return `<a href="${esc(version.apk||app.apk)}">APK</a>`;
+  return `<a href="${esc(version.apk||app.apk)}">Installer</a>`;
 }
 
 function openDetails(app,options={}){
   currentApp=app;
   if(!options.skipUrl)setAppUrl(app);
-  document.title=`${app.name} — Romuel Apps`;
+  document.title=`${app.name} — ${STORE_NAME}`;
   $("modalIconWrap").innerHTML=iconHtml(app);
   $("modalTitle").textContent=app.name;
-  $("modalMeta").textContent=`Version ${app.version} • Mise à jour le ${fmtDate(app.published)}`;
+  $("modalMeta").textContent=`Mise à jour le ${fmtDate(app.published)}`;
+  $("modalSize").textContent=formatBytes(app.sizeBytes);
+  $("modalVersion").textContent=app.version||"—";
   $("modalCategory").textContent=app.category||"Autres";
   $("modalNewBadge").classList.toggle("hidden",!isNewApp(app));
   $("modalDescription").textContent=app.description;
@@ -540,14 +608,14 @@ function openDetails(app,options={}){
     delete modalDownload.dataset.apkPath;
     delete modalDownload.dataset.apkBucket;
   }
-  $("modalDownloads").textContent=`${Number(app.downloads||0).toLocaleString("fr-FR")} téléchargement${app.downloads===1?"":"s"}`;
+  $("modalDownloads").textContent=Number(app.downloads||0).toLocaleString("fr-FR");
   $("favoriteBtn").textContent=favorites.has(app.id)?"♥ Favori":"♡ Favori";
   $("favoriteBtn").classList.toggle("favorite-active",favorites.has(app.id));
   if(app.changes?.length){$("modalChanges").innerHTML=app.changes.map(x=>`<p>• ${esc(x)}</p>`).join("");$("changesBlock").style.display=""}else{$("changesBlock").style.display="none"}
   $("versionsList").innerHTML=(app.versions||[]).map(v=>`
     <div class="version-row">
       <span class="version-pill">v${esc(v.version)}</span>
-      <div><div>${esc(fmtDate(v.published))}</div><div class="version-date">${esc((v.changes||[])[0]||"Version publiée")}</div></div>
+      <div><div>${esc(fmtDate(v.published))}</div><div class="version-date">${esc(formatBytes(v.sizeBytes))} • ${esc((v.changes||[])[0]||"Version publiée")}</div></div>
       ${versionDownloadHtml(app,v)}
     </div>`).join("") || '<div class="empty-state">Aucun historique disponible.</div>';
 
@@ -566,7 +634,7 @@ function closeModal(options={}){
   modal.setAttribute("aria-hidden","true");
   document.body.classList.remove("modal-open");
   currentApp=null;
-  document.title="Romuel Apps";
+  document.title=STORE_NAME;
   if(!options.skipUrl)setAppUrl(null);
 }
 
@@ -651,8 +719,11 @@ async function loadLegacyPrivateApps(){
     throw error;
   }
   const rows=data||[];
-  const iconUrls=await signedUrlMap("gendarmerie-apps",rows.map(x=>x.logo_path),300);
-  return rows.map(row=>({
+  const [iconUrls,sizes]=await Promise.all([
+    signedUrlMap("gendarmerie-apps",rows.map(x=>x.logo_path),300),
+    Promise.all(rows.map(row=>storageFileSize("gendarmerie-apps",row.apk_path)))
+  ]);
+  return rows.map((row,index)=>({
     id:row.slug||String(row.id),
     recordId:null,
     source:"supabase-legacy",
@@ -666,11 +737,12 @@ async function loadLegacyPrivateApps(){
     apk:"#",
     apkPath:row.apk_path,
     apkBucket:"gendarmerie-apps",
+    sizeBytes:Number(sizes[index]||0),
     downloads:0,
     icon:iconUrls.get(row.logo_path)||"",
     screenshots:[],
     published:row.created_at,
-    versions:[{version:row.version||"—",apkPath:row.apk_path,apkBucket:"gendarmerie-apps",source:"supabase",published:row.created_at,changes:[]}]
+    versions:[{version:row.version||"—",apkPath:row.apk_path,apkBucket:"gendarmerie-apps",sizeBytes:Number(sizes[index]||0),source:"supabase",published:row.created_at,changes:[]}]
   }));
 }
 
@@ -682,12 +754,14 @@ function renderPrivateApps(){
   }
 
   box.innerHTML=privateApps.map(a=>`
-    <article class="card private-card">
+    <article class="card app-card private-card">
       <div class="head">${iconHtml(a)}<div>
           <h3>${esc(a.name)}</h3>
+          <p class="app-publisher-name">Mada Apps • Espace protégé</p>
           <p class="meta">Version ${esc(a.version)}</p>
           <div class="detail-badges"><span class="private-badge">Gendarmerie</span><span class="category-badge">${esc(a.category||"Privé")}</span></div>
         </div></div>
+      ${appFactsHtml(a,reviewStats[a.id]||{avg:0,count:0})}
       <p class="desc">${esc(a.description||"Application réservée.")}</p>
       <div class="actions">
         ${downloadHtml(a)}
@@ -863,7 +937,7 @@ $("favoriteBtn").addEventListener("click",async()=>{
   if(!currentApp)return;
   const shouldFavorite=!favorites.has(currentApp.id);
   if(shouldFavorite)favorites.add(currentApp.id);else favorites.delete(currentApp.id);
-  localStorage.setItem("romuelapps_favorites",JSON.stringify([...favorites]));
+  localStorage.setItem(FAVORITES_KEY,JSON.stringify([...favorites]));
   await syncFavorite(currentApp.id,shouldFavorite);
   $("favoriteBtn").textContent=favorites.has(currentApp.id)?"♥ Favori":"♡ Favori";
   $("favoriteBtn").classList.toggle("favorite-active",favorites.has(currentApp.id));
@@ -930,7 +1004,7 @@ async function loadAdminDashboard(){
   const adminCatalog=[...apps];
   for(const row of publisherApps){
     if(!adminCatalog.some(app=>app.recordId===row.id||app.id===row.slug)){
-      adminCatalog.push({id:row.slug,name:row.name,version:row.version,downloads:Number(row.download_count||0),visibility:row.visibility,status:row.status});
+      adminCatalog.push({id:row.slug,name:row.name,version:row.version,sizeBytes:Number(row.apk_size_bytes||0),downloads:Number(row.download_count||0),visibility:row.visibility,status:row.status});
     }
   }
   const totalDownloads=adminCatalog.reduce((sum,a)=>sum+Number(a.downloads||0),0);
@@ -967,7 +1041,7 @@ async function loadAdminDashboard(){
     const st=reviewStats[app.id]||{avg:0,count:0};
     return `<div class="admin-app-row">
       <div class="app-name">${esc(app.name)}${app.visibility==="gendarmerie"?' <span class="private-badge">Gendarmerie</span>':""}${app.status==="draft"?' <span class="publisher-pill draft">Brouillon</span>':""}</div>
-      <div class="mini-stat">⬇ ${Number(app.downloads||0).toLocaleString("fr-FR")}</div>
+      <div class="mini-stat">⬇ ${Number(app.downloads||0).toLocaleString("fr-FR")} • ${esc(formatBytes(app.sizeBytes))}</div>
       <div class="mini-stat">7j : ${Number(tracked[app.id]||0).toLocaleString("fr-FR")} clics</div>
       <div class="mini-stat">★ ${st.count?st.avg.toFixed(1):"—"} • ${st.count} avis</div>
     </div>`;
@@ -1211,7 +1285,7 @@ function renderLegacyPublisherApps(){
     <div class="publisher-app-row">
       <div class="publisher-app-main">
         <strong>${esc(app.name)}</strong>
-        <small>Version ${esc(app.version)} • publication GitHub</small>
+        <small>Version ${esc(app.version)} • ${esc(formatBytes(app.sizeBytes))} • publication GitHub</small>
       </div>
       <div class="publisher-row-actions">
         <button type="button" data-import-legacy="${esc(app.id)}">Recréer ici</button>
@@ -1235,7 +1309,7 @@ function renderPublisherApps(){
       return `<div class="publisher-app-row">
         <div class="publisher-app-main">
           <strong>${esc(app.name)}</strong>
-          <small>Version ${esc(app.version||"—")} • ${esc(app.category||"Autres")}</small>
+          <small>Version ${esc(app.version||"—")} • ${esc(formatBytes(app.apk_size_bytes))} • ${esc(app.category||"Autres")}</small>
           <div class="publisher-app-badges">
             <span class="publisher-pill ${esc(app.visibility)}">${access}</span>
             <span class="publisher-pill ${esc(app.status)}">${state}</span>
@@ -1275,6 +1349,7 @@ async function loadAdminPublisher(){
     return;
   }
 
+  await hydratePublisherFileSizes(data||[]);
   publisherAvailable=true;
   $("publisherSetupNotice").classList.add("hidden");
   publisherApps=data||[];
@@ -1286,6 +1361,7 @@ function resetPublisherMessage(){
   $("publisherMessage").textContent="";
   $("publisherProgressWrap").classList.add("hidden");
   $("publisherProgressBar").style.width="0%";
+  $("publisherApkSizeHint").textContent="Le fichier est envoyé dans l’espace sécurisé Supabase. Sa taille sera détectée automatiquement.";
 }
 
 async function showPublisherScreens(app){
@@ -1588,6 +1664,12 @@ $("publisherForm").addEventListener("submit",async e=>{
 $("newPublisherAppBtn").addEventListener("click",()=>openPublisherForm("create"));
 $("refreshPublisherBtn").addEventListener("click",loadAdminPublisher);
 $("closePublisherFormBtn").addEventListener("click",closePublisherForm);
+$("publisherApk").addEventListener("change",e=>{
+  const file=e.currentTarget.files?.[0];
+  $("publisherApkSizeHint").textContent=file
+    ?`Taille détectée : ${formatBytes(file.size)} • ${file.name}`
+    :"Le fichier est envoyé dans l’espace sécurisé Supabase. Sa taille sera détectée automatiquement.";
+});
 $("cancelPublisherBtn").addEventListener("click",closePublisherForm);
 $("publisherName").addEventListener("input",e=>{
   if($("publisherMode").value==="create"&&$("publisherSlug").dataset.auto==="true")$("publisherSlug").value=slugify(e.target.value);
@@ -1644,13 +1726,24 @@ $("publisherExistingScreens").addEventListener("click",async e=>{
 $("shareBtn").addEventListener("click",async()=>{
   if(!currentApp)return;
   const url=appPageUrl(currentApp);
-  const data={title:`${currentApp.name} — Romuel Apps`,text:`Découvre ${currentApp.name} sur Romuel Apps`,url};
+  const data={title:`${currentApp.name} — ${STORE_NAME}`,text:`Découvre ${currentApp.name} sur ${STORE_NAME}`,url};
   try{
     if(navigator.share)await navigator.share(data);
     else{await navigator.clipboard.writeText(url);alert("Lien de l’application copié.")}
   }catch{}
 });
-$("themeBtn").addEventListener("click",()=>{document.body.classList.toggle("light");$("themeBtn").textContent=document.body.classList.contains("light")?"☀":"☾"});
+function applyStoreTheme(dark){
+  document.body.classList.toggle("dark",dark);
+  $("themeBtn").textContent=dark?"☀":"☾";
+  $("themeBtn").setAttribute("aria-label",dark?"Activer le thème clair":"Activer le thème sombre");
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content",dark?"#111418":"#f8f9fa");
+}
+applyStoreTheme(localStorage.getItem("madaapps_theme")==="dark");
+$("themeBtn").addEventListener("click",()=>{
+  const dark=!document.body.classList.contains("dark");
+  localStorage.setItem("madaapps_theme",dark?"dark":"light");
+  applyStoreTheme(dark);
+});
 document.addEventListener("click",async e=>{
   const a=e.target.closest("a.download, #modalDownload");
   if(!a)return;

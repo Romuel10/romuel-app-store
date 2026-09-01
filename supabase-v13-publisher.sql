@@ -1,5 +1,5 @@
 -- ============================================================================
--- ROMUEL APPS V13.4 — CENTRE DE PUBLICATION SUPABASE
+-- MADA APPS V14 — CENTRE DE PUBLICATION SUPABASE
 -- À exécuter une seule fois dans Supabase > SQL Editor.
 -- Le script est idempotent : il peut être relancé sans supprimer les données.
 -- ============================================================================

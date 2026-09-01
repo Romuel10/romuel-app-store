@@ -1,5 +1,5 @@
 -- =========================================================
--- ROMUEL APPS V9 : STATISTIQUES DE TELECHARGEMENT
+-- MADA APPS : STATISTIQUES DE TELECHARGEMENT
 -- Exécuter UNE SEULE FOIS dans Supabase > SQL Editor
 -- =========================================================
 

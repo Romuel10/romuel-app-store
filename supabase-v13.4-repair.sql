@@ -1,5 +1,5 @@
 -- ============================================================================
--- ROMUEL APPS V13.4 — RÉPARATION DES CAPTURES V13.3
+-- MADA APPS V14 — RÉPARATION DES CAPTURES V13.3
 -- À exécuter dans Supabase > SQL Editor.
 -- Ce script ne supprime aucune application ni aucun fichier.
 -- ============================================================================

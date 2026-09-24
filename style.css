@@ -599,3 +599,16 @@ footer{background:var(--surface);border-top:1px solid var(--line)}
   .topbar-inner{width:calc(100% - 16px)}.brand-mark{width:40px;height:40px;flex-basis:40px}.brand h1{font-size:17px}.top-actions{max-width:none}.hero h2{font-size:30px}.hero-app-tiles{display:none}.hero-showcase{justify-content:flex-start}.hero-badge{width:100%}
   .feature-card{width:270px;flex-basis:270px}.icon,.fallback{width:74px;height:74px;flex-basis:74px}
 }
+
+/* V3 role navigation */
+#developerBtn,#gendarmerieBtn,#adminBtn{font-weight:700}
+
+
+/* V15 - rôles, validation développeurs */
+.admin-submissions-list{display:grid;gap:12px;margin-top:16px}
+.submission-card{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:16px;border:1px solid var(--border,#e3e6ea);border-radius:16px;background:var(--surface,#fff)}
+.submission-card h4{margin:4px 0 3px;font-size:1rem}.submission-card p{margin:0;color:var(--muted,#667085);font-size:.9rem}
+.submission-type{font-size:.72rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#137333}
+.submission-actions,.user-role-actions{display:flex;gap:8px;flex-wrap:wrap}.danger-btn{border-color:#f0b4b4!important;color:#b42318!important}
+.user-access-row-v2{align-items:center}.user-access-main{min-width:220px;flex:1}.user-pills{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}.access-pill.subtle{opacity:.72}
+@media(max-width:720px){.submission-card,.user-access-row-v2{align-items:flex-start;flex-direction:column}.submission-actions,.user-role-actions{width:100%}.submission-actions button,.user-role-actions button{flex:1}}

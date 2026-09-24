@@ -37,3 +37,8 @@ Si une publication v13.3 a envoyé ses captures sans créer leurs lignes en base
 ## Migration des anciennes applications GitHub
 
 Dans le Centre de publication, la rubrique **Anciennes publications GitHub** propose le bouton **Recréer ici**. Les informations sont préremplies ; il reste à choisir l'APK, le logo et les captures. Dès qu'une application Supabase utilise le même identifiant, elle remplace automatiquement son ancienne publication GitHub dans le catalogue.
+
+
+## V15 — rôles et Console développeur
+
+Cette version ajoute une vraie Console développeur, une file de validation admin et un espace Gendarmerie dédié. Pour mettre Supabase au même niveau que le code, exécuter **uniquement** `SUPABASE_SETUP_COMPLETE_V15.sql` dans SQL Editor. Le script est conçu comme migration idempotente et conserve les applications existantes.

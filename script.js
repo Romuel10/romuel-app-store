@@ -2,8 +2,8 @@ const OWNER="Romuel10";
 const REPO="romuel-apps-releases-";
 const API=`https://api.github.com/repos/${OWNER}/${REPO}/releases?per_page=100`;
 
-const SUPABASE_URL="https://gmlofgsgnbbcbefogpww.supabase.co";
-const SUPABASE_KEY="sb_publishable_5TlVWknK1BODxwWqw4efEA_y4DI-JRP";
+const SUPABASE_URL=window.MADA_SUPABASE_URL||"https://gmlofgsgnbbcbefogpww.supabase.co";
+const SUPABASE_KEY=window.MADA_SUPABASE_KEY||"sb_publishable_5TlVWknK1BODxwWqw4efEA_y4DI-JRP";
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const STORE_NAME="Mada Apps";
 
@@ -16,7 +16,7 @@ let privateApps=[];
 let publisherApps=[],publisherScreens=[],publisherAvailable=true,isPublisherSubmitting=false;
 const FAVORITES_KEY="madaapps_favorites";
 let favorites=new Set(JSON.parse(localStorage.getItem(FAVORITES_KEY)||localStorage.getItem("romuelapps_favorites")||"[]"));
-let profile=null,isAdmin=false,reportedReviewId=null;
+let profile=null,isAdmin=false,isDeveloper=false,isGendarmerie=false,reportedReviewId=null,lastUnconfirmedEmail="";
 let selectedAvatarFile=null,removeAvatarRequested=false;
 let pendingAppSlug=new URLSearchParams(location.search).get("app");
 const storageSizeCache=new Map();
@@ -505,17 +505,19 @@ async function ensureOwnProfile(){
 
 async function loadProfile(){
   if(!currentUser){profile=null;isAdmin=false;refreshProfileUI();return}
-  const {data,error}=await sb.from("profiles").select("id,display_name,avatar_url,is_admin,access_level").eq("id",currentUser.id).maybeSingle();
+  const {data,error}=await sb.from("profiles").select("id,display_name,avatar_url,is_admin,access_level,role").eq("id",currentUser.id).maybeSingle();
   if(error){console.warn(error);return}
   profile=data||null;
   isAdmin=!!profile?.is_admin;
+  isDeveloper=profile?.role==="DEVELOPER" || profile?.access_level==="developer";
+  isGendarmerie=profile?.role==="GENDARMERIE" || profile?.access_level==="gendarme";
   refreshProfileUI();
   refreshPrivateAccessUI();
 }
 
 
 function hasGendarmerieAccess(){
-  return !!currentUser && (isAdmin || profile?.access_level==="gendarme");
+  return !!currentUser && (isAdmin || profile?.role==="GENDARMERIE" || profile?.access_level==="gendarme");
 }
 function refreshPrivateAccessUI(){
   const allowed=hasGendarmerieAccess();
@@ -534,6 +536,8 @@ function refreshProfileUI(){
   $("profileLoggedOut").classList.toggle("hidden",loggedIn);
   $("profileForm").classList.toggle("hidden",!loggedIn);
   $("adminBtn").classList.toggle("hidden",!isAdmin);
+  $("developerBtn").classList.toggle("hidden",!isDeveloper);
+  $("gendarmerieBtn").classList.toggle("hidden",!isGendarmerie);
 
   if(loggedIn){
     $("profileName").value=profile?.display_name||"";
@@ -652,6 +656,8 @@ function setAuthMode(mode){
   $("authSubmitBtn").textContent=mode==="signin"?"Se connecter":"Créer mon compte";
   $("authPassword").autocomplete=mode==="signin"?"current-password":"new-password";
   $("authMessage").textContent="";
+  $("resendConfirmBtn")?.classList.add("hidden");
+  lastUnconfirmedEmail="";
 }
 async function refreshAuthUI(){
   $("authLoggedOut").classList.toggle("hidden",!!currentUser);
@@ -680,6 +686,7 @@ async function refreshAuthUI(){
   if(hasGendarmerieAccess()&&(currentStoreTab==="gendarmerie"||pendingAppSlug)){
     loadPrivateApps().catch(err=>console.warn("Espace Gendarmerie:",err));
   }
+  if(isAdmin && new URLSearchParams(location.search).get("admin")==="1")setTimeout(openAdmin,0);
 }
 
 
@@ -874,12 +881,55 @@ $("authForm").addEventListener("submit",async e=>{
   const email=$("authEmail").value.trim(),password=$("authPassword").value;
   const msg=$("authMessage");msg.className="form-message";msg.textContent="Traitement…";
   let result;
-  if(authMode==="signin")result=await sb.auth.signInWithPassword({email,password});
-  else result=await sb.auth.signUp({email,password,options:{emailRedirectTo:location.origin,data:{display_name:email.split("@")[0]}}});
-  if(result.error){msg.className="form-message error";msg.textContent=result.error.message;return}
+
+  if(authMode==="signin"){
+    result=await sb.auth.signInWithPassword({email,password});
+
+    if(result.error){
+      if(result.error.message.includes("Email not confirmed")){
+        lastUnconfirmedEmail=email;
+        $("resendConfirmBtn")?.classList.remove("hidden");
+        msg.className="form-message error";
+        msg.textContent="⚠️ Votre e-mail n’est pas encore confirmé. Vérifiez votre boîte mail ou renvoyez le lien de confirmation.";
+        return;
+      }
+
+      msg.className="form-message error";
+      msg.textContent=result.error.message;
+      return;
+    }
+
+  }else{
+    result=await sb.auth.signUp({
+      email,
+      password,
+      options:{
+        emailRedirectTo:location.origin,
+        data:{display_name:email.split("@")[0]}
+      }
+    });
+
+    if(result.error){
+      msg.className="form-message error";
+      msg.textContent=result.error.message;
+      return;
+    }
+  }
   if(authMode==="signup"&&!result.data.session){msg.className="form-message success";msg.textContent="Compte créé. Vérifie ton e-mail pour confirmer l'inscription.";return}
   msg.className="form-message success";msg.textContent="Connexion réussie.";
   setTimeout(closeAuth,500);
+});
+
+$("resendConfirmBtn")?.addEventListener("click",async()=>{
+  const email=lastUnconfirmedEmail||$("authEmail").value.trim();
+  const msg=$("authMessage");
+  if(!email){msg.className="form-message error";msg.textContent="Indique d’abord ton adresse e-mail.";return}
+  $("resendConfirmBtn").disabled=true;
+  msg.className="form-message";msg.textContent="Envoi du lien…";
+  const {error}=await sb.auth.resend({type:"signup",email,options:{emailRedirectTo:location.origin+location.pathname}});
+  $("resendConfirmBtn").disabled=false;
+  if(error){msg.className="form-message error";msg.textContent=error.message;return}
+  msg.className="form-message success";msg.textContent="E-mail de confirmation renvoyé. Vérifie aussi le dossier spam.";
 });
 
 $("signOutBtn").addEventListener("click",async()=>{await sb.auth.signOut();closeAuth()});
@@ -1056,6 +1106,7 @@ function openAdmin(){
   loadAdminReports();
   loadAdminPublisher().then(loadAdminDashboard);
   loadAdminUsersAccess();
+  loadDeveloperSubmissionsAdmin();
 }
 function closeAdmin(){
   if(isPublisherSubmitting)return;
@@ -1066,6 +1117,8 @@ function closeAdmin(){
 }
 
 $("profileBtn").addEventListener("click",openProfile);
+$("developerBtn")?.addEventListener("click",()=>location.href="developer-dashboard.html");
+$("gendarmerieBtn")?.addEventListener("click",()=>location.href="gendarmerie.html");
 $("profileLoginBtn").addEventListener("click",()=>{closeProfile();openAuth()});
 $("profileSignOutBtn").addEventListener("click",async()=>{await sb.auth.signOut();closeProfile()});
 $("adminBtn").addEventListener("click",openAdmin);
@@ -1228,22 +1281,26 @@ async function loadAdminUsersAccess(){
 
     box.innerHTML=rows.map(u=>{
       const access=u.is_admin ? "admin" : (u.access_level||"public");
-      const label=u.is_admin ? "Admin" : access==="gendarme" ? "Gendarme" : "Public";
-      const button=u.is_admin
-        ? ''
-        : `<button class="secondary-btn" type="button"
-              data-set-access="${esc(u.id)}"
-              data-next-access="${access==="gendarme"?"public":"gendarme"}">
-              ${access==="gendarme"?"Retirer accès":"Autoriser Gendarmerie"}
-           </button>`;
+      const role=u.is_admin ? "ADMIN" : (u.role|| (access==="gendarme"?"GENDARMERIE":"USER"));
+      const accessLabel=u.is_admin ? "Admin" : access==="gendarme" ? "Gendarmerie" : "Public";
+      const roleLabel={USER:"Utilisateur",DEVELOPER:"Développeur",GENDARMERIE:"Gendarmerie",ADMIN:"Admin"}[role]||role;
+      const controls=u.is_admin ? '' : `
+        <div class="user-role-actions">
+          <button class="secondary-btn" type="button" data-set-role="${esc(u.id)}" data-next-role="${role==="DEVELOPER"?"USER":"DEVELOPER"}">
+            ${role==="DEVELOPER"?"Retirer Développeur":"Rendre Développeur"}
+          </button>
+          <button class="secondary-btn" type="button" data-set-access="${esc(u.id)}" data-next-access="${access==="gendarme"?"public":"gendarme"}">
+            ${access==="gendarme"?"Retirer Gendarmerie":"Autoriser Gendarmerie"}
+          </button>
+        </div>`;
 
-      return `<div class="user-access-row">
-        <div>
+      return `<div class="user-access-row user-access-row-v2">
+        <div class="user-access-main">
           <strong>${esc(u.display_name||"Utilisateur")}</strong>
           <div class="user-id">${esc(u.email||"")}</div>
+          <div class="user-pills"><span class="access-pill">${esc(roleLabel)}</span><span class="access-pill subtle">${esc(accessLabel)}</span></div>
         </div>
-        <span class="access-pill">${label}</span>
-        ${button}
+        ${controls}
       </div>`;
     }).join("");
   }catch(err){
@@ -1255,6 +1312,15 @@ async function loadAdminUsersAccess(){
 $("refreshAdminUsersBtn")?.addEventListener("click",loadAdminUsersAccess);
 
 $("adminUsersAccess").addEventListener("click",async e=>{
+  const roleBtn=e.target.closest("[data-set-role]");
+  if(roleBtn){
+    roleBtn.disabled=true;
+    const {error}=await sb.rpc("admin_set_user_role",{target_user:roleBtn.dataset.setRole,new_role:roleBtn.dataset.nextRole});
+    if(error)alert(error.message);
+    await loadAdminUsersAccess();
+    roleBtn.disabled=false;
+    return;
+  }
   const btn=e.target.closest("[data-set-access]");
   if(!btn)return;
   const userId=btn.dataset.setAccess,next=btn.dataset.nextAccess;
@@ -1272,6 +1338,59 @@ $("adminUsersAccess").addEventListener("click",async e=>{
     await loadProfile();
     refreshPrivateAccessUI();
   }
+});
+
+
+async function loadDeveloperSubmissionsAdmin(){
+  if(!isAdmin)return;
+  const box=$("adminDeveloperSubmissions");
+  if(!box)return;
+  box.innerHTML='<p class="form-message">Chargement des demandes…</p>';
+  try{
+    const [appsResult,versionsResult]=await Promise.all([
+      sb.from("applications").select("id,slug,name,version,category,status,review_note,created_by,created_at").eq("status","pending").order("created_at",{ascending:true}),
+      sb.from("app_versions").select("id,app_id,version,changes,status,review_note,created_at,applications(name,slug,status,created_by)").eq("status","pending").order("created_at",{ascending:true})
+    ]);
+    if(appsResult.error)throw appsResult.error;
+    if(versionsResult.error)throw versionsResult.error;
+    const pendingApps=appsResult.data||[];
+    const pendingVersions=(versionsResult.data||[]).filter(v=>v.applications?.status==="published");
+    const rows=[];
+    for(const app of pendingApps){
+      rows.push(`<article class="submission-card">
+        <div><span class="submission-type">Nouvelle application</span><h4>${esc(app.name)}</h4><p>${esc(app.category||"Autres")} • v${esc(app.version||"—")}</p></div>
+        <div class="submission-actions"><button class="primary-btn" data-review-app="${esc(app.id)}" data-decision="published">Valider</button><button class="secondary-btn danger-btn" data-review-app="${esc(app.id)}" data-decision="rejected">Refuser</button></div>
+      </article>`);
+    }
+    for(const version of pendingVersions){
+      rows.push(`<article class="submission-card">
+        <div><span class="submission-type">Nouvelle version</span><h4>${esc(version.applications?.name||"Application")}</h4><p>Version ${esc(version.version)}${version.changes?.length?" • "+esc(version.changes.join(" · ")):""}</p></div>
+        <div class="submission-actions"><button class="primary-btn" data-review-version="${esc(version.id)}" data-decision="published">Valider</button><button class="secondary-btn danger-btn" data-review-version="${esc(version.id)}" data-decision="rejected">Refuser</button></div>
+      </article>`);
+    }
+    box.innerHTML=rows.length?rows.join(""):'<p class="form-message success">Aucune publication développeur en attente.</p>';
+  }catch(err){
+    console.error("developer submissions",err);
+    box.innerHTML=`<p class="form-message error">Impossible de charger les demandes : ${esc(err.message||String(err))}</p>`;
+  }
+}
+
+$("refreshDeveloperSubmissionsBtn")?.addEventListener("click",loadDeveloperSubmissionsAdmin);
+$("adminDeveloperSubmissions")?.addEventListener("click",async e=>{
+  const appBtn=e.target.closest("[data-review-app]");
+  const versionBtn=e.target.closest("[data-review-version]");
+  const btn=appBtn||versionBtn;
+  if(!btn)return;
+  btn.disabled=true;
+  const decision=btn.dataset.decision;
+  const refusal=decision==="rejected"?prompt("Motif du refus (facultatif) :","")||"":null;
+  const request=appBtn
+    ? sb.rpc("admin_review_application",{target_app:appBtn.dataset.reviewApp,decision,review_message:refusal})
+    : sb.rpc("admin_review_version",{target_version:versionBtn.dataset.reviewVersion,decision,review_message:refusal});
+  const {error}=await request;
+  if(error)alert(error.message);
+  await Promise.all([loadDeveloperSubmissionsAdmin(),loadAdminPublisher(),loadApps()]);
+  btn.disabled=false;
 });
 
 function publisherRowById(id){
@@ -1305,7 +1424,7 @@ function renderPublisherApps(){
   }else{
     box.innerHTML=publisherApps.map(app=>{
       const access=app.visibility==="gendarmerie"?"Gendarmerie":"Publique";
-      const state=app.status==="published"?"Publiée":"Brouillon";
+      const state={published:"Publiée",draft:"Brouillon",pending:"En validation",rejected:"Refusée"}[app.status]||app.status;
       return `<div class="publisher-app-row">
         <div class="publisher-app-main">
           <strong>${esc(app.name)}</strong>

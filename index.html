@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#f8f9fa">
   <meta name="description" content="Mada Apps, le catalogue indépendant d'applications Android conçues pour Madagascar.">
   <title>Mada Apps</title>
-  <link rel="stylesheet" href="./style.css?v=14.0">
+  <link rel="stylesheet" href="./style.css?v=15.0">
 </head>
 <body>
 <header class="topbar">
@@ -26,6 +26,8 @@
       </div>
       <button class="icon-btn" id="themeBtn" type="button" aria-label="Changer le thème">☾</button>
       <button class="account-btn" id="profileBtn" type="button">Mon profil</button>
+      <button class="account-btn hidden" id="developerBtn" type="button">Développeur</button>
+      <button class="account-btn hidden" id="gendarmerieBtn" type="button">🛡 Gendarmerie</button>
       <button class="account-btn hidden" id="adminBtn" type="button">Admin</button>
     </div>
   </div>
@@ -417,6 +419,16 @@
       </div>
     </section>
 
+    <section class="admin-section">
+      <div class="section-title-row">
+        <div><span class="eyebrow">VALIDATION DÉVELOPPEURS</span><h3>Publications en attente</h3><p>Valide ou refuse les nouvelles applications et les nouvelles versions proposées par les développeurs.</p></div>
+        <button id="refreshDeveloperSubmissionsBtn" class="secondary-btn" type="button">↻ Actualiser</button>
+      </div>
+      <div id="adminDeveloperSubmissions" class="admin-submissions-list">
+        <p class="form-message">Ouvre le tableau de bord pour charger les demandes.</p>
+      </div>
+    </section>
+
     <section class="admin-stats-grid" id="adminStatsGrid">
       <div class="admin-stat-card"><span>Applications</span><strong id="adminAppsCount">0</strong></div>
       <div class="admin-stat-card"><span>Téléchargements</span><strong id="adminGithubDownloads">0</strong></div>
@@ -472,6 +484,7 @@
         <input id="authPassword" type="password" minlength="6" required autocomplete="current-password">
 
         <button class="primary-btn" id="authSubmitBtn" type="submit">Se connecter</button>
+        <button class="secondary-btn full-btn hidden" id="resendConfirmBtn" type="button">Renvoyer l’e-mail de confirmation</button>
         <p id="authMessage" class="form-message"></p>
       </form>
     </div>
@@ -485,7 +498,8 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./supabase-config.js?v=15.0"></script>
 <script src="https://cdn.jsdelivr.net/npm/tus-js-client@4/dist/tus.min.js"></script>
-<script src="./script.js?v=14.0"></script>
+<script src="./script.js?v=15.0"></script>
 </body>
 </html>

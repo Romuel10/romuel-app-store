@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#173f49" />
+  <title>Préinscription Sekoly</title>
+  <meta name="sekoly-build" content="2026-09-29-cloudflare-v1" />
+  <style>
+    :root{color-scheme:light;--bg:#eef5f5;--card:#fff;--card2:#f8fbfb;--ink:#17242b;--muted:#687780;--line:#d8e4e7;--brand:#173f49;--brand2:#245d68;--accent:#2f7a54;--accentSoft:#eaf6ef;--danger:#b94141;--warning:#9a651f;--shadow:0 18px 55px rgba(21,56,66,.10)}
+    html[data-theme="dark"]{color-scheme:dark;--bg:#0c1519;--card:#132027;--card2:#17262d;--ink:#eef5f6;--muted:#9db0b8;--line:#2a3d45;--brand:#194b57;--brand2:#276a77;--accent:#70c096;--accentSoft:#18372a;--danger:#ef8d8d;--warning:#e7b76f;--shadow:0 18px 55px rgba(0,0,0,.28)}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;min-height:100vh;background:linear-gradient(180deg,#e5f0ef 0,var(--bg) 430px);color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;transition:.2s}html[data-theme="dark"] body{background:linear-gradient(180deg,#091519 0,var(--bg) 430px)}
+    button,input,select,textarea{font:inherit}.shell{max-width:920px;margin:0 auto;padding:16px 14px 70px}.hero{position:relative;overflow:hidden;padding:28px;border-radius:24px;background:linear-gradient(145deg,var(--brand),var(--brand2));color:white;box-shadow:var(--shadow)}.hero:after{content:"";position:absolute;width:330px;height:330px;border-radius:50%;background:rgba(255,255,255,.06);right:-130px;top:-180px}.hero-tools{position:absolute;z-index:2;right:18px;top:16px;display:flex;gap:7px}.tool{border:1px solid rgba(255,255,255,.24);background:rgba(255,255,255,.08);color:white;border-radius:999px;padding:7px 10px;font-size:10px;font-weight:800;backdrop-filter:blur(8px)}button.tool{cursor:pointer}.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#7ad7a5;margin-right:5px}.dot.offline{background:#efb06a}.brand{font-size:11px;font-weight:900;letter-spacing:.19em;opacity:.82}.hero h1{position:relative;margin:10px 0 5px;font-size:28px;line-height:1.1}.hero p{position:relative;margin:0;color:#d9e6e8}.campaign{position:relative;display:inline-flex;margin-top:16px;border:1px solid rgba(255,255,255,.22);border-radius:999px;padding:7px 10px;font-size:11px}
+    .notice{margin-top:14px;padding:13px 15px;border-left:4px solid var(--accent);border-radius:12px;background:var(--accentSoft);font-size:12px;line-height:1.55}.progress{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:16px 0}.step-chip{border:1px solid var(--line);background:var(--card);border-radius:14px;padding:10px 9px;color:var(--muted);font-size:10px;font-weight:850;text-align:center}.step-chip.active{background:var(--brand);border-color:var(--brand);color:white}.step-chip.done{border-color:rgba(47,122,84,.4);color:var(--accent)}
+    .card{margin-top:14px;padding:20px;border:1px solid var(--line);border-radius:20px;background:var(--card);box-shadow:0 8px 26px rgba(20,49,58,.045)}.card h2{margin:0 0 5px;font-size:16px}.sub{margin:0 0 16px;color:var(--muted);font-size:11px;line-height:1.55}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.span2{grid-column:span 2}.field label{display:block;margin-bottom:5px;color:var(--muted);font-size:10px;font-weight:850;text-transform:uppercase;letter-spacing:.045em}.field input,.field select,.field textarea{width:100%;min-height:46px;border:1px solid var(--line);border-radius:12px;background:var(--card2);color:var(--ink);padding:10px 12px;outline:none;transition:.15s}.field textarea{min-height:84px;resize:vertical}.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(47,122,84,.10)}.divider{height:1px;background:var(--line);margin:17px 0}.section-title{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:10px}
+    .child{margin-top:12px;padding:16px;border:1px solid var(--line);border-radius:16px;background:var(--card2)}.child-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:13px}.child-head strong{font-size:13px}.doc-box{padding:13px;border:1px dashed var(--line);border-radius:14px;background:var(--card2)}.doc-box label{display:block;font-size:10px;font-weight:850;color:var(--muted);margin-bottom:6px}.doc-box input{width:100%;font-size:11px}.docs-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    .actions{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:16px}.btn{min-height:44px;border:0;border-radius:12px;padding:10px 15px;font-weight:850;cursor:pointer}.btn:disabled{opacity:.55;cursor:not-allowed}.primary{background:var(--brand);color:white}.secondary{background:var(--card2);color:var(--ink);border:1px solid var(--line)}.success{background:var(--accent);color:white}.danger{background:rgba(185,65,65,.1);color:var(--danger)}.add{background:var(--accentSoft);color:var(--accent)}.fine{color:var(--muted);font-size:10px;line-height:1.55}.review{display:grid;gap:8px}.review-row{display:flex;justify-content:space-between;gap:18px;padding:11px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card2);font-size:11px}.review-row span{color:var(--muted)}.consent{display:flex;gap:9px;align-items:flex-start;margin-top:15px;font-size:11px;color:var(--muted)}.consent input{margin-top:2px}.saving{min-height:16px;margin-top:8px;color:var(--muted);font-size:10px}.hidden{display:none!important}.loading{padding:42px;text-align:center;color:var(--muted)}.error-card{margin-top:16px;padding:18px;border-radius:16px;background:rgba(185,65,65,.09);color:var(--danger);font-size:12px}.success-card{text-align:center;padding:30px}.checkmark{width:54px;height:54px;margin:0 auto 12px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:white;font-size:27px;font-weight:900}.reference{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:22px;font-weight:900;margin:12px 0}.portal-link{display:inline-flex;margin-top:12px;text-decoration:none}
+    .portal-wrap{display:grid;gap:14px}.portal-card{padding:18px;border:1px solid var(--line);border-radius:18px;background:var(--card);box-shadow:0 8px 26px rgba(20,49,58,.045)}.portal-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px}.portal-title{margin:0;font-size:15px}.portal-code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:var(--muted);margin-top:4px}.portal-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line)}.portal-row:last-child{border-bottom:0}.portal-row small{display:block;color:var(--muted);margin-top:3px}.pill{display:inline-flex;padding:5px 8px;border-radius:999px;background:var(--card2);font-size:9px;font-weight:850}.checklist{display:grid;gap:7px;margin-top:10px}.check-item{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 9px;border:1px solid var(--line);border-radius:10px;background:var(--card2);font-size:10px}.check-item>span{flex:1;min-width:150px}.state-good{color:var(--accent)}.state-warn{color:var(--warning)}.mini-upload{display:inline-flex;align-items:center;padding:6px 8px;border-radius:8px;background:var(--accentSoft);color:var(--accent);font-size:9px;font-weight:850;cursor:pointer}.mini-upload input{display:none}.portal-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+    @media(max-width:700px){.shell{padding:8px 10px 60px}.hero{padding:58px 20px 22px;border-radius:20px}.hero-tools{right:12px;top:12px}.hero h1{font-size:22px}.progress{gap:5px}.step-chip{padding:8px 4px;font-size:8px}.card{padding:16px}.grid,.docs-grid{grid-template-columns:1fr}.span2{grid-column:auto}.actions{position:sticky;bottom:8px;z-index:5;padding:8px;border:1px solid var(--line);border-radius:14px;background:color-mix(in srgb,var(--card) 94%,transparent);backdrop-filter:blur(8px)}.actions .btn{flex:1}.review-row{align-items:flex-start}}
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <div class="hero-tools">
+        <span class="tool"><span id="netDot" class="dot"></span><span id="netLabel">En ligne</span></span>
+        <button id="themeToggle" class="tool" type="button">Mode sombre</button>
+      </div>
+      <div class="brand">SEKOLY · INSCRIPTION</div>
+      <h1 id="schoolName">Chargement…</h1>
+      <p id="schoolMeta">Préparation du formulaire sécurisé</p>
+      <div id="campaignName" class="campaign">Préinscription</div>
+    </section>
+
+    <div id="notice" class="notice hidden"></div>
+
+    <div id="progress" class="progress">
+      <div class="step-chip active">1 · Famille</div>
+      <div class="step-chip">2 · Enfant(s)</div>
+      <div class="step-chip">3 · Pièces</div>
+      <div class="step-chip">4 · Vérifier</div>
+    </div>
+
+    <div id="loading" class="card loading">Chargement du formulaire…</div>
+    <div id="fatal" class="error-card hidden"></div>
+
+    <form id="form" class="hidden" novalidate>
+      <section class="card step" data-step="0">
+        <h2>Responsable familial</h2>
+        <p class="sub">Renseignez le parent ou responsable qui sera contacté en priorité par l’établissement.</p>
+        <div class="grid">
+          <div class="field"><label>Nom *</label><input name="guardianLastName" autocomplete="family-name" required maxlength="120"></div>
+          <div class="field"><label>Prénoms</label><input name="guardianFirstName" autocomplete="given-name" maxlength="120"></div>
+          <div class="field"><label>Lien avec l’enfant *</label><select name="relationship"><option value="FATHER">Père</option><option value="MOTHER">Mère</option><option value="GUARDIAN">Tuteur / responsable légal</option><option value="OTHER">Autre</option></select></div>
+          <div class="field"><label>Téléphone principal *</label><input name="phonePrimary" autocomplete="tel" inputmode="tel" required maxlength="40"></div>
+          <div class="field"><label>Deuxième téléphone</label><input name="phoneSecondary" inputmode="tel" maxlength="40"></div>
+          <div class="field"><label>Email</label><input name="email" type="email" autocomplete="email" maxlength="160"></div>
+          <div class="field"><label>N° CIN</label><input name="cinNumber" maxlength="80"></div>
+          <div class="field"><label>Date de délivrance CIN</label><input name="cinIssuedAt" type="date"></div>
+          <div class="field"><label>Lieu de délivrance CIN</label><input name="cinIssuePlace" maxlength="160"></div>
+          <div class="field"><label>Profession</label><input name="occupation" maxlength="160"></div>
+          <div class="field span2"><label>Adresse</label><input name="address" autocomplete="street-address" maxlength="250"></div>
+          <div class="field"><label>Ville / Commune</label><input name="city" maxlength="120"></div>
+          <div class="field"><label>Contact préféré</label><select name="preferredContact"><option value="PHONE">Appel</option><option value="WHATSAPP">WhatsApp</option><option value="SMS">SMS</option><option value="EMAIL">Email</option></select></div>
+        </div>
+
+        <div class="divider"></div>
+        <div class="section-title">Deuxième responsable (facultatif)</div>
+        <div class="grid">
+          <div class="field"><label>Lien</label><select name="secondaryRelationship"><option value="OTHER">Autre responsable</option><option value="FATHER">Père</option><option value="MOTHER">Mère</option><option value="GUARDIAN">Tuteur</option></select></div>
+          <div class="field"><label>Nom</label><input name="secondaryLastName" maxlength="120"></div>
+          <div class="field"><label>Prénoms</label><input name="secondaryFirstName" maxlength="120"></div>
+          <div class="field"><label>Téléphone</label><input name="secondaryPhonePrimary" inputmode="tel" maxlength="40"></div>
+          <div class="field"><label>Email</label><input name="secondaryEmail" type="email" maxlength="160"></div>
+          <div class="field"><label>N° CIN</label><input name="secondaryCinNumber" maxlength="80"></div>
+          <div class="field"><label>Date CIN</label><input name="secondaryCinIssuedAt" type="date"></div>
+          <div class="field"><label>Lieu CIN</label><input name="secondaryCinIssuePlace" maxlength="160"></div>
+          <div class="field span2"><label>Profession</label><input name="secondaryOccupation" maxlength="160"></div>
+        </div>
+        <div class="actions"><span></span><button type="button" class="btn primary" data-next>Continuer</button></div>
+      </section>
+
+      <section class="card step hidden" data-step="1">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+          <div><h2>Enfant(s)</h2><p class="sub">Vous pouvez envoyer plusieurs dossiers dans la même demande familiale.</p></div>
+          <button id="addChild" type="button" class="btn add">+ Ajouter</button>
+        </div>
+        <div id="children"></div>
+        <div class="actions"><button type="button" class="btn secondary" data-prev>Retour</button><button type="button" class="btn primary" data-next>Continuer</button></div>
+      </section>
+
+      <section class="card step hidden" data-step="2">
+        <h2>Pièces justificatives</h2>
+        <p class="sub">Vous pouvez les joindre maintenant ou les remettre plus tard à l’établissement. PDF, JPG, PNG ou WEBP, 10 Mo maximum.</p>
+        <div class="section-title">Documents de la famille</div>
+        <div class="docs-grid">
+          <div class="doc-box"><label>CIN du responsable principal</label><input type="file" data-family-doc="CIN_PRIMARY" accept=".pdf,image/jpeg,image/png,image/webp"></div>
+          <div class="doc-box"><label>CIN du deuxième responsable</label><input type="file" data-family-doc="CIN_SECONDARY" accept=".pdf,image/jpeg,image/png,image/webp"></div>
+          <div class="doc-box"><label>Justificatif / certificat de résidence</label><input type="file" data-family-doc="RESIDENCE_CERTIFICATE" accept=".pdf,image/jpeg,image/png,image/webp"></div>
+        </div>
+        <div class="divider"></div>
+        <div class="section-title">Documents par enfant</div>
+        <div id="childDocs"></div>
+        <div class="actions"><button type="button" class="btn secondary" data-prev>Retour</button><button type="button" class="btn primary" data-next>Continuer</button></div>
+      </section>
+
+      <section class="card step hidden" data-step="3">
+        <h2>Vérification</h2>
+        <p class="sub">Contrôlez les informations avant l’envoi. La demande ne devient une inscription définitive qu’après validation par l’école.</p>
+        <div id="review" class="review"></div>
+        <label class="consent"><input id="consent" type="checkbox"><span>Je confirme que les informations fournies sont exactes et j’autorise l’établissement à me contacter au sujet de cette demande.</span></label>
+        <div id="saving" class="saving"></div>
+        <div class="actions"><button type="button" class="btn secondary" data-prev>Retour</button><button id="submitBtn" type="submit" class="btn success">Envoyer la demande</button></div>
+      </section>
+    </form>
+
+    <section id="portalApp" class="portal-wrap hidden">
+      <article class="portal-card">
+        <div class="portal-head">
+          <div>
+            <h2 class="portal-title" id="portalFamilyName">Portail famille</h2>
+            <div class="portal-code" id="portalFamilyCode"></div>
+          </div>
+          <span class="pill">Accès sécurisé</span>
+        </div>
+        <p class="sub" id="portalSchoolName"></p>
+        <div class="portal-actions">
+          <button id="portalNewRequest" type="button" class="btn primary hidden">Inscrire ou réinscrire un enfant</button>
+          <button id="portalRefresh" type="button" class="btn secondary">Actualiser</button>
+        </div>
+      </article>
+      <article class="portal-card">
+        <h2 class="portal-title">Mes enfants</h2>
+        <div id="portalStudents" style="margin-top:8px"></div>
+      </article>
+      <article class="portal-card">
+        <h2 class="portal-title">Mes demandes</h2>
+        <p class="sub">Suivez l’avancement et ajoutez les pièces encore manquantes.</p>
+        <div id="portalApplications"></div>
+      </article>
+    </section>
+
+    <section id="success" class="card success-card hidden">
+      <div class="checkmark">✓</div>
+      <h2>Demande transmise</h2>
+      <p class="sub">L’établissement vérifiera le dossier puis contactera la famille avant toute inscription définitive.</p>
+      <div class="reference" id="reference"></div>
+      <div id="uploadStatus" class="fine"></div>
+      <a id="portalLink" class="btn primary portal-link" href="#" target="_blank" rel="noopener">Ouvrir mon portail famille</a>
+    </section>
+  </main>
+
+<script>
+(function(){
+  const qs=new URLSearchParams(location.search);
+  const CODE=qs.get('code')||'';
+  const FAMILY=qs.get('family')||'';
+  const PORTAL=qs.get('portal')||'';
+  const ENDPOINT='https://cmpbrouwcfoauwyeiyfj.supabase.co/functions/v1/sekoly-public-enrollment';
+  const DRAFT_KEY='sekoly-enrollment-draft:'+CODE;
+  const form=document.getElementById('form');
+  const children=document.getElementById('children');
+  let bootstrap=null;
+  let childCounter=0;
+  let currentStep=0;
+
+  const q=(s,r=document)=>r.querySelector(s);
+  const qa=(s,r=document)=>Array.from(r.querySelectorAll(s));
+  const esc=(v)=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+
+  function applyTheme(theme){
+    document.documentElement.dataset.theme=theme;
+    q('#themeToggle').textContent=theme==='dark'?'Mode clair':'Mode sombre';
+    try{localStorage.setItem('sekoly-family-theme',theme)}catch{}
+  }
+  let pref='light';
+  try{pref=localStorage.getItem('sekoly-family-theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch{}
+  applyTheme(pref);
+  q('#themeToggle').addEventListener('click',()=>applyTheme(document.documentElement.dataset.theme==='dark'?'light':'dark'));
+
+  function network(){
+    const online=navigator.onLine;
+    q('#netDot').classList.toggle('offline',!online);
+    q('#netLabel').textContent=online?'En ligne':'Hors connexion';
+  }
+  addEventListener('online',network);addEventListener('offline',network);network();
+
+  function classOptions(){
+    return '<option value="">À déterminer avec l’école</option>'+(bootstrap?.classes||[]).map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name)+(c.series?' — '+esc(c.series):'')+'</option>').join('');
+  }
+  function typeOptions(){
+    let out='';
+    if(bootstrap?.campaign?.allow_new_admission) out+='<option value="NEW">Nouvelle inscription</option>';
+    if(bootstrap?.campaign?.allow_re_registration) out+='<option value="RE_REGISTRATION">Réinscription</option>';
+    return out;
+  }
+
+  function childTemplate(i,data={}){
+    return '<div class="child" data-child data-index="'+i+'">'+
+      '<div class="child-head"><strong>Enfant '+(qa('[data-child]').length+1)+'</strong><button type="button" class="btn danger" data-remove>Retirer</button></div>'+
+      '<div class="grid">'+
+      '<div class="field"><label>Type *</label><select data-field="type">'+typeOptions()+'</select></div>'+
+      '<div class="field"><label>Matricule actuel (réinscription)</label><input data-field="existingMatricule" maxlength="80"></div>'+
+      '<div class="field"><label>Nom *</label><input data-field="lastName" required maxlength="120"></div>'+
+      '<div class="field"><label>Prénoms *</label><input data-field="firstName" required maxlength="160"></div>'+
+      '<div class="field"><label>Sexe</label><select data-field="gender"><option value="M">Masculin</option><option value="F">Féminin</option></select></div>'+
+      '<div class="field"><label>Date de naissance</label><input data-field="birthDate" type="date"></div>'+
+      '<div class="field"><label>Lieu de naissance</label><input data-field="birthPlace" maxlength="180"></div>'+
+      '<div class="field"><label>Nationalité</label><input data-field="nationality" value="Malgache" maxlength="80"></div>'+
+      '<div class="field"><label>Classe souhaitée</label><select data-field="desiredClassId">'+classOptions()+'</select></div>'+
+      '<div class="field"><label>Ancien établissement</label><input data-field="previousSchool" maxlength="180"></div>'+
+      '<div class="field"><label>N° acte de naissance</label><input data-field="birthCertificateNumber" maxlength="100"></div>'+
+      '<div class="field"><label>Date acte</label><input data-field="birthCertificateDate" type="date"></div>'+
+      '<div class="field"><label>Lieu acte</label><input data-field="birthCertificatePlace" maxlength="180"></div>'+
+      '<div class="field"><label>Groupe sanguin</label><input data-field="bloodType" maxlength="20"></div>'+
+      '<div class="field span2"><label>Adresse de l’enfant si différente</label><input data-field="address" maxlength="250"></div>'+
+      '<div class="field"><label>Fokontany / quartier</label><input data-field="neighborhood" maxlength="120"></div>'+
+      '<div class="field"><label>Ville / Commune</label><input data-field="city" maxlength="120"></div>'+
+      '<div class="field span2"><label>Informations utiles / médicales</label><textarea data-field="medicalNotes" maxlength="1000"></textarea></div>'+
+      '</div></div>';
+  }
+
+  function addChild(data={}){
+    if(qa('[data-child]').length>=10)return;
+    const id=childCounter++;
+    children.insertAdjacentHTML('beforeend',childTemplate(id,data));
+    const block=children.lastElementChild;
+    Object.entries(data||{}).forEach(([k,v])=>{const el=q('[data-field="'+k+'"]',block);if(el&&v!=null)el.value=v});
+    renumber();renderChildDocs();saveDraft();
+  }
+  function renumber(){qa('[data-child]').forEach((b,i)=>q('.child-head strong',b).textContent='Enfant '+(i+1))}
+  children.addEventListener('click',e=>{const b=e.target.closest('[data-remove]');if(!b)return;if(qa('[data-child]').length===1)return;b.closest('[data-child]').remove();renumber();renderChildDocs();saveDraft()});
+  q('#addChild').addEventListener('click',()=>addChild());
+
+  function readChildren(){
+    return qa('[data-child]').map(block=>{
+      const get=n=>q('[data-field="'+n+'"]',block)?.value?.trim()||'';
+      return {
+        type:get('type'),existingMatricule:get('existingMatricule'),lastName:get('lastName'),firstName:get('firstName'),
+        gender:get('gender'),birthDate:get('birthDate'),birthPlace:get('birthPlace'),nationality:get('nationality'),
+        desiredClassId:get('desiredClassId'),previousSchool:get('previousSchool'),birthCertificateNumber:get('birthCertificateNumber'),
+        birthCertificateDate:get('birthCertificateDate'),birthCertificatePlace:get('birthCertificatePlace'),bloodType:get('bloodType'),
+        address:get('address'),neighborhood:get('neighborhood'),city:get('city'),medicalNotes:get('medicalNotes')
+      };
+    });
+  }
+
+  function renderChildDocs(){
+    q('#childDocs').innerHTML=readChildren().map((c,i)=>'<div class="child" style="margin-bottom:10px"><strong>'+esc(c.lastName||'Enfant '+(i+1))+' '+esc(c.firstName||'')+'</strong><div class="docs-grid" style="margin-top:10px">'+
+      '<div class="doc-box"><label>Acte de naissance</label><input type="file" data-child-index="'+i+'" data-doc-type="BIRTH_CERTIFICATE" accept=".pdf,image/jpeg,image/png,image/webp"></div>'+
+      '<div class="doc-box"><label>Photo d’identité</label><input type="file" data-child-index="'+i+'" data-doc-type="STUDENT_PHOTO" accept="image/jpeg,image/png,image/webp"></div>'+
+      '<div class="doc-box"><label>Dernier bulletin</label><input type="file" data-child-index="'+i+'" data-doc-type="REPORT_CARD" accept=".pdf,image/jpeg,image/png,image/webp"></div>'+
+      '<div class="doc-box"><label>Certificat de transfert (si nécessaire)</label><input type="file" data-child-index="'+i+'" data-doc-type="TRANSFER_CERTIFICATE" accept=".pdf,image/jpeg,image/png,image/webp"></div>'+
+      '</div></div>').join('');
+  }
+
+  function showStep(n){
+    currentStep=Math.max(0,Math.min(3,n));
+    qa('.step').forEach((s,i)=>s.classList.toggle('hidden',i!==currentStep));
+    qa('.step-chip').forEach((s,i)=>{s.classList.toggle('active',i===currentStep);s.classList.toggle('done',i<currentStep)});
+    if(currentStep===2)renderChildDocs();
+    if(currentStep===3)renderReview();
+    scrollTo({top:Math.max(0,q('#progress').offsetTop-8),behavior:'smooth'});
+  }
+  function validateStep(){
+    if(currentStep===0){
+      const required=['guardianLastName','phonePrimary'];
+      for(const n of required){const el=form.elements[n];if(!String(el.value||'').trim()){el.focus();alert('Veuillez renseigner les champs obligatoires.');return false}}
+    }
+    if(currentStep===1){
+      const list=readChildren();
+      if(!list.length){alert('Ajoutez au moins un enfant.');return false}
+      for(let i=0;i<list.length;i++){
+        if(!list[i].lastName||!list[i].firstName){alert('Nom et prénoms sont obligatoires pour chaque enfant.');return false}
+        if(list[i].type==='RE_REGISTRATION'&&!list[i].existingMatricule){alert('Le matricule est obligatoire pour une réinscription.');return false}
+      }
+    }
+    return true;
+  }
+  qa('[data-next]').forEach(b=>b.addEventListener('click',()=>{if(validateStep())showStep(currentStep+1)}));
+  qa('[data-prev]').forEach(b=>b.addEventListener('click',()=>showStep(currentStep-1)));
+
+  function renderReview(){
+    const fd=new FormData(form), list=readChildren();
+    q('#review').innerHTML=
+      '<div class="review-row"><span>Responsable</span><strong>'+esc(String(fd.get('guardianLastName')||'')+' '+String(fd.get('guardianFirstName')||''))+'</strong></div>'+
+      '<div class="review-row"><span>Téléphone</span><strong>'+esc(String(fd.get('phonePrimary')||''))+'</strong></div>'+
+      '<div class="review-row"><span>Nombre d’enfants</span><strong>'+list.length+'</strong></div>'+
+      list.map(c=>'<div class="review-row"><span>'+(c.type==='RE_REGISTRATION'?'Réinscription':'Nouvelle inscription')+'</span><strong>'+esc(c.lastName+' '+c.firstName)+'</strong></div>').join('');
+  }
+
+  function draftPayload(){
+    const obj={fields:{},children:readChildren()};
+    Array.from(form.elements).forEach(el=>{if(el.name&&el.type!=='file'&&el.type!=='checkbox')obj.fields[el.name]=el.value});
+    return obj;
+  }
+  function saveDraft(){try{localStorage.setItem(DRAFT_KEY,JSON.stringify(draftPayload()))}catch{}}
+  let timer=0;form.addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(saveDraft,250)});
+  function restoreDraft(){
+    try{
+      const raw=localStorage.getItem(DRAFT_KEY);if(!raw)return false;
+      const d=JSON.parse(raw);
+      Object.entries(d.fields||{}).forEach(([k,v])=>{if(form.elements[k])form.elements[k].value=v});
+      (d.children||[]).forEach(addChild);
+      return true;
+    }catch{return false}
+  }
+
+  function applyFamilyPrefill(fam){
+    if(!fam)return;
+    const g=fam.guardian||{};
+    const s=fam.secondaryGuardian||{};
+    const map={
+      guardianLastName:g.lastName,guardianFirstName:g.firstName,relationship:g.relationship,phonePrimary:g.phonePrimary,
+      phoneSecondary:g.phoneSecondary,email:g.email,cinNumber:g.cinNumber,cinIssuedAt:g.cinIssuedAt,cinIssuePlace:g.cinIssuePlace,
+      occupation:g.occupation,address:g.address,city:g.city,secondaryRelationship:s.relationship,secondaryLastName:s.lastName,
+      secondaryFirstName:s.firstName,secondaryPhonePrimary:s.phonePrimary,secondaryEmail:s.email,secondaryCinNumber:s.cinNumber,
+      secondaryCinIssuedAt:s.cinIssuedAt,secondaryCinIssuePlace:s.cinIssuePlace,secondaryOccupation:s.occupation
+    };
+    Object.entries(map).forEach(([k,v])=>{if(form.elements[k]&&v)form.elements[k].value=v});
+  }
+
+  function primaryCinType(){
+    const r=String(form.elements.relationship.value||'GUARDIAN');
+    return r==='FATHER'?'CIN_FATHER':r==='MOTHER'?'CIN_MOTHER':'CIN_GUARDIAN';
+  }
+  function secondaryCinType(){
+    const r=String(form.elements.secondaryRelationship.value||'OTHER');
+    return r==='FATHER'?'CIN_FATHER':r==='MOTHER'?'CIN_MOTHER':'CIN_GUARDIAN';
+  }
+  async function uploadOne(file,applicationId,documentType,familyToken){
+    const fd=new FormData();fd.append('file',file);fd.append('applicationId',applicationId||'');fd.append('documentType',documentType);
+    const res=await fetch(ENDPOINT+'?action=upload&family='+encodeURIComponent(familyToken),{method:'POST',body:fd});
+    const out=await res.json();if(!res.ok)throw new Error(out.error||'Envoi du document impossible.');return out;
+  }
+  async function uploadDocuments(result){
+    const jobs=[];
+    qa('[data-family-doc]').forEach(input=>{
+      const file=input.files&&input.files[0];if(!file)return;
+      let type=input.dataset.familyDoc;
+      if(type==='CIN_PRIMARY')type=primaryCinType();
+      if(type==='CIN_SECONDARY'){if(!String(form.elements.secondaryLastName.value||'').trim())return;type=secondaryCinType()}
+      jobs.push(uploadOne(file,'',type,result.familyToken));
+    });
+    qa('[data-doc-type]').forEach(input=>{
+      const file=input.files&&input.files[0];if(!file)return;
+      const app=result.applications&&result.applications[Number(input.dataset.childIndex)];
+      if(app)jobs.push(uploadOne(file,app.id,input.dataset.docType,result.familyToken));
+    });
+    const settled=await Promise.allSettled(jobs);
+    return {uploaded:settled.filter(x=>x.status==='fulfilled').length,failed:settled.filter(x=>x.status==='rejected').length};
+  }
+
+  form.addEventListener('submit',async e=>{
+    e.preventDefault();
+    if(!q('#consent').checked){alert('Veuillez confirmer l’exactitude des informations.');return}
+    if(!navigator.onLine){alert('Vous êtes hors connexion. Le brouillon est conservé sur ce téléphone. Envoyez le dossier dès que la connexion revient.');return}
+    const button=q('#submitBtn'), saving=q('#saving'), fd=new FormData(form), list=readChildren();
+    button.disabled=true;button.textContent='Envoi en cours…';saving.textContent='Création sécurisée du dossier familial…';
+    try{
+      const res=await fetch(ENDPOINT+'?code='+encodeURIComponent(CODE),{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          code:CODE,familyToken:FAMILY,clientRequestId:crypto.randomUUID(),
+          guardian:{
+            lastName:String(fd.get('guardianLastName')||''),firstName:String(fd.get('guardianFirstName')||''),relationship:String(fd.get('relationship')||'GUARDIAN'),
+            phonePrimary:String(fd.get('phonePrimary')||''),phoneSecondary:String(fd.get('phoneSecondary')||''),email:String(fd.get('email')||''),
+            cinNumber:String(fd.get('cinNumber')||''),cinIssuedAt:String(fd.get('cinIssuedAt')||''),cinIssuePlace:String(fd.get('cinIssuePlace')||''),
+            occupation:String(fd.get('occupation')||''),address:String(fd.get('address')||''),city:String(fd.get('city')||''),preferredContact:String(fd.get('preferredContact')||'PHONE'),
+            secondary:{
+              relationship:String(fd.get('secondaryRelationship')||'OTHER'),lastName:String(fd.get('secondaryLastName')||''),firstName:String(fd.get('secondaryFirstName')||''),
+              phonePrimary:String(fd.get('secondaryPhonePrimary')||''),email:String(fd.get('secondaryEmail')||''),cinNumber:String(fd.get('secondaryCinNumber')||''),
+              cinIssuedAt:String(fd.get('secondaryCinIssuedAt')||''),cinIssuePlace:String(fd.get('secondaryCinIssuePlace')||''),occupation:String(fd.get('secondaryOccupation')||'')
+            }
+          },children:list
+        })
+      });
+      const result=await res.json();if(!res.ok)throw new Error(result.error||'Envoi impossible.');
+      saving.textContent='Dossier créé. Envoi des pièces justificatives…';
+      const up=await uploadDocuments(result);
+      try{localStorage.removeItem(DRAFT_KEY)}catch{}
+      form.classList.add('hidden');q('#progress').classList.add('hidden');q('#reference').textContent=result.referenceCode;
+      q('#uploadStatus').textContent=up.uploaded?up.uploaded+' document(s) transmis'+(up.failed?' · '+up.failed+' échec(s)':''):'Les pièces manquantes pourront être ajoutées ensuite.';
+      q('#portalLink').href=result.portalUrl||'#';q('#success').classList.remove('hidden');scrollTo({top:0,behavior:'smooth'});
+    }catch(err){alert(err?.message||'Envoi impossible.');button.disabled=false;button.textContent='Envoyer la demande';saving.textContent=''}
+  });
+
+  const portalStatusLabels={
+    SUBMITTED:'Demande reçue',TO_CONTACT:'À contacter',CONTACTED:'Famille contactée',
+    APPOINTMENT_SCHEDULED:'Rendez-vous prévu',INCOMPLETE:'Dossier incomplet',
+    COMPLETE:'Dossier complet',ACCEPTED:'Accepté',PAYMENT_PENDING:'Paiement à effectuer',
+    APPROVED:'Inscription confirmée',REJECTED:'Non retenu',WITHDRAWN:'Retiré'
+  };
+  function portalDocType(code,relationship){
+    if(code==='BIRTH_CERTIFICATE')return 'BIRTH_CERTIFICATE';
+    if(code==='STUDENT_PHOTO')return 'STUDENT_PHOTO';
+    if(code==='RESIDENCE')return 'RESIDENCE_CERTIFICATE';
+    if(code==='TRANSFER')return 'TRANSFER_CERTIFICATE';
+    if(code==='REPORT_CARD')return 'REPORT_CARD';
+    if(code==='CIN_PRIMARY'){
+      return relationship==='FATHER'?'CIN_FATHER':relationship==='MOTHER'?'CIN_MOTHER':'CIN_GUARDIAN';
+    }
+    return '';
+  }
+  async function bootPortal(){
+    q('#progress').classList.add('hidden');
+    form.classList.add('hidden');
+    q('#success').classList.add('hidden');
+    q('#loading').classList.remove('hidden');
+    q('#loading').textContent='Chargement du portail famille…';
+    try{
+      const res=await fetch(ENDPOINT+'?action=portal-bootstrap&portal='+encodeURIComponent(PORTAL),{headers:{'Accept':'application/json'}});
+      const data=await res.json();if(!res.ok)throw new Error(data.error||'Portail indisponible.');
+      q('#schoolName').textContent=data.family.displayName||'Votre famille';
+      q('#schoolMeta').textContent=data.school.name;
+      q('#campaignName').textContent='Portail famille';
+      q('#portalFamilyName').textContent=data.family.displayName||'Votre famille';
+      q('#portalFamilyCode').textContent='Référence famille · '+(data.family.code||'—');
+      q('#portalSchoolName').textContent=data.school.name;
+      q('#portalStudents').innerHTML=(data.students||[]).length
+        ? data.students.map(s=>'<div class="portal-row"><div><strong>'+esc((s.last_name||'')+' '+(s.first_name||''))+'</strong><small>'+esc(s.matricule||'')+'</small></div><span class="pill">'+esc(s.status||'')+'</span></div>').join('')
+        : '<div class="fine">Aucun enfant déjà inscrit n’est encore lié à cette famille.</div>';
+      const relationship=data.primaryGuardian?.relationship||'GUARDIAN';
+      const checklist=data.checklist||[];
+      q('#portalApplications').innerHTML=(data.applications||[]).length
+        ? data.applications.map(app=>{
+            const items=checklist.filter(i=>i.application_id===app.id);
+            const checks=items.length?'<div class="checklist">'+items.map(item=>{
+              const state=item.status==='VERIFIED'?'Vérifié':item.status==='PROVIDED'?'Reçu':item.status==='NOT_REQUIRED'?'Non requis':'Manquant';
+              const good=['VERIFIED','PROVIDED','NOT_REQUIRED'].includes(item.status);
+              const docType=portalDocType(item.code,relationship);
+              const upload=item.status==='MISSING'&&docType
+                ? '<label class="mini-upload">Ajouter<input type="file" data-portal-upload="'+esc(app.id)+'" data-portal-doc="'+esc(docType)+'" accept=".pdf,image/jpeg,image/png,image/webp"></label>'
+                :'';
+              return '<div class="check-item"><span>'+esc(item.label)+'</span><b class="'+(good?'state-good':'state-warn')+'">'+esc(state)+'</b>'+upload+'</div>';
+            }).join('')+'</div>':'';
+            return '<div class="child"><div class="portal-row"><div><strong>'+esc((app.child_last_name||'')+' '+(app.child_first_name||''))+'</strong><small>'+(app.application_type==='RE_REGISTRATION'?'Réinscription':'Nouvelle inscription')+'</small></div><span class="pill">'+esc(portalStatusLabels[app.status]||app.status)+'</span></div>'+checks+'</div>';
+          }).join('')
+        : '<div class="fine">Aucune demande récente.</div>';
+      q('#loading').classList.add('hidden');
+      q('#portalApp').classList.remove('hidden');
+      if(data.campaign?.publicCode){
+        const b=q('#portalNewRequest');b.classList.remove('hidden');
+        b.onclick=()=>{location.href='./?code='+encodeURIComponent(data.campaign.publicCode)+'&family='+encodeURIComponent(PORTAL)};
+      }
+      qa('[data-portal-upload]').forEach(input=>input.addEventListener('change',async()=>{
+        const file=input.files&&input.files[0];if(!file)return;
+        input.disabled=true;
+        try{
+          await uploadOne(file,input.dataset.portalUpload,input.dataset.portalDoc,PORTAL);
+          await bootPortal();
+        }catch(err){alert(err?.message||'Envoi impossible.');input.disabled=false}
+      }));
+    }catch(err){
+      q('#loading').classList.add('hidden');
+      q('#fatal').textContent=err?.message||'Portail famille indisponible.';
+      q('#fatal').classList.remove('hidden');
+    }
+  }
+  q('#portalRefresh').addEventListener('click',()=>{if(PORTAL)bootPortal()});
+
+  async function boot(){
+    if(!CODE){q('#loading').classList.add('hidden');q('#fatal').textContent='Lien d’inscription incomplet. Demandez un nouveau QR code à l’établissement.';q('#fatal').classList.remove('hidden');return}
+    try{
+      const url=ENDPOINT+'?action=bootstrap&code='+encodeURIComponent(CODE)+(FAMILY?'&family='+encodeURIComponent(FAMILY):'');
+      const res=await fetch(url,{headers:{'Accept':'application/json'}});
+      const data=await res.json();if(!res.ok)throw new Error(data.error||'Formulaire indisponible.');
+      bootstrap=data;
+      q('#schoolName').textContent=data.school.name;q('#schoolMeta').textContent='Préinscription en ligne · '+data.year.label;q('#campaignName').textContent=data.campaign.name;
+      if(data.campaign.instructions){q('#notice').textContent=data.campaign.instructions;q('#notice').classList.remove('hidden')}
+      q('#loading').classList.add('hidden');form.classList.remove('hidden');
+      const restored=restoreDraft();if(!restored){applyFamilyPrefill(data.family);addChild()}else if(!qa('[data-child]').length)addChild();
+    }catch(err){q('#loading').classList.add('hidden');q('#fatal').textContent=err?.message||'Le formulaire est momentanément indisponible.';q('#fatal').classList.remove('hidden')}
+  }
+  if(PORTAL && !CODE){bootPortal()}else{boot()}
+})();
+</script>
+</body>
+</html>

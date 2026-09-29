@@ -26,7 +26,7 @@ jobs:
             curl -sS -D /tmp/h -o /tmp/b "$URL" || true
             status="$(awk 'NR==1{print $2}' /tmp/h 2>/dev/null || true)"
             type="$(grep -i '^content-type:' /tmp/h | tail -1 | tr -d '\r' || true)"
-            marker="$(grep -c '2026-09-29-configurable-form-v1' /tmp/b 2>/dev/null || true)"
+            marker="$(grep -c '2026-09-29-configurable-form-v2' /tmp/b 2>/dev/null || true)"
             if [ "$status" = "200" ] && echo "$type" | grep -qi 'text/html' && [ "$marker" -gt 0 ]; then
               ok=1
               break

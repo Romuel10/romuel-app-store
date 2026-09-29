@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#173f49" />
   <title>Préinscription Sekoly</title>
-  <meta name="sekoly-build" content="2026-09-29-github-pages-v1" />
+  <meta name="sekoly-build" content="2026-09-29-configurable-form-v1" />
   <style>
     :root{color-scheme:light;--bg:#eef5f5;--card:#fff;--card2:#f8fbfb;--ink:#17242b;--muted:#687780;--line:#d8e4e7;--brand:#173f49;--brand2:#245d68;--accent:#2f7a54;--accentSoft:#eaf6ef;--danger:#b94141;--warning:#9a651f;--shadow:0 18px 55px rgba(21,56,66,.10)}
     html[data-theme="dark"]{color-scheme:dark;--bg:#0c1519;--card:#132027;--card2:#17262d;--ink:#eef5f6;--muted:#9db0b8;--line:#2a3d45;--brand:#194b57;--brand2:#276a77;--accent:#70c096;--accentSoft:#18372a;--danger:#ef8d8d;--warning:#e7b76f;--shadow:0 18px 55px rgba(0,0,0,.28)}
@@ -15,6 +15,7 @@
     .card{margin-top:14px;padding:20px;border:1px solid var(--line);border-radius:20px;background:var(--card);box-shadow:0 8px 26px rgba(20,49,58,.045)}.card h2{margin:0 0 5px;font-size:16px}.sub{margin:0 0 16px;color:var(--muted);font-size:11px;line-height:1.55}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.span2{grid-column:span 2}.field label{display:block;margin-bottom:5px;color:var(--muted);font-size:10px;font-weight:850;text-transform:uppercase;letter-spacing:.045em}.field input,.field select,.field textarea{width:100%;min-height:46px;border:1px solid var(--line);border-radius:12px;background:var(--card2);color:var(--ink);padding:10px 12px;outline:none;transition:.15s}.field textarea{min-height:84px;resize:vertical}.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(47,122,84,.10)}.divider{height:1px;background:var(--line);margin:17px 0}.section-title{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:10px}
     .child{margin-top:12px;padding:16px;border:1px solid var(--line);border-radius:16px;background:var(--card2)}.child-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:13px}.child-head strong{font-size:13px}.doc-box{padding:13px;border:1px dashed var(--line);border-radius:14px;background:var(--card2)}.doc-box label{display:block;font-size:10px;font-weight:850;color:var(--muted);margin-bottom:6px}.doc-box input{width:100%;font-size:11px}.docs-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
     .actions{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:16px}.btn{min-height:44px;border:0;border-radius:12px;padding:10px 15px;font-weight:850;cursor:pointer}.btn:disabled{opacity:.55;cursor:not-allowed}.primary{background:var(--brand);color:white}.secondary{background:var(--card2);color:var(--ink);border:1px solid var(--line)}.success{background:var(--accent);color:white}.danger{background:rgba(185,65,65,.1);color:var(--danger)}.add{background:var(--accentSoft);color:var(--accent)}.fine{color:var(--muted);font-size:10px;line-height:1.55}.review{display:grid;gap:8px}.review-row{display:flex;justify-content:space-between;gap:18px;padding:11px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card2);font-size:11px}.review-row span{color:var(--muted)}.consent{display:flex;gap:9px;align-items:flex-start;margin-top:15px;font-size:11px;color:var(--muted)}.consent input{margin-top:2px}.saving{min-height:16px;margin-top:8px;color:var(--muted);font-size:10px}.hidden{display:none!important}.loading{padding:42px;text-align:center;color:var(--muted)}.error-card{margin-top:16px;padding:18px;border-radius:16px;background:rgba(185,65,65,.09);color:var(--danger);font-size:12px}.success-card{text-align:center;padding:30px}.checkmark{width:54px;height:54px;margin:0 auto 12px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:white;font-size:27px;font-weight:900}.reference{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:22px;font-weight:900;margin:12px 0}.portal-link{display:inline-flex;margin-top:12px;text-decoration:none}
+    .custom-fields-title{grid-column:1/-1;margin:6px 0 0;padding-top:12px;border-top:1px solid var(--line);font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}.field-note{display:block;margin-top:4px;color:var(--muted);font-size:9px;line-height:1.4}
     .portal-wrap{display:grid;gap:14px}.portal-card{padding:18px;border:1px solid var(--line);border-radius:18px;background:var(--card);box-shadow:0 8px 26px rgba(20,49,58,.045)}.portal-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px}.portal-title{margin:0;font-size:15px}.portal-code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:var(--muted);margin-top:4px}.portal-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line)}.portal-row:last-child{border-bottom:0}.portal-row small{display:block;color:var(--muted);margin-top:3px}.pill{display:inline-flex;padding:5px 8px;border-radius:999px;background:var(--card2);font-size:9px;font-weight:850}.checklist{display:grid;gap:7px;margin-top:10px}.check-item{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 9px;border:1px solid var(--line);border-radius:10px;background:var(--card2);font-size:10px}.check-item>span{flex:1;min-width:150px}.state-good{color:var(--accent)}.state-warn{color:var(--warning)}.mini-upload{display:inline-flex;align-items:center;padding:6px 8px;border-radius:8px;background:var(--accentSoft);color:var(--accent);font-size:9px;font-weight:850;cursor:pointer}.mini-upload input{display:none}.portal-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
     @media(max-width:700px){.shell{padding:8px 10px 60px}.hero{padding:58px 20px 22px;border-radius:20px}.hero-tools{right:12px;top:12px}.hero h1{font-size:22px}.progress{gap:5px}.step-chip{padding:8px 4px;font-size:8px}.card{padding:16px}.grid,.docs-grid{grid-template-columns:1fr}.span2{grid-column:auto}.actions{position:sticky;bottom:8px;z-index:5;padding:8px;border:1px solid var(--line);border-radius:14px;background:color-mix(in srgb,var(--card) 94%,transparent);backdrop-filter:blur(8px)}.actions .btn{flex:1}.review-row{align-items:flex-start}}
   </style>
@@ -77,6 +78,7 @@
           <div class="field"><label>Lieu CIN</label><input name="secondaryCinIssuePlace" maxlength="160"></div>
           <div class="field span2"><label>Profession</label><input name="secondaryOccupation" maxlength="160"></div>
         </div>
+        <div id="customFamilyFields" class="grid" style="margin-top:12px"></div>
         <div class="actions"><span></span><button type="button" class="btn primary" data-next>Continuer</button></div>
       </section>
 
@@ -93,7 +95,7 @@
         <h2>Pièces justificatives</h2>
         <p class="sub">Vous pouvez les joindre maintenant ou les remettre plus tard à l’établissement. PDF, JPG, PNG ou WEBP, 10 Mo maximum.</p>
         <div class="section-title">Documents de la famille</div>
-        <div class="docs-grid">
+        <div id="familyDocs" class="docs-grid">
           <div class="doc-box"><label>CIN du responsable principal</label><input type="file" data-family-doc="CIN_PRIMARY" accept=".pdf,image/jpeg,image/png,image/webp"></div>
           <div class="doc-box"><label>CIN du deuxième responsable</label><input type="file" data-family-doc="CIN_SECONDARY" accept=".pdf,image/jpeg,image/png,image/webp"></div>
           <div class="doc-box"><label>Justificatif / certificat de résidence</label><input type="file" data-family-doc="RESIDENCE_CERTIFICATE" accept=".pdf,image/jpeg,image/png,image/webp"></div>
@@ -168,6 +170,132 @@
   const qa=(s,r=document)=>Array.from(r.querySelectorAll(s));
   const esc=(v)=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
 
+  function schemaFields(scope){
+    const fields=bootstrap?.campaign?.form_schema?.fields;
+    return Array.isArray(fields)
+      ? fields.filter(f=>f&&f.scope===scope&&f.visible!==false).sort((a,b)=>(Number(a.order)||100)-(Number(b.order)||100))
+      : [];
+  }
+  function schemaDocuments(scope){
+    const docs=bootstrap?.campaign?.form_schema?.documents;
+    return Array.isArray(docs)
+      ? docs.filter(d=>d&&d.scope===scope&&d.visible!==false).sort((a,b)=>(Number(a.order)||100)-(Number(b.order)||100))
+      : [];
+  }
+  function fieldInputHtml(field,scope){
+    const customAttr=scope==='FAMILY'?'data-custom-family-key':'data-custom-child-key';
+    const name=scope==='FAMILY'?' name="customFamily__'+esc(field.key)+'"':'';
+    const req=field.required?' required':'';
+    const placeholder=field.placeholder?' placeholder="'+esc(field.placeholder)+'"':'';
+    const common=customAttr+'="'+esc(field.key)+'"'+name+req+placeholder;
+    if(field.type==='TEXTAREA')return '<textarea '+common+' maxlength="4000"></textarea>';
+    if(field.type==='DATE')return '<input type="date" '+common+'>';
+    if(field.type==='EMAIL')return '<input type="email" '+common+' maxlength="500">';
+    if(field.type==='PHONE')return '<input type="tel" inputmode="tel" '+common+' maxlength="500">';
+    if(field.type==='NUMBER')return '<input type="number" '+common+'>';
+    if(field.type==='YES_NO')return '<select '+common+'><option value=""></option><option value="true">Oui</option><option value="false">Non</option></select>';
+    if(field.type==='SELECT'){
+      const opts=(Array.isArray(field.options)?field.options:[]).map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');
+      return '<select '+common+'><option value=""></option>'+opts+'</select>';
+    }
+    return '<input type="text" '+common+' maxlength="500">';
+  }
+  function customFieldsHtml(scope){
+    const custom=schemaFields(scope).filter(f=>f.custom);
+    if(!custom.length)return '';
+    return '<div class="custom-fields-title">Informations complémentaires demandées par l’établissement</div>'+
+      custom.map(field=>'<div class="field"><label>'+esc(field.label)+(field.required?' *':'')+'</label>'+fieldInputHtml(field,scope)+(field.helpText?'<small class="field-note">'+esc(field.helpText)+'</small>':'')+'</div>').join('');
+  }
+  function customAnswerValue(el){
+    if(!el)return '';
+    if(el.tagName==='SELECT'&&el.dataset&&el.dataset.customFamilyKey&&el.options)return el.value;
+    if(el.type==='number')return el.value===''?'':Number(el.value);
+    if(el.type==='checkbox')return Boolean(el.checked);
+    if(el.value==='true')return true;
+    if(el.value==='false')return false;
+    return String(el.value||'').trim();
+  }
+  function readCustomAnswers(scope,root=document){
+    const attr=scope==='FAMILY'?'data-custom-family-key':'data-custom-child-key';
+    const out={};
+    qa('['+attr+']',root).forEach(el=>{
+      const key=el.getAttribute(attr);
+      if(!key)return;
+      const value=customAnswerValue(el);
+      if(value!==''&&value!=null)out[key]=value;
+    });
+    return out;
+  }
+  function applyFixedField(field,el){
+    if(!el)return;
+    const box=el.closest('.field');
+    if(box)box.classList.toggle('hidden',field.visible===false);
+    el.required=field.visible!==false&&Boolean(field.required);
+    const label=box&&q('label',box);
+    if(label&&field.label)label.textContent=field.label+(field.required?' *':'');
+  }
+  function applyFamilySchema(){
+    const fixed=(bootstrap?.campaign?.form_schema?.fields||[]).filter(f=>f&&f.scope==='FAMILY'&&!f.custom);
+    fixed.forEach(field=>applyFixedField(field,form.elements[field.key]));
+    q('#customFamilyFields').innerHTML=customFieldsHtml('FAMILY');
+    applyFamilyDocumentSchema();
+  }
+  function applyChildSchema(block){
+    const fixed=(bootstrap?.campaign?.form_schema?.fields||[]).filter(f=>f&&f.scope==='CHILD'&&!f.custom);
+    fixed.forEach(field=>applyFixedField(field,q('[data-field="'+field.key+'"]',block)));
+    const custom=q('[data-custom-child-fields]',block);
+    if(custom)custom.innerHTML=customFieldsHtml('CHILD');
+    const type=q('[data-field="type"]',block);
+    if(type){
+      type.addEventListener('change',()=>refreshChildConditional(block));
+      refreshChildConditional(block);
+    }
+  }
+  function refreshChildConditional(block){
+    const type=q('[data-field="type"]',block)?.value||'NEW';
+    const matricule=q('[data-field="existingMatricule"]',block);
+    if(!matricule)return;
+    const field=(bootstrap?.campaign?.form_schema?.fields||[]).find(f=>f.scope==='CHILD'&&f.key==='existingMatricule');
+    const show=field?.visible!==false&&type==='RE_REGISTRATION';
+    const box=matricule.closest('.field');
+    if(box)box.classList.toggle('hidden',!show);
+    matricule.required=show;
+  }
+  function applyFamilyDocumentSchema(){
+    const byCode=new Map(schemaDocuments('FAMILY').map(d=>[d.code,d]));
+    qa('[data-family-doc]').forEach(input=>{
+      const raw=input.dataset.familyDoc;
+      const code=raw==='RESIDENCE_CERTIFICATE'?'RESIDENCE':raw;
+      const doc=byCode.get(code);
+      const box=input.closest('.doc-box');
+      if(box)box.classList.toggle('hidden',!doc);
+      if(doc){
+        const label=q('label',box);
+        if(label)label.textContent=doc.label+(doc.required?' *':'');
+      }
+    });
+  }
+  function validateSchemaFields(scope,root){
+    for(const field of schemaFields(scope).filter(f=>f.required)){
+      if(scope==='CHILD'&&field.key==='existingMatricule'&&q('[data-field="type"]',root)?.value!=='RE_REGISTRATION')continue;
+      const el=field.custom
+        ? q('['+(scope==='FAMILY'?'data-custom-family-key':'data-custom-child-key')+'="'+field.key+'"]',root)
+        : scope==='FAMILY'?form.elements[field.key]:q('[data-field="'+field.key+'"]',root);
+      if(!el)continue;
+      const value=customAnswerValue(el);
+      if(value===''||value==null){
+        el.focus();
+        alert('Veuillez renseigner : '+field.label);
+        return false;
+      }
+      if(el.checkValidity&&!el.checkValidity()){
+        el.reportValidity?.();
+        return false;
+      }
+    }
+    return true;
+  }
+
   function applyTheme(theme){
     document.documentElement.dataset.theme=theme;
     q('#themeToggle').textContent=theme==='dark'?'Mode clair':'Mode sombre';
@@ -217,7 +345,7 @@
       '<div class="field"><label>Fokontany / quartier</label><input data-field="neighborhood" maxlength="120"></div>'+
       '<div class="field"><label>Ville / Commune</label><input data-field="city" maxlength="120"></div>'+
       '<div class="field span2"><label>Informations utiles / médicales</label><textarea data-field="medicalNotes" maxlength="1000"></textarea></div>'+
-      '</div></div>';
+      '</div><div class="grid" data-custom-child-fields style="margin-top:12px"></div></div>';
   }
 
   function addChild(data={}){
@@ -225,7 +353,10 @@
     const id=childCounter++;
     children.insertAdjacentHTML('beforeend',childTemplate(id,data));
     const block=children.lastElementChild;
-    Object.entries(data||{}).forEach(([k,v])=>{const el=q('[data-field="'+k+'"]',block);if(el&&v!=null)el.value=v});
+    applyChildSchema(block);
+    Object.entries(data||{}).forEach(([k,v])=>{const el=q('[data-field="'+k+'"]',block);if(el&&v!=null&&k!=='customAnswers')el.value=v});
+    Object.entries(data?.customAnswers||{}).forEach(([k,v])=>{const el=q('[data-custom-child-key="'+k+'"]',block);if(el&&v!=null)el.value=String(v)});
+    refreshChildConditional(block);
     renumber();renderChildDocs();saveDraft();
   }
   function renumber(){qa('[data-child]').forEach((b,i)=>q('.child-head strong',b).textContent='Enfant '+(i+1))}
@@ -240,18 +371,19 @@
         gender:get('gender'),birthDate:get('birthDate'),birthPlace:get('birthPlace'),nationality:get('nationality'),
         desiredClassId:get('desiredClassId'),previousSchool:get('previousSchool'),birthCertificateNumber:get('birthCertificateNumber'),
         birthCertificateDate:get('birthCertificateDate'),birthCertificatePlace:get('birthCertificatePlace'),bloodType:get('bloodType'),
-        address:get('address'),neighborhood:get('neighborhood'),city:get('city'),medicalNotes:get('medicalNotes')
+        address:get('address'),neighborhood:get('neighborhood'),city:get('city'),medicalNotes:get('medicalNotes'),
+        customAnswers:readCustomAnswers('CHILD',block)
       };
     });
   }
 
   function renderChildDocs(){
-    q('#childDocs').innerHTML=readChildren().map((c,i)=>'<div class="child" style="margin-bottom:10px"><strong>'+esc(c.lastName||'Enfant '+(i+1))+' '+esc(c.firstName||'')+'</strong><div class="docs-grid" style="margin-top:10px">'+
-      '<div class="doc-box"><label>Acte de naissance</label><input type="file" data-child-index="'+i+'" data-doc-type="BIRTH_CERTIFICATE" accept=".pdf,image/jpeg,image/png,image/webp"></div>'+
-      '<div class="doc-box"><label>Photo d’identité</label><input type="file" data-child-index="'+i+'" data-doc-type="STUDENT_PHOTO" accept="image/jpeg,image/png,image/webp"></div>'+
-      '<div class="doc-box"><label>Dernier bulletin</label><input type="file" data-child-index="'+i+'" data-doc-type="REPORT_CARD" accept=".pdf,image/jpeg,image/png,image/webp"></div>'+
-      '<div class="doc-box"><label>Certificat de transfert (si nécessaire)</label><input type="file" data-child-index="'+i+'" data-doc-type="TRANSFER_CERTIFICATE" accept=".pdf,image/jpeg,image/png,image/webp"></div>'+
-      '</div></div>').join('');
+    const docs=schemaDocuments('CHILD');
+    const uploadType=code=>code==='TRANSFER'?'TRANSFER_CERTIFICATE':code;
+    q('#childDocs').innerHTML=readChildren().map((child,i)=>{
+      const boxes=docs.map(doc=>'<div class="doc-box"><label>'+esc(doc.label)+(doc.required?' *':'')+'</label><input type="file" data-child-index="'+i+'" data-doc-type="'+esc(uploadType(doc.code))+'" accept=".pdf,image/jpeg,image/png,image/webp"></div>').join('');
+      return '<div class="child" style="margin-bottom:10px"><strong>'+esc(child.lastName||'Enfant '+(i+1))+' '+esc(child.firstName||'')+'</strong><div class="docs-grid" style="margin-top:10px">'+boxes+'</div></div>';
+    }).join('');
   }
 
   function showStep(n){
@@ -264,15 +396,18 @@
   }
   function validateStep(){
     if(currentStep===0){
-      const required=['guardianLastName','phonePrimary'];
-      for(const n of required){const el=form.elements[n];if(!String(el.value||'').trim()){el.focus();alert('Veuillez renseigner les champs obligatoires.');return false}}
+      if(!validateSchemaFields('FAMILY',form))return false;
     }
     if(currentStep===1){
-      const list=readChildren();
-      if(!list.length){alert('Ajoutez au moins un enfant.');return false}
-      for(let i=0;i<list.length;i++){
-        if(!list[i].lastName||!list[i].firstName){alert('Nom et prénoms sont obligatoires pour chaque enfant.');return false}
-        if(list[i].type==='RE_REGISTRATION'&&!list[i].existingMatricule){alert('Le matricule est obligatoire pour une réinscription.');return false}
+      const blocks=qa('[data-child]');
+      if(!blocks.length){alert('Ajoutez au moins un enfant.');return false}
+      for(const block of blocks){
+        if(!validateSchemaFields('CHILD',block))return false;
+        const type=q('[data-field="type"]',block)?.value||'NEW';
+        if(type==='RE_REGISTRATION'&&!String(q('[data-field="existingMatricule"]',block)?.value||'').trim()){
+          alert('Le matricule est obligatoire pour une réinscription.');
+          return false;
+        }
       }
     }
     return true;
@@ -362,6 +497,7 @@
         method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({
           code:CODE,familyToken:FAMILY,clientRequestId:crypto.randomUUID(),
+          customAnswers:readCustomAnswers('FAMILY',form),
           guardian:{
             lastName:String(fd.get('guardianLastName')||''),firstName:String(fd.get('guardianFirstName')||''),relationship:String(fd.get('relationship')||'GUARDIAN'),
             phonePrimary:String(fd.get('phonePrimary')||''),phoneSecondary:String(fd.get('phoneSecondary')||''),email:String(fd.get('email')||''),
@@ -468,6 +604,7 @@
       bootstrap=data;
       q('#schoolName').textContent=data.school.name;q('#schoolMeta').textContent='Préinscription en ligne · '+data.year.label;q('#campaignName').textContent=data.campaign.name;
       if(data.campaign.instructions){q('#notice').textContent=data.campaign.instructions;q('#notice').classList.remove('hidden')}
+      applyFamilySchema();
       q('#loading').classList.add('hidden');form.classList.remove('hidden');
       const restored=restoreDraft();if(!restored){applyFamilyPrefill(data.family);addChild()}else if(!qa('[data-child]').length)addChild();
     }catch(err){q('#loading').classList.add('hidden');q('#fatal').textContent=err?.message||'Le formulaire est momentanément indisponible.';q('#fatal').classList.remove('hidden')}

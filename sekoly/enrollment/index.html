@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#173f49" />
-  <meta name="sekoly-build" content="2026-09-29-sections-v1" />
+  <meta name="sekoly-build" content="2026-09-29-custom-documents-v1" />
   <title>Préinscription Sekoly</title>
   <style>
     :root{color-scheme:light;--bg:#eef5f5;--card:#fff;--card2:#f8fbfb;--ink:#17242b;--muted:#687780;--line:#d8e4e7;--brand:#173f49;--brand2:#245d68;--accent:#2f7a54;--accentSoft:#eaf6ef;--danger:#b94141;--warning:#9a651f;--shadow:0 18px 55px rgba(21,56,66,.10)}
@@ -97,11 +97,7 @@
         <h2>Pièces justificatives</h2>
         <p class="sub">Vous pouvez les joindre maintenant ou les remettre plus tard à l’établissement. PDF, JPG, PNG ou WEBP, 10 Mo maximum.</p>
         <div class="section-title">Documents de la famille</div>
-        <div id="familyDocs" class="docs-grid">
-          <div class="doc-box"><label>CIN du responsable principal</label><input type="file" data-family-doc="CIN_PRIMARY" accept=".pdf,image/jpeg,image/png,image/webp"></div>
-          <div class="doc-box"><label>CIN du deuxième responsable</label><input type="file" data-family-doc="CIN_SECONDARY" accept=".pdf,image/jpeg,image/png,image/webp"></div>
-          <div class="doc-box"><label>Justificatif / certificat de résidence</label><input type="file" data-family-doc="RESIDENCE_CERTIFICATE" accept=".pdf,image/jpeg,image/png,image/webp"></div>
-        </div>
+        <div id="familyDocs" class="docs-grid"></div>
         <div class="divider"></div>
         <div class="section-title">Documents par enfant</div>
         <div id="childDocs"></div>
@@ -359,19 +355,16 @@
     if(box)box.classList.toggle('hidden',!show);
     matricule.required=show;
   }
+  function renderFamilyDocs(){
+    q('#familyDocs').innerHTML=schemaDocuments('FAMILY').map(doc=>
+      '<div class="doc-box"><label>'+esc(doc.label)+(doc.required?' (obligatoire)':' (facultatif)')+'</label>'+
+      '<input type="file" data-family-doc-code="'+esc(doc.code)+'" accept=".pdf,image/jpeg,image/png,image/webp">'+
+      (doc.helpText?'<small class="field-note">'+esc(doc.helpText)+'</small>':'')+
+      '</div>'
+    ).join('');
+  }
   function applyFamilyDocumentSchema(){
-    const byCode=new Map(schemaDocuments('FAMILY').map(d=>[d.code,d]));
-    qa('[data-family-doc]').forEach(input=>{
-      const raw=input.dataset.familyDoc;
-      const code=raw==='RESIDENCE_CERTIFICATE'?'RESIDENCE':raw;
-      const doc=byCode.get(code);
-      const box=input.closest('.doc-box');
-      if(box)box.classList.toggle('hidden',!doc);
-      if(doc){
-        const label=q('label',box);
-        if(label)label.textContent=doc.label+(doc.required?' *':'');
-      }
-    });
+    renderFamilyDocs();
   }
   function validateSchemaFields(scope,root){
     for(const field of schemaFields(scope)){
@@ -477,9 +470,13 @@
 
   function renderChildDocs(){
     const docs=schemaDocuments('CHILD');
-    const uploadType=code=>code==='TRANSFER'?'TRANSFER_CERTIFICATE':code;
     q('#childDocs').innerHTML=readChildren().map((child,i)=>{
-      const boxes=docs.map(doc=>'<div class="doc-box"><label>'+esc(doc.label)+(doc.required?' *':'')+'</label><input type="file" data-child-index="'+i+'" data-doc-type="'+esc(uploadType(doc.code))+'" accept=".pdf,image/jpeg,image/png,image/webp"></div>').join('');
+      const boxes=docs.map(doc=>
+        '<div class="doc-box"><label>'+esc(doc.label)+(doc.required?' (obligatoire)':' (facultatif)')+'</label>'+
+        '<input type="file" data-child-index="'+i+'" data-doc-code="'+esc(doc.code)+'" accept=".pdf,image/jpeg,image/png,image/webp">'+
+        (doc.helpText?'<small class="field-note">'+esc(doc.helpText)+'</small>':'')+
+        '</div>'
+      ).join('');
       return '<div class="child" style="margin-bottom:10px"><strong>'+esc(child.lastName||'Enfant '+(i+1))+' '+esc(child.firstName||'')+'</strong><div class="docs-grid" style="margin-top:10px">'+boxes+'</div></div>';
     }).join('');
   }
@@ -553,32 +550,26 @@
     Object.entries(map).forEach(([k,v])=>{if(form.elements[k]&&v)form.elements[k].value=v});
   }
 
-  function primaryCinType(){
-    const r=String(form.elements.relationship.value||'GUARDIAN');
-    return r==='FATHER'?'CIN_FATHER':r==='MOTHER'?'CIN_MOTHER':'CIN_GUARDIAN';
-  }
-  function secondaryCinType(){
-    const r=String(form.elements.secondaryRelationship.value||'OTHER');
-    return r==='FATHER'?'CIN_FATHER':r==='MOTHER'?'CIN_MOTHER':'CIN_GUARDIAN';
-  }
-  async function uploadOne(file,applicationId,documentType,familyToken){
-    const fd=new FormData();fd.append('file',file);fd.append('applicationId',applicationId||'');fd.append('documentType',documentType);
+  async function uploadOne(file,applicationId,documentCode,familyToken){
+    const fd=new FormData();
+    fd.append('file',file);
+    fd.append('applicationId',applicationId||'');
+    fd.append('documentCode',documentCode||'');
     const res=await fetch(ENDPOINT+'?action=upload&family='+encodeURIComponent(familyToken),{method:'POST',body:fd});
     const out=await res.json();if(!res.ok)throw new Error(out.error||'Envoi du document impossible.');return out;
   }
   async function uploadDocuments(result){
     const jobs=[];
-    qa('[data-family-doc]').forEach(input=>{
+    qa('[data-family-doc-code]').forEach(input=>{
       const file=input.files&&input.files[0];if(!file)return;
-      let type=input.dataset.familyDoc;
-      if(type==='CIN_PRIMARY')type=primaryCinType();
-      if(type==='CIN_SECONDARY'){if(!String(form.elements.secondaryLastName.value||'').trim())return;type=secondaryCinType()}
-      jobs.push(uploadOne(file,'',type,result.familyToken));
+      const code=input.dataset.familyDocCode||'';
+      if(code==='CIN_SECONDARY'&&!String(form.elements.secondaryLastName.value||'').trim())return;
+      jobs.push(uploadOne(file,'',code,result.familyToken));
     });
-    qa('[data-doc-type]').forEach(input=>{
+    qa('[data-doc-code]').forEach(input=>{
       const file=input.files&&input.files[0];if(!file)return;
       const app=result.applications&&result.applications[Number(input.dataset.childIndex)];
-      if(app)jobs.push(uploadOne(file,app.id,input.dataset.docType,result.familyToken));
+      if(app)jobs.push(uploadOne(file,app.id,input.dataset.docCode||'',result.familyToken));
     });
     const settled=await Promise.allSettled(jobs);
     return {uploaded:settled.filter(x=>x.status==='fulfilled').length,failed:settled.filter(x=>x.status==='rejected').length};
@@ -625,17 +616,6 @@
     COMPLETE:'Dossier complet',ACCEPTED:'Accepté',PAYMENT_PENDING:'Paiement à effectuer',
     APPROVED:'Inscription confirmée',REJECTED:'Non retenu',WITHDRAWN:'Retiré'
   };
-  function portalDocType(code,relationship){
-    if(code==='BIRTH_CERTIFICATE')return 'BIRTH_CERTIFICATE';
-    if(code==='STUDENT_PHOTO')return 'STUDENT_PHOTO';
-    if(code==='RESIDENCE')return 'RESIDENCE_CERTIFICATE';
-    if(code==='TRANSFER')return 'TRANSFER_CERTIFICATE';
-    if(code==='REPORT_CARD')return 'REPORT_CARD';
-    if(code==='CIN_PRIMARY'){
-      return relationship==='FATHER'?'CIN_FATHER':relationship==='MOTHER'?'CIN_MOTHER':'CIN_GUARDIAN';
-    }
-    return '';
-  }
   async function bootPortal(){
     q('#progress').classList.add('hidden');
     form.classList.add('hidden');
@@ -654,7 +634,6 @@
       q('#portalStudents').innerHTML=(data.students||[]).length
         ? data.students.map(s=>'<div class="portal-row"><div><strong>'+esc((s.last_name||'')+' '+(s.first_name||''))+'</strong><small>'+esc(s.matricule||'')+'</small></div><span class="pill">'+esc(s.status||'')+'</span></div>').join('')
         : '<div class="fine">Aucun enfant déjà inscrit n’est encore lié à cette famille.</div>';
-      const relationship=data.primaryGuardian?.relationship||'GUARDIAN';
       const checklist=data.checklist||[];
       q('#portalApplications').innerHTML=(data.applications||[]).length
         ? data.applications.map(app=>{
@@ -662,9 +641,8 @@
             const checks=items.length?'<div class="checklist">'+items.map(item=>{
               const state=item.status==='VERIFIED'?'Vérifié':item.status==='PROVIDED'?'Reçu':item.status==='NOT_REQUIRED'?'Non requis':'Manquant';
               const good=['VERIFIED','PROVIDED','NOT_REQUIRED'].includes(item.status);
-              const docType=portalDocType(item.code,relationship);
-              const upload=item.status==='MISSING'&&docType
-                ? '<label class="mini-upload">Ajouter<input type="file" data-portal-upload="'+esc(app.id)+'" data-portal-doc="'+esc(docType)+'" accept=".pdf,image/jpeg,image/png,image/webp"></label>'
+              const upload=item.status==='MISSING'
+                ? '<label class="mini-upload">Ajouter<input type="file" data-portal-upload="'+esc(item.scope==='FAMILY'?'':app.id)+'" data-portal-code="'+esc(item.code)+'" accept=".pdf,image/jpeg,image/png,image/webp"></label>'
                 :'';
               return '<div class="check-item"><span>'+esc(item.label)+'</span><b class="'+(good?'state-good':'state-warn')+'">'+esc(state)+'</b>'+upload+'</div>';
             }).join('')+'</div>':'';
@@ -681,7 +659,7 @@
         const file=input.files&&input.files[0];if(!file)return;
         input.disabled=true;
         try{
-          await uploadOne(file,input.dataset.portalUpload,input.dataset.portalDoc,PORTAL);
+          await uploadOne(file,input.dataset.portalUpload,input.dataset.portalCode,PORTAL);
           await bootPortal();
         }catch(err){alert(err?.message||'Envoi impossible.');input.disabled=false}
       }));

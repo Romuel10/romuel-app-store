@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#173f49" />
-  <meta name="sekoly-build" content="2026-09-29-configurable-form-v2.0.1" />
+  <meta name="sekoly-build" content="2026-09-29-sections-v1" />
   <title>Préinscription Sekoly</title>
   <style>
     :root{color-scheme:light;--bg:#eef5f5;--card:#fff;--card2:#f8fbfb;--ink:#17242b;--muted:#687780;--line:#d8e4e7;--brand:#173f49;--brand2:#245d68;--accent:#2f7a54;--accentSoft:#eaf6ef;--danger:#b94141;--warning:#9a651f;--shadow:0 18px 55px rgba(21,56,66,.10)}
@@ -16,6 +16,7 @@
     .child{margin-top:12px;padding:16px;border:1px solid var(--line);border-radius:16px;background:var(--card2)}.child-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:13px}.child-head strong{font-size:13px}.doc-box{padding:13px;border:1px dashed var(--line);border-radius:14px;background:var(--card2)}.doc-box label{display:block;font-size:10px;font-weight:850;color:var(--muted);margin-bottom:6px}.doc-box input{width:100%;font-size:11px}.docs-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
     .actions{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:16px}.btn{min-height:44px;border:0;border-radius:12px;padding:10px 15px;font-weight:850;cursor:pointer}.btn:disabled{opacity:.55;cursor:not-allowed}.primary{background:var(--brand);color:white}.secondary{background:var(--card2);color:var(--ink);border:1px solid var(--line)}.success{background:var(--accent);color:white}.danger{background:rgba(185,65,65,.1);color:var(--danger)}.add{background:var(--accentSoft);color:var(--accent)}.fine{color:var(--muted);font-size:10px;line-height:1.55}.review{display:grid;gap:8px}.review-row{display:flex;justify-content:space-between;gap:18px;padding:11px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card2);font-size:11px}.review-row span{color:var(--muted)}.consent{display:flex;gap:9px;align-items:flex-start;margin-top:15px;font-size:11px;color:var(--muted)}.consent input{margin-top:2px}.saving{min-height:16px;margin-top:8px;color:var(--muted);font-size:10px}.hidden{display:none!important}.loading{padding:42px;text-align:center;color:var(--muted)}.error-card{margin-top:16px;padding:18px;border-radius:16px;background:rgba(185,65,65,.09);color:var(--danger);font-size:12px}.success-card{text-align:center;padding:30px}.checkmark{width:54px;height:54px;margin:0 auto 12px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:white;font-size:27px;font-weight:900}.reference{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:22px;font-weight:900;margin:12px 0}.portal-link{display:inline-flex;margin-top:12px;text-decoration:none}
     .custom-fields-title{grid-column:1/-1;margin:6px 0 0;padding-top:12px;border-top:1px solid var(--line);font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}.field-note{display:block;margin-top:4px;color:var(--muted);font-size:9px;line-height:1.4}
+    .form-sections{display:grid;gap:14px;margin-top:12px}.form-section{min-width:0;margin:0;padding:14px;border:1px solid var(--line);border-radius:16px;background:var(--card2)}.form-section legend{padding:0 7px;font-size:12px;font-weight:900;color:var(--ink)}.form-section-desc{margin:-2px 0 11px;color:var(--muted);font-size:10px;line-height:1.5}
     .portal-wrap{display:grid;gap:14px}.portal-card{padding:18px;border:1px solid var(--line);border-radius:18px;background:var(--card);box-shadow:0 8px 26px rgba(20,49,58,.045)}.portal-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px}.portal-title{margin:0;font-size:15px}.portal-code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:var(--muted);margin-top:4px}.portal-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line)}.portal-row:last-child{border-bottom:0}.portal-row small{display:block;color:var(--muted);margin-top:3px}.pill{display:inline-flex;padding:5px 8px;border-radius:999px;background:var(--card2);font-size:9px;font-weight:850}.checklist{display:grid;gap:7px;margin-top:10px}.check-item{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 9px;border:1px solid var(--line);border-radius:10px;background:var(--card2);font-size:10px}.check-item>span{flex:1;min-width:150px}.state-good{color:var(--accent)}.state-warn{color:var(--warning)}.mini-upload{display:inline-flex;align-items:center;padding:6px 8px;border-radius:8px;background:var(--accentSoft);color:var(--accent);font-size:9px;font-weight:850;cursor:pointer}.mini-upload input{display:none}.portal-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
     @media(max-width:700px){.shell{padding:8px 10px 60px}.hero{padding:58px 20px 22px;border-radius:20px}.hero-tools{right:12px;top:12px}.hero h1{font-size:22px}.progress{gap:5px}.step-chip{padding:8px 4px;font-size:8px}.card{padding:16px}.grid,.docs-grid{grid-template-columns:1fr}.span2{grid-column:auto}.actions{position:sticky;bottom:8px;z-index:5;padding:8px;border:1px solid var(--line);border-radius:14px;background:color-mix(in srgb,var(--card) 94%,transparent);backdrop-filter:blur(8px)}.actions .btn{flex:1}.review-row{align-items:flex-start}}
   </style>
@@ -79,6 +80,7 @@
           <div class="field span2"><label>Profession</label><input name="secondaryOccupation" maxlength="160"></div>
         </div>
         <div id="customFamilyFields" class="grid" style="margin-top:12px"></div>
+        <div id="familySections" class="form-sections"></div>
         <div class="actions"><span></span><button type="button" class="btn primary" data-next>Continuer</button></div>
       </section>
 
@@ -170,10 +172,34 @@
   const qa=(s,r=document)=>Array.from(r.querySelectorAll(s));
   const esc=(v)=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
 
+  const defaultSections=[
+    {id:'family_primary',scope:'FAMILY',title:'Responsable principal',description:'Identité et coordonnées du parent ou responsable à contacter en priorité.',order:10,visible:true},
+    {id:'family_secondary',scope:'FAMILY',title:'Deuxième responsable',description:'Informations facultatives sur un autre parent ou responsable légal.',order:20,visible:true},
+    {id:'child_identity',scope:'CHILD',title:'Identité de l’élève',description:'Informations essentielles permettant d’identifier l’enfant et le type de demande.',order:10,visible:true},
+    {id:'child_schooling',scope:'CHILD',title:'Scolarité',description:'Classe souhaitée et établissement fréquenté auparavant.',order:20,visible:true},
+    {id:'child_civil',scope:'CHILD',title:'État civil et adresse',description:'Acte de naissance, adresse et localisation de l’enfant.',order:30,visible:true},
+    {id:'child_health',scope:'CHILD',title:'Santé et informations utiles',description:'Informations utiles à l’accueil et au suivi de l’élève.',order:40,visible:true}
+  ];
+  const schoolingKeys=new Set(['desiredClassId','previousSchool']);
+  const civilKeys=new Set(['birthCertificateNumber','birthCertificateDate','birthCertificatePlace','address','neighborhood','city']);
+  const healthKeys=new Set(['bloodType','medicalNotes']);
+  function legacySectionId(field){
+    if(field.scope==='FAMILY')return field.group==='SECONDARY'?'family_secondary':'family_primary';
+    if(schoolingKeys.has(field.key))return 'child_schooling';
+    if(civilKeys.has(field.key))return 'child_civil';
+    if(healthKeys.has(field.key))return 'child_health';
+    return 'child_identity';
+  }
+  function schemaSections(scope){
+    const sections=bootstrap?.campaign?.form_schema?.sections;
+    const source=Array.isArray(sections)&&sections.length?sections:defaultSections;
+    return source.filter(s=>s&&s.scope===scope&&s.visible!==false).sort((a,b)=>(Number(a.order)||100)-(Number(b.order)||100));
+  }
   function schemaFields(scope){
     const fields=bootstrap?.campaign?.form_schema?.fields;
+    const visibleSections=new Set(schemaSections(scope).map(s=>s.id));
     return Array.isArray(fields)
-      ? fields.filter(f=>f&&f.scope===scope&&f.visible!==false).sort((a,b)=>(Number(a.order)||100)-(Number(b.order)||100))
+      ? fields.filter(f=>f&&f.scope===scope&&f.visible!==false&&visibleSections.has(f.sectionId||legacySectionId(f))).sort((a,b)=>(Number(a.order)||100)-(Number(b.order)||100))
       : [];
   }
   function schemaDocuments(scope){
@@ -205,14 +231,12 @@
   }
   function customFieldsHtml(scope){
     const custom=schemaFields(scope).filter(f=>f.custom);
-    if(!custom.length)return '';
-    return '<div class="custom-fields-title">Informations complémentaires demandées par l’établissement</div>'+
-      custom.map(field=>{
-        const id='custom-'+scope.toLowerCase()+'-'+String(field.key).replace(/[^a-zA-Z0-9_-]/g,'-');
-        const status=field.required?' (obligatoire)':' (facultatif)';
-        const helpId=id+'-help';
-        return '<div class="field"><label for="'+esc(id)+'">'+esc(field.label)+status+'</label>'+fieldInputHtml(field,scope)+(field.helpText?'<small id="'+esc(helpId)+'" class="field-note">'+esc(field.helpText)+'</small>':'')+'</div>';
-      }).join('');
+    return custom.map(field=>{
+      const id='custom-'+scope.toLowerCase()+'-'+String(field.key).replace(/[^a-zA-Z0-9_-]/g,'-');
+      const status=field.required?' (obligatoire)':' (facultatif)';
+      const helpId=id+'-help';
+      return '<div class="field"><label for="'+esc(id)+'">'+esc(field.label)+status+'</label>'+fieldInputHtml(field,scope)+(field.helpText?'<small id="'+esc(helpId)+'" class="field-note">'+esc(field.helpText)+'</small>':'')+'</div>';
+    }).join('');
   }
   function customAnswerValue(el){
     if(!el)return '';
@@ -266,17 +290,59 @@
       }
     }
   }
+  function renderScopeSections(scope,root){
+    const host=scope==='FAMILY'?q('#familySections'):q('[data-child-sections]',root);
+    if(!host)return;
+    host.innerHTML='';
+    const fields=schemaFields(scope);
+    schemaSections(scope).forEach(section=>{
+      const sectionFields=fields.filter(field=>(field.sectionId||legacySectionId(field))===section.id);
+      const nodes=[];
+      sectionFields.forEach(field=>{
+        const el=field.custom
+          ? q('['+(scope==='FAMILY'?'data-custom-family-key':'data-custom-child-key')+'="'+field.key+'"]',root)
+          : scope==='FAMILY'?form.elements[field.key]:q('[data-field="'+field.key+'"]',root);
+        const box=el?.closest('.field');
+        if(box)nodes.push(box);
+      });
+      if(!nodes.length)return;
+      const fieldset=document.createElement('fieldset');
+      fieldset.className='form-section';
+      const legend=document.createElement('legend');
+      legend.textContent=section.title||'Informations';
+      fieldset.appendChild(legend);
+      if(section.description){
+        const desc=document.createElement('div');
+        desc.className='form-section-desc';
+        desc.textContent=section.description;
+        fieldset.appendChild(desc);
+      }
+      const grid=document.createElement('div');
+      grid.className='grid';
+      nodes.forEach(node=>grid.appendChild(node));
+      fieldset.appendChild(grid);
+      host.appendChild(fieldset);
+    });
+  }
+
   function applyFamilySchema(){
+    const activeSections=new Set(schemaSections('FAMILY').map(section=>section.id));
     const fixed=(bootstrap?.campaign?.form_schema?.fields||[]).filter(f=>f&&f.scope==='FAMILY'&&!f.custom);
-    fixed.forEach(field=>applyFixedField(field,form.elements[field.key]));
+    fixed.forEach(field=>applyFixedField({...field,visible:field.visible!==false&&activeSections.has(field.sectionId||legacySectionId(field))},form.elements[field.key]));
     q('#customFamilyFields').innerHTML=customFieldsHtml('FAMILY');
+    const familyStep=q('[data-step="0"]');
+    q('.divider',familyStep)?.classList.add('hidden');
+    q('.section-title',familyStep)?.classList.add('hidden');
+    renderScopeSections('FAMILY',form);
     applyFamilyDocumentSchema();
   }
   function applyChildSchema(block){
+    const activeSections=new Set(schemaSections('CHILD').map(section=>section.id));
     const fixed=(bootstrap?.campaign?.form_schema?.fields||[]).filter(f=>f&&f.scope==='CHILD'&&!f.custom);
-    fixed.forEach(field=>applyFixedField(field,q('[data-field="'+field.key+'"]',block)));
+    fixed.forEach(field=>applyFixedField({...field,visible:field.visible!==false&&activeSections.has(field.sectionId||legacySectionId(field))},q('[data-field="'+field.key+'"]',block)));
     const custom=q('[data-custom-child-fields]',block);
     if(custom)custom.innerHTML=customFieldsHtml('CHILD');
+    renderScopeSections('CHILD',block);
     const type=q('[data-field="type"]',block);
     if(type){
       type.addEventListener('change',()=>refreshChildConditional(block));
@@ -358,7 +424,7 @@
   function childTemplate(i,data={}){
     return '<div class="child" data-child data-index="'+i+'">'+
       '<div class="child-head"><strong>Enfant '+(qa('[data-child]').length+1)+'</strong><button type="button" class="btn danger" data-remove>Retirer</button></div>'+
-      '<div class="grid">'+
+      '<div class="grid" data-child-standard-fields>'+
       '<div class="field"><label>Type *</label><select data-field="type">'+typeOptions()+'</select></div>'+
       '<div class="field"><label>Matricule actuel (réinscription)</label><input data-field="existingMatricule" maxlength="80"></div>'+
       '<div class="field"><label>Nom *</label><input data-field="lastName" required maxlength="120"></div>'+
@@ -377,7 +443,7 @@
       '<div class="field"><label>Fokontany / quartier</label><input data-field="neighborhood" maxlength="120"></div>'+
       '<div class="field"><label>Ville / Commune</label><input data-field="city" maxlength="120"></div>'+
       '<div class="field span2"><label>Informations utiles / médicales</label><textarea data-field="medicalNotes" maxlength="1000"></textarea></div>'+
-      '</div><div class="grid" data-custom-child-fields style="margin-top:12px"></div></div>';
+      '</div><div class="grid" data-custom-child-fields style="margin-top:12px"></div><div class="form-sections" data-child-sections></div></div>';
   }
 
   function addChild(data={}){

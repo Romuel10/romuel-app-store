@@ -20,13 +20,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          URL="https://romuel10.github.io/romuel-app-store/sekoly/enrollment/index.html?code=b9cf624c992b4a2e9a56&smoke=1"
+          URL="https://romuel10.github.io/romuel-app-store/sekoly/enrollment/index.html?code=10441a88ccdd43e183db&smoke=1"
           ok=0
           for i in $(seq 1 20); do
             curl -sS -D /tmp/h -o /tmp/b "$URL" || true
             status="$(awk 'NR==1{print $2}' /tmp/h 2>/dev/null || true)"
             type="$(grep -i '^content-type:' /tmp/h | tail -1 | tr -d '\r' || true)"
-            marker="$(grep -c '2026-09-29-github-pages-v1' /tmp/b 2>/dev/null || true)"
+            marker="$(grep -c '2026-09-29-configurable-form-v1' /tmp/b 2>/dev/null || true)"
             if [ "$status" = "200" ] && echo "$type" | grep -qi 'text/html' && [ "$marker" -gt 0 ]; then
               ok=1
               break
@@ -42,7 +42,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          URL="https://cmpbrouwcfoauwyeiyfj.supabase.co/functions/v1/sekoly-public-enrollment?action=bootstrap&code=b9cf624c992b4a2e9a56"
+          URL="https://cmpbrouwcfoauwyeiyfj.supabase.co/functions/v1/sekoly-public-enrollment?action=bootstrap&code=10441a88ccdd43e183db"
           curl -sS -D /tmp/h -o /tmp/b "$URL"
           status="$(awk 'NR==1{print $2}' /tmp/h)"
           type="$(grep -i '^content-type:' /tmp/h | tail -1 | tr -d '\r')"

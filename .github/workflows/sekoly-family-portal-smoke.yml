@@ -1,0 +1,52 @@
+name: Sekoly Family Portal Smoke
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "sekoly/enrollment/**"
+      - ".github/workflows/sekoly-family-portal-smoke.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Wait for Cloudflare and verify HTML
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL="https://romuelapps.pages.dev/sekoly/enrollment/index.html?code=b9cf624c992b4a2e9a56&smoke=1"
+          ok=0
+          for i in $(seq 1 30); do
+            curl -sS -D /tmp/h -o /tmp/b "$URL" || true
+            status="$(awk 'NR==1{print $2}' /tmp/h 2>/dev/null || true)"
+            type="$(grep -i '^content-type:' /tmp/h | tail -1 | tr -d '\r' || true)"
+            if [ "$status" = "200" ] && echo "$type" | grep -qi 'text/html' && grep -q '2026-09-29-cloudflare-v1' /tmp/b; then
+              ok=1
+              break
+            fi
+            echo "Attempt $i: status=$status type=$type"
+            sleep 8
+          done
+          test "$ok" = "1"
+          echo "Cloudflare page:"
+          grep -i '^content-type:' /tmp/h | tail -1
+          head -c 160 /tmp/b; echo
+
+      - name: Verify Supabase bootstrap API
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL="https://cmpbrouwcfoauwyeiyfj.supabase.co/functions/v1/sekoly-public-enrollment?action=bootstrap&code=b9cf624c992b4a2e9a56"
+          curl -sS -D /tmp/h -o /tmp/b "$URL"
+          status="$(awk 'NR==1{print $2}' /tmp/h)"
+          type="$(grep -i '^content-type:' /tmp/h | tail -1 | tr -d '\r')"
+          test "$status" = "200"
+          echo "$type" | grep -qi 'application/json'
+          grep -q '"school"' /tmp/b
+          grep -q '"campaign"' /tmp/b

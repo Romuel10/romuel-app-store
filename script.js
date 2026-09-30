@@ -1458,7 +1458,7 @@ async function loadAdminPublisher(){
     publisherAvailable=false;
     if(schemaMissing){
       $("publisherSetupNotice").classList.remove("hidden");
-      $("publisherSetupNotice").innerHTML='Exécute le fichier <code>supabase-v13-publisher.sql</code> dans l’éditeur SQL de Supabase. Il crée les tables, les stockages privés et les règles de sécurité.';
+      $("publisherSetupNotice").innerHTML='Exécute le fichier <code>SUPABASE_SETUP_COMPLETE_V15.sql</code> dans l’éditeur SQL de Supabase. La version V15.1 crée et sécurise les tables, les stockages privés et les règles d’accès.';
     }else{
       $("publisherSetupNotice").classList.remove("hidden");
       $("publisherSetupNotice").textContent=`Impossible de charger le centre de publication : ${error.message}`;
@@ -1499,7 +1499,7 @@ async function showPublisherScreens(app){
 function openPublisherForm(mode,app=null){
   if(!publisherAvailable){
     $("publisherSetupNotice").classList.remove("hidden");
-    $("publisherSetupNotice").innerHTML='Active d’abord le centre avec <code>supabase-v13-publisher.sql</code>.';
+    $("publisherSetupNotice").innerHTML='Active d’abord le centre avec <code>SUPABASE_SETUP_COMPLETE_V15.sql</code> (V15.1).';
     return;
   }
   const form=$("publisherForm");

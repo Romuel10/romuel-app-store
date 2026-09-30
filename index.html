@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#f8f9fa">
   <meta name="description" content="Mada Apps, le catalogue indépendant d'applications Android conçues pour Madagascar.">
   <title>Mada Apps</title>
-  <link rel="stylesheet" href="./style.css?v=15.1">
+  <link rel="stylesheet" href="./style.css?v=15.2">
 </head>
 <body>
 <header class="topbar">
@@ -24,8 +24,9 @@
         <img id="headerAvatar" class="header-avatar" alt="">
         <span id="headerUserName"></span>
       </div>
+      <button class="account-btn help-header-btn" id="helpBtn" type="button">Aide</button>
       <button class="icon-btn" id="themeBtn" type="button" aria-label="Changer le thème">☾</button>
-      <button class="account-btn" id="profileBtn" type="button">Mon profil</button>
+      <button class="account-btn account-entry-btn" id="profileBtn" type="button">Se connecter</button>
       <button class="account-btn hidden" id="developerBtn" type="button">Développeur</button>
       <button class="account-btn hidden" id="gendarmerieBtn" type="button">🛡 Gendarmerie</button>
       <button class="account-btn hidden" id="adminBtn" type="button">Admin</button>
@@ -39,6 +40,11 @@
       <span class="eyebrow">LE STORE MALAGASY</span>
       <h2>Les applications utiles, réunies au même endroit</h2>
       <p>Découvre des applications Android pensées pour Madagascar, consulte leurs captures et installe directement la dernière version.</p>
+      <div class="hero-actions">
+        <button id="heroBrowseBtn" class="hero-action primary" type="button">Voir les applications</button>
+        <button id="heroLoginBtn" class="hero-action secondary" type="button">Se connecter / Créer un compte</button>
+      </div>
+      <small class="hero-account-note">Tu peux consulter et installer les applications publiques sans créer de compte.</small>
     </div>
     <div class="hero-showcase" aria-label="Nombre d’applications disponibles">
       <div class="hero-app-tiles" aria-hidden="true">
@@ -53,7 +59,39 @@
     </div>
   </section>
 
-  <section class="toolbar">
+  <section id="gettingStarted" class="beginner-guide" aria-labelledby="gettingStartedTitle">
+    <div class="beginner-guide-head">
+      <div>
+        <span class="eyebrow">PREMIÈRE VISITE ?</span>
+        <h3 id="gettingStartedTitle">Commence ici en trois étapes</h3>
+        <p>Pas besoin de connaître le site : choisis simplement ce que tu veux faire.</p>
+      </div>
+      <button id="dismissGuideBtn" class="guide-dismiss" type="button" aria-label="Masquer cette aide">×</button>
+    </div>
+
+    <div class="beginner-steps">
+      <article class="beginner-step">
+        <span class="step-number">1</span>
+        <div><strong>Découvrir les applications</strong><small>Parcours le catalogue ou utilise la recherche.</small></div>
+      </article>
+      <article class="beginner-step">
+        <span class="step-number">2</span>
+        <div><strong>Se connecter ou créer un compte</strong><small>Le bouton « Se connecter » est toujours visible en haut.</small></div>
+      </article>
+      <article class="beginner-step">
+        <span class="step-number">3</span>
+        <div><strong>Profiter de ton compte</strong><small>Retrouve tes favoris, publie des avis et accède à tes espaces autorisés.</small></div>
+      </article>
+    </div>
+
+    <div class="beginner-actions">
+      <button id="guideLoginBtn" class="primary-btn" type="button">Se connecter</button>
+      <button id="guideSignupBtn" class="secondary-btn" type="button">Créer un compte</button>
+      <button id="guideBrowseBtn" class="text-guide-btn" type="button">Continuer sans compte</button>
+    </div>
+  </section>
+
+  <section class="toolbar" id="catalogTools">
     <div class="search-wrap">
       <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m21 21-4.35-4.35m2.35-5.65a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       <input id="q" type="search" placeholder="Rechercher une application…" aria-label="Rechercher une application">
@@ -469,6 +507,7 @@
     <button class="modal-close" type="button" data-close-auth aria-label="Fermer">×</button>
     <span class="eyebrow">COMPTE MADA APPS</span>
     <h2 id="authTitle">Connexion</h2>
+    <p id="authLead" class="auth-lead">Connecte-toi avec ton adresse e-mail. Si tu n’as pas encore de compte, choisis « Créer un compte ».</p>
 
     <div id="authLoggedOut">
       <div class="auth-tabs">
@@ -477,11 +516,15 @@
       </div>
 
       <form id="authForm" class="auth-form">
-        <label for="authEmail">E-mail</label>
-        <input id="authEmail" type="email" required autocomplete="email">
+        <label for="authEmail">Adresse e-mail</label>
+        <input id="authEmail" type="email" required autocomplete="email" placeholder="exemple@email.com">
 
         <label for="authPassword">Mot de passe</label>
-        <input id="authPassword" type="password" minlength="6" required autocomplete="current-password">
+        <div class="password-field">
+          <input id="authPassword" type="password" minlength="6" required autocomplete="current-password" placeholder="Ton mot de passe">
+          <button id="togglePasswordBtn" class="password-toggle" type="button" aria-label="Afficher le mot de passe">Afficher</button>
+        </div>
+        <small id="authModeHint" class="auth-mode-hint">Entre les identifiants utilisés lors de la création de ton compte.</small>
 
         <button class="primary-btn" id="authSubmitBtn" type="submit">Se connecter</button>
         <button class="secondary-btn full-btn hidden" id="resendConfirmBtn" type="button">Renvoyer l’e-mail de confirmation</button>
@@ -498,8 +541,8 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
-<script src="./supabase-config.js?v=15.1"></script>
+<script src="./supabase-config.js?v=15.2"></script>
 <script src="https://cdn.jsdelivr.net/npm/tus-js-client@4.3.1/dist/tus.min.js"></script>
-<script src="./script.js?v=15.1"></script>
+<script src="./script.js?v=15.2"></script>
 </body>
 </html>

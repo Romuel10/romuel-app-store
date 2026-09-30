@@ -18,6 +18,7 @@ const FAVORITES_KEY="madaapps_favorites";
 let favorites=new Set(JSON.parse(localStorage.getItem(FAVORITES_KEY)||localStorage.getItem("romuelapps_favorites")||"[]"));
 let profile=null,isAdmin=false,isDeveloper=false,isGendarmerie=false,reportedReviewId=null,lastUnconfirmedEmail="";
 let selectedAvatarFile=null,removeAvatarRequested=false;
+let notifications=[],notificationChannel=null;
 let pendingAppSlug=new URLSearchParams(location.search).get("app");
 const storageSizeCache=new Map();
 
@@ -591,6 +592,283 @@ function accountInitials(){
   return initials(profile?.display_name||currentUser?.email?.split("@")[0]||"M")||"M";
 }
 
+
+function notificationDate(value){
+  try{
+    return new Intl.DateTimeFormat("fr-FR",{
+      day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"
+    }).format(new Date(value));
+  }catch{return ""}
+}
+
+function unreadNotificationCount(){
+  return notifications.filter(item=>!item.read).length;
+}
+
+function refreshBrowserNotificationUI(){
+  const card=$("browserNotificationCard");
+  const button=$("enableBrowserNotificationsBtn");
+  const text=$("browserNotificationText");
+  if(!card||!button||!text)return;
+
+  if(typeof Notification==="undefined"){
+    card.classList.add("hidden");
+    return;
+  }
+
+  card.classList.remove("hidden");
+  if(Notification.permission==="granted"){
+    text.textContent="Les alertes de ce navigateur sont activées. Tu seras prévenu dès qu’une mise à jour arrive pendant que Mada Apps est ouvert.";
+    button.textContent="Activées";
+    button.disabled=true;
+  }else if(Notification.permission==="denied"){
+    text.textContent="Les alertes ont été bloquées par le navigateur. Tu peux les réactiver dans les paramètres du site.";
+    button.textContent="Bloquées";
+    button.disabled=true;
+  }else{
+    text.textContent="Active les alertes du navigateur pour être prévenu dès qu’une mise à jour arrive pendant que Mada Apps est ouvert.";
+    button.textContent="Activer";
+    button.disabled=false;
+  }
+}
+
+function refreshNotificationBadges(){
+  const unread=unreadNotificationCount();
+  const badge=$("notificationBadge");
+  if(badge){
+    badge.textContent=unread>99?"99+":String(unread);
+    badge.classList.toggle("hidden",!currentUser||unread===0);
+  }
+  $("notificationsBtn")?.classList.toggle("has-unread",unread>0);
+  if($("notificationsUnreadLabel")){
+    $("notificationsUnreadLabel").textContent=String(unread)+" non lue"+(unread>1?"s":"");
+  }
+  if($("notificationsSummary")){
+    $("notificationsSummary").textContent=unread
+      ? String(unread)+" mise"+(unread>1?"s":"")+" à jour à consulter."
+      : "Aucune nouvelle notification.";
+  }
+  if($("menuNotificationsHint")){
+    $("menuNotificationsHint").textContent=unread
+      ? String(unread)+" notification"+(unread>1?"s":"")+" non lue"+(unread>1?"s":"")
+      : "Voir les mises à jour";
+  }
+  if($("markAllNotificationsBtn"))$("markAllNotificationsBtn").disabled=unread===0;
+}
+
+function renderNotifications(){
+  const box=$("notificationsList");
+  if(!box)return;
+
+  if(!currentUser){
+    box.innerHTML='<div class="notification-empty">Connecte-toi pour voir tes notifications.</div>';
+    refreshNotificationBadges();
+    return;
+  }
+
+  if(!notifications.length){
+    box.innerHTML='<div class="notification-empty"><strong>Tout est à jour.</strong><span>Les prochaines mises à jour de tes applications apparaîtront ici.</span></div>';
+    refreshNotificationBadges();
+    return;
+  }
+
+  box.innerHTML=notifications.map(item=>{
+    const unreadDot=item.read?"":'<span class="notification-unread-dot" aria-label="Non lue"></span>';
+    const meta=(item.version?"Version "+esc(item.version)+" • ":"")+esc(notificationDate(item.created_at));
+    return '<button class="notification-item '+(item.read?"":"unread")+'" type="button" data-notification-id="'+esc(item.id)+'">'
+      +'<span class="notification-item-icon" aria-hidden="true">'+(item.type==="app_update"?"↻":"🔔")+'</span>'
+      +'<span class="notification-item-body">'
+      +'<span class="notification-item-top"><strong>'+esc(item.title||"Notification")+'</strong>'+unreadDot+'</span>'
+      +'<span class="notification-item-message">'+esc(item.message||"")+'</span>'
+      +'<span class="notification-item-meta">'+meta+'</span>'
+      +'</span></button>';
+  }).join("");
+  refreshNotificationBadges();
+}
+
+async function loadNotifications(){
+  if(!currentUser){
+    notifications=[];
+    renderNotifications();
+    return;
+  }
+
+  const {data,error}=await sb.from("notifications")
+    .select("id,title,message,read,created_at,type,app_id,app_slug,version,event_key,changes,read_at")
+    .eq("user_id",currentUser.id)
+    .order("created_at",{ascending:false})
+    .limit(60);
+
+  if(error){
+    console.warn("Notifications:",error.message);
+    notifications=[];
+    renderNotifications();
+    return;
+  }
+
+  notifications=data||[];
+  renderNotifications();
+}
+
+function closeNotifications(){
+  $("notificationsPanel")?.classList.add("hidden");
+  $("notificationsBackdrop")?.classList.add("hidden");
+  $("notificationsBtn")?.setAttribute("aria-expanded","false");
+}
+
+async function openNotifications(){
+  if(!currentUser){
+    setAuthMode("signin");
+    openAuth();
+    return;
+  }
+  closeUserMenu();
+  $("notificationsPanel")?.classList.remove("hidden");
+  $("notificationsBackdrop")?.classList.remove("hidden");
+  $("notificationsBtn")?.setAttribute("aria-expanded","true");
+  refreshBrowserNotificationUI();
+  await loadNotifications();
+}
+
+async function markNotificationRead(id){
+  if(!currentUser||!id)return;
+  const row=notifications.find(item=>item.id===id);
+  if(row?.read)return;
+
+  const readAt=new Date().toISOString();
+  const {error}=await sb.from("notifications")
+    .update({read:true,read_at:readAt})
+    .eq("id",id)
+    .eq("user_id",currentUser.id);
+
+  if(error){
+    console.warn("Notification lue:",error.message);
+    return;
+  }
+
+  if(row){
+    row.read=true;
+    row.read_at=readAt;
+  }
+  renderNotifications();
+}
+
+async function markAllNotificationsRead(){
+  if(!currentUser||unreadNotificationCount()===0)return;
+  const button=$("markAllNotificationsBtn");
+  if(button)button.disabled=true;
+  const readAt=new Date().toISOString();
+  const {error}=await sb.from("notifications")
+    .update({read:true,read_at:readAt})
+    .eq("user_id",currentUser.id)
+    .eq("read",false);
+
+  if(error){
+    console.warn("Notifications lues:",error.message);
+    if(button)button.disabled=false;
+    return;
+  }
+
+  notifications.forEach(item=>{
+    if(!item.read){item.read=true;item.read_at=readAt}
+  });
+  renderNotifications();
+}
+
+async function openNotificationTarget(item){
+  if(!item)return;
+  await markNotificationRead(item.id);
+  closeNotifications();
+
+  if(!item.app_slug)return;
+  const target=apps.find(app=>app.id===item.app_slug)||privateApps.find(app=>app.id===item.app_slug);
+  if(target){
+    openDetails(target);
+    return;
+  }
+
+  const url=new URL(location.href);
+  url.searchParams.set("app",item.app_slug);
+  location.href=url.toString();
+}
+
+function showBrowserUpdateAlert(item){
+  if(typeof Notification==="undefined"||Notification.permission!=="granted")return;
+  try{
+    const alert=new Notification(item.title||"Mada Apps",{
+      body:item.message||"Une nouvelle mise à jour est disponible.",
+      tag:item.event_key||item.id
+    });
+    alert.onclick=()=>{
+      window.focus();
+      openNotificationTarget(item);
+      alert.close();
+    };
+  }catch(error){
+    console.warn("Alerte navigateur:",error);
+  }
+}
+
+async function requestBrowserNotifications(){
+  if(typeof Notification==="undefined"){
+    refreshBrowserNotificationUI();
+    return;
+  }
+  try{
+    await Notification.requestPermission();
+  }catch(error){
+    console.warn("Permission notifications:",error);
+  }
+  refreshBrowserNotificationUI();
+}
+
+function stopNotificationSubscription(){
+  if(notificationChannel){
+    try{sb.removeChannel(notificationChannel)}catch{}
+    notificationChannel=null;
+  }
+}
+
+function subscribeToNotifications(){
+  stopNotificationSubscription();
+  if(!currentUser)return;
+
+  notificationChannel=sb
+    .channel("madaapps-notifications-"+currentUser.id)
+    .on(
+      "postgres_changes",
+      {
+        event:"INSERT",
+        schema:"public",
+        table:"notifications",
+        filter:"user_id=eq."+currentUser.id
+      },
+      payload=>{
+        const item=payload.new;
+        if(!item?.id)return;
+        if(!notifications.some(existing=>existing.id===item.id)){
+          notifications.unshift(item);
+          notifications=notifications.slice(0,60);
+        }
+        renderNotifications();
+        showBrowserUpdateAlert(item);
+      }
+    )
+    .subscribe(status=>{
+      if(status==="CHANNEL_ERROR"||status==="TIMED_OUT"){
+        console.warn("Notifications temps réel:",status);
+      }
+    });
+}
+
+function clearNotificationState(){
+  stopNotificationSubscription();
+  notifications=[];
+  closeNotifications();
+  renderNotifications();
+  refreshBrowserNotificationUI();
+}
+
 function refreshProfileUI(){
   const loggedIn=!!currentUser;
   $("profileLoggedOut").classList.toggle("hidden",loggedIn);
@@ -601,6 +879,8 @@ function refreshProfileUI(){
 
   $("profileBtnLabel").textContent=loggedIn?"Mon espace":"Se connecter";
   $("mobileAccountLabel").textContent=loggedIn?"Compte":"Connexion";
+  $("notificationsBtn")?.classList.toggle("hidden",!loggedIn);
+  refreshNotificationBadges();
   $("profileBtn").classList.toggle("account-entry-btn",!loggedIn);
   $("profileBtnChevron").classList.toggle("hidden",!loggedIn);
   $("heroLoginBtn").textContent=loggedIn?"Ouvrir mon espace":"Se connecter / Créer un compte";
@@ -762,7 +1042,10 @@ async function refreshAuthUI(){
       await ensureOwnProfile();
       await loadProfile();
       await loadFavoritesFromSupabase();
+      await loadNotifications();
+      subscribeToNotifications();
     }else{
+      clearNotificationState();
       await loadProfile();
     }
   }catch(err){
@@ -963,7 +1246,7 @@ document.addEventListener("click",e=>{
 
 modal.addEventListener("click",e=>{if(e.target.matches("[data-close-modal]"))closeModal()});
 authModal.addEventListener("click",e=>{if(e.target.matches("[data-close-auth]"))closeAuth()});
-document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeUserMenu();closeModal();closeAuth();closeProfile();closeReport();closeAdmin()}});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeNotifications();closeUserMenu();closeModal();closeAuth();closeProfile();closeReport();closeAdmin()}});
 document.addEventListener("click",e=>{
   const wrap=$("userMenuWrap");
   if(e.target.closest?.("#mobileAccountBtn"))return;
@@ -1278,6 +1561,21 @@ $("mobileAccountBtn")?.addEventListener("click",()=>{
   }
   setAuthMode("signin");
   openAuth();
+});
+$("notificationsBtn")?.addEventListener("click",()=>openNotifications());
+$("menuNotificationsBtn")?.addEventListener("click",()=>{
+  closeUserMenu();
+  openNotifications();
+});
+$("closeNotificationsBtn")?.addEventListener("click",closeNotifications);
+$("notificationsBackdrop")?.addEventListener("click",closeNotifications);
+$("enableBrowserNotificationsBtn")?.addEventListener("click",requestBrowserNotifications);
+$("markAllNotificationsBtn")?.addEventListener("click",markAllNotificationsRead);
+$("notificationsList")?.addEventListener("click",e=>{
+  const button=e.target.closest("[data-notification-id]");
+  if(!button)return;
+  const item=notifications.find(row=>row.id===button.dataset.notificationId);
+  if(item)openNotificationTarget(item);
 });
 $("menuProfileBtn")?.addEventListener("click",()=>{
   closeUserMenu();

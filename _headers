@@ -5,7 +5,7 @@
   X-Frame-Options: DENY
 
 /index.html
-  Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https://gmlofgsgnbbcbefogpww.supabase.co https://gmlofgsgnbbcbefogpww.storage.supabase.co https://api.github.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https://gmlofgsgnbbcbefogpww.supabase.co https://gmlofgsgnbbcbefogpww.storage.supabase.co https://api.github.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
 
 /developer-dashboard.html
   Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https://gmlofgsgnbbcbefogpww.supabase.co https://gmlofgsgnbbcbefogpww.storage.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'

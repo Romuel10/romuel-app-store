@@ -6,6 +6,8 @@ on:
     paths:
       - "index.html"
       - "script.js"
+      - "sw.js"
+      - "manifest.webmanifest"
       - "developer-dashboard.html"
       - "developer-dashboard.js"
       - "gendarmerie.html"
@@ -13,6 +15,9 @@ on:
       - "SUPABASE_SETUP_COMPLETE_V15.sql"
       - "SUPABASE_SECURITY_CLEANUP_V15_1.sql"
       - "SUPABASE_RPC_HARDENING_V15_1_1.sql"
+      - "SUPABASE_NOTIFICATIONS_V15_5.sql"
+      - "SUPABASE_WEB_PUSH_V15_6.sql"
+      - "supabase/functions/**"
       - "_headers"
       - ".github/workflows/mada-apps-security-smoke.yml"
   pull_request:
@@ -20,6 +25,8 @@ on:
     paths:
       - "index.html"
       - "script.js"
+      - "sw.js"
+      - "manifest.webmanifest"
       - "developer-dashboard.html"
       - "developer-dashboard.js"
       - "gendarmerie.html"
@@ -27,6 +34,9 @@ on:
       - "SUPABASE_SETUP_COMPLETE_V15.sql"
       - "SUPABASE_SECURITY_CLEANUP_V15_1.sql"
       - "SUPABASE_RPC_HARDENING_V15_1_1.sql"
+      - "SUPABASE_NOTIFICATIONS_V15_5.sql"
+      - "SUPABASE_WEB_PUSH_V15_6.sql"
+      - "supabase/functions/**"
       - "_headers"
       - ".github/workflows/mada-apps-security-smoke.yml"
   workflow_dispatch:
@@ -44,9 +54,25 @@ jobs:
       - name: JavaScript syntax
         run: |
           node --check script.js
+          node --check sw.js
           node --check developer-dashboard.js
           node --check gendarmerie.js
           node --check apps.js
+
+      - name: Verify PWA manifest
+        run: |
+          python - <<'PY'
+          import json
+          with open("manifest.webmanifest", encoding="utf-8") as f:
+              m=json.load(f)
+          assert m["display"] == "standalone"
+          assert m["start_url"] == "./"
+          sizes={i["sizes"] for i in m["icons"]}
+          assert "192x192" in sizes and "512x512" in sizes
+          PY
+          grep -q 'rel="manifest"' index.html
+          grep -q 'addEventListener("push"' sw.js
+          grep -q 'addEventListener("notificationclick"' sw.js
 
       - name: Verify pinned browser dependencies
         run: |
@@ -62,6 +88,10 @@ jobs:
           ! grep -q 'Developpeur remplace fichiers' SUPABASE_SECURITY_CLEANUP_V15_1.sql
           grep -q 'private.admin_list_users' SUPABASE_RPC_HARDENING_V15_1_1.sql
           grep -q 'Content-Security-Policy' _headers
+          grep -q "worker-src 'self'" _headers
+          grep -q 'push_subscriptions' SUPABASE_WEB_PUSH_V15_6.sql
+          grep -q 'dispatch_app_update_web_push' SUPABASE_WEB_PUSH_V15_6.sql
+          grep -q 'revoke all on public.push_subscriptions from anon, authenticated' SUPABASE_WEB_PUSH_V15_6.sql
 
   live-anon-security:
     runs-on: ubuntu-latest
@@ -105,6 +135,27 @@ jobs:
               test "$status" = "401" -o "$status" = "403"
             fi
           done
+
+      - name: Push subscription table is hidden from anonymous users
+        run: |
+          status=$(curl -sS -o /tmp/push -w '%{http_code}'             "$SUPABASE_URL/rest/v1/push_subscriptions?select=id&limit=1"             -H "apikey: $SUPABASE_KEY"             -H "Authorization: Bearer $SUPABASE_KEY")
+          if [ "$status" = "200" ]; then
+            test "$(cat /tmp/push)" = "[]"
+          else
+            test "$status" = "401" -o "$status" = "403"
+          fi
+
+      - name: Public Web Push key is readable
+        run: |
+          status=$(curl -sS -o /tmp/pushconfig -w '%{http_code}'             "$SUPABASE_URL/rest/v1/web_push_config_public?select=id,public_key&id=eq.1"             -H "apikey: $SUPABASE_KEY"             -H "Authorization: Bearer $SUPABASE_KEY")
+          test "$status" = "200"
+          python - <<'PY'
+          import json
+          with open("/tmp/pushconfig", encoding="utf-8") as f:
+              data=json.load(f)
+          assert len(data)==1
+          assert len(data[0]["public_key"]) >= 80
+          PY
 
       - name: Admin RPC is not callable anonymously
         run: |

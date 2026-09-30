@@ -1,4 +1,4 @@
-# Mada Apps v14 — interface inspirée d’un app store
+# Mada Apps V15.1 — Store Android sécurisé pour Madagascar
 
 Mada Apps est un catalogue indépendant d’applications Android pour Madagascar. La version 14 adopte une navigation et des fiches inspirées des grands stores, tout en conservant une identité propre.
 
@@ -39,6 +39,25 @@ Si une publication v13.3 a envoyé ses captures sans créer leurs lignes en base
 Dans le Centre de publication, la rubrique **Anciennes publications GitHub** propose le bouton **Recréer ici**. Les informations sont préremplies ; il reste à choisir l'APK, le logo et les captures. Dès qu'une application Supabase utilise le même identifiant, elle remplace automatiquement son ancienne publication GitHub dans le catalogue.
 
 
-## V15 — rôles et Console développeur
+## V15.1 — rôles, Console développeur et durcissement sécurité
 
 Cette version ajoute une vraie Console développeur, une file de validation admin et un espace Gendarmerie dédié. Pour mettre Supabase au même niveau que le code, exécuter **uniquement** `SUPABASE_SETUP_COMPLETE_V15.sql` dans SQL Editor. Le script est conçu comme migration idempotente et conserve les applications existantes.
+
+
+### Sécurité V15.1
+
+La V15.1 consolide la sécurité sans repartir de zéro :
+
+- politiques RLS du Store nettoyées et dédupliquées ;
+- tables héritées `developers`, `app_submissions`, `notifications` et `downloads` verrouillées ;
+- fonctions privilégiées déplacées derrière des implémentations privées ;
+- accès Gendarmerie maintenu côté base et Storage ;
+- un développeur peut envoyer un nouvel APK, mais ne peut plus écraser un APK déjà validé ;
+- nettoyage des fichiers orphelins après un échec d'envoi ;
+- modération des avis uniformisée sur `published / hidden / pending` ;
+- dépendances navigateur figées à des versions précises ;
+- en-têtes de sécurité Cloudflare et workflow GitHub de tests de sécurité ajoutés.
+
+Pour une installation ou remise à niveau, exécuter **`SUPABASE_SETUP_COMPLETE_V15.sql`**. Les fichiers `SUPABASE_SECURITY_CLEANUP_V15_1.sql` et `SUPABASE_RPC_HARDENING_V15_1_1.sql` restent disponibles comme migrations séparées et traçables.
+
+> Supabase peut encore recommander **Leaked Password Protection** dans Auth. Ce réglage est un paramètre de projet Supabase et doit être activé dans les réglages Auth lorsque le plan utilisé le permet.

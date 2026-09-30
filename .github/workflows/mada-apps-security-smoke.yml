@@ -1,0 +1,117 @@
+name: Mada Apps Security Smoke
+
+on:
+  push:
+    branches: [main, mada-apps-v15-1-security-cleanup]
+    paths:
+      - "index.html"
+      - "script.js"
+      - "developer-dashboard.html"
+      - "developer-dashboard.js"
+      - "gendarmerie.html"
+      - "gendarmerie.js"
+      - "SUPABASE_SETUP_COMPLETE_V15.sql"
+      - "SUPABASE_SECURITY_CLEANUP_V15_1.sql"
+      - "SUPABASE_RPC_HARDENING_V15_1_1.sql"
+      - "_headers"
+      - ".github/workflows/mada-apps-security-smoke.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "index.html"
+      - "script.js"
+      - "developer-dashboard.html"
+      - "developer-dashboard.js"
+      - "gendarmerie.html"
+      - "gendarmerie.js"
+      - "SUPABASE_SETUP_COMPLETE_V15.sql"
+      - "SUPABASE_SECURITY_CLEANUP_V15_1.sql"
+      - "SUPABASE_RPC_HARDENING_V15_1_1.sql"
+      - "_headers"
+      - ".github/workflows/mada-apps-security-smoke.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  static-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: JavaScript syntax
+        run: |
+          node --check script.js
+          node --check developer-dashboard.js
+          node --check gendarmerie.js
+          node --check apps.js
+
+      - name: Verify pinned browser dependencies
+        run: |
+          grep -q '@supabase/supabase-js@2.117.2' index.html
+          grep -q 'tus-js-client@4.3.1' index.html
+          ! grep -R '@supabase/supabase-js@2"' -- *.html
+          ! grep -R 'tus-js-client@4/' -- *.html
+
+      - name: Verify security migration invariants
+        run: |
+          grep -q 'private.can_access_application(public.storage_application_id(storage.objects.name))' SUPABASE_SECURITY_CLEANUP_V15_1.sql
+          grep -q 'Only admins can overwrite an existing application file' SUPABASE_SECURITY_CLEANUP_V15_1.sql
+          ! grep -q 'Developpeur remplace fichiers' SUPABASE_SECURITY_CLEANUP_V15_1.sql
+          grep -q 'private.admin_list_users' SUPABASE_RPC_HARDENING_V15_1_1.sql
+          grep -q 'Content-Security-Policy' _headers
+
+  live-anon-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      SUPABASE_URL: https://gmlofgsgnbbcbefogpww.supabase.co
+      SUPABASE_KEY: sb_publishable_5TlVWknK1BODxwWqw4efEA_y4DI-JRP
+    steps:
+      - name: Public catalogue remains readable
+        run: |
+          status=$(curl -sS -o /tmp/apps -w '%{http_code}'             "$SUPABASE_URL/rest/v1/applications?select=slug,status,visibility&status=eq.published&visibility=eq.public"             -H "apikey: $SUPABASE_KEY"             -H "Authorization: Bearer $SUPABASE_KEY")
+          if [ "$status" != "200" ]; then
+            echo "Public catalogue HTTP $status"
+            cat /tmp/apps
+            exit 1
+          fi
+          python - <<'PY'
+          import json
+          with open("/tmp/apps", encoding="utf-8") as f:
+              data=json.load(f)
+          assert isinstance(data,list)
+          PY
+
+      - name: Gendarmerie catalogue is hidden from anonymous users
+        run: |
+          status=$(curl -sS -o /tmp/private -w '%{http_code}'             "$SUPABASE_URL/rest/v1/applications?select=slug,visibility&visibility=eq.gendarmerie"             -H "apikey: $SUPABASE_KEY"             -H "Authorization: Bearer $SUPABASE_KEY")
+          if [ "$status" != "200" ]; then
+            echo "Gendarmerie catalogue HTTP $status"
+            cat /tmp/private
+            exit 1
+          fi
+          test "$(cat /tmp/private)" = "[]"
+
+      - name: Legacy admin tables are not anonymously readable
+        run: |
+          for table in developers app_submissions notifications downloads; do
+            status=$(curl -sS -o /tmp/body -w '%{http_code}'               "$SUPABASE_URL/rest/v1/$table?select=*&limit=1"               -H "apikey: $SUPABASE_KEY"               -H "Authorization: Bearer $SUPABASE_KEY")
+            if [ "$status" = "200" ]; then
+              test "$(cat /tmp/body)" = "[]"
+            else
+              test "$status" = "401" -o "$status" = "403"
+            fi
+          done
+
+      - name: Admin RPC is not callable anonymously
+        run: |
+          status=$(curl -sS -o /tmp/rpc -w '%{http_code}' -X POST             "$SUPABASE_URL/rest/v1/rpc/admin_list_users"             -H "apikey: $SUPABASE_KEY"             -H "Authorization: Bearer $SUPABASE_KEY"             -H "Content-Type: application/json"             -d '{}')
+          if [ "$status" = "200" ]; then
+            echo "Admin RPC unexpectedly callable anonymously"
+            cat /tmp/rpc
+            exit 1
+          fi
+          test "$status" = "401" -o "$status" = "403" -o "$status" = "404"

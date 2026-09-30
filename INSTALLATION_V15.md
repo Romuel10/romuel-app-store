@@ -1,4 +1,4 @@
-# Mada Apps V15 — mise à jour
+# Mada Apps V15.1 — mise à jour sécurisée
 
 Cette archive améliore le projet original, elle ne repart pas de zéro.
 
@@ -9,14 +9,16 @@ Cette archive améliore le projet original, elle ne repart pas de zéro.
 3. Clique sur **Run**.
 4. N'exécute pas les fichiers du dossier `_legacy_sql` : ils sont gardés uniquement comme historique.
 
-Le script V15 conserve les données existantes et prépare :
+Le script V15.1 conserve les données existantes et prépare :
 - rôles USER / DEVELOPER / GENDARMERIE / ADMIN ;
 - Console développeur ;
 - validation admin des nouvelles applications et versions ;
 - accès Gendarmerie protégé par RLS ;
 - buckets privés APK, logos et captures ;
 - profils, avis, favoris, signalements et statistiques de téléchargement ;
-- renvoi d'e-mail de confirmation.
+- renvoi d'e-mail de confirmation ;
+- durcissement RLS/Storage et APK publiés immuables ;
+- nettoyage des anciennes policies et RPC privilégiés protégés.
 
 ## Déploiement
 
@@ -34,3 +36,12 @@ Tu peux :
 - autoriser/retirer l'accès Gendarmerie.
 
 Un développeur verra ensuite le bouton **Développeur** dans le Store et pourra soumettre une application. L'admin devra la valider avant publication.
+
+
+## Dernier réglage Auth recommandé
+
+Dans les réglages **Auth** du projet Supabase, active **Leaked Password Protection** si cette option est disponible sur ton plan. Ce réglage ne se configure pas par la migration SQL du projet.
+
+## Vérification automatique
+
+Le workflow **Mada Apps Security Smoke** vérifie la syntaxe JavaScript, les versions CDN figées et les invariants de sécurité principaux à chaque modification du Store.

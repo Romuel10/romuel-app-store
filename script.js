@@ -304,7 +304,14 @@ async function fetchPublisherCatalog(visibility){
   return rows.map(row=>normalizePublisherApp(row,iconUrls,screenUrls));
 }
 
-function iconHtml(a){const n=esc(a.name),ini=esc(initials(a.name));return a.icon?`<img class="icon" src="${esc(a.icon)}" alt="Logo ${n}" onerror="this.style.display='none';this.nextElementSibling.style.display='grid'"><div class="fallback" style="display:none">${ini}</div>`:`<div class="fallback">${ini}</div>`}
+function iconHtml(a){const n=esc(a.name),ini=esc(initials(a.name));return a.icon?`<img class="icon" src="${esc(a.icon)}" alt="Logo ${n}"><div class="fallback hidden">${ini}</div>`:`<div class="fallback">${ini}</div>`}
+document.addEventListener("error",event=>{
+  const image=event.target;
+  if(!(image instanceof HTMLImageElement)||!image.classList.contains("icon"))return;
+  image.classList.add("hidden");
+  image.nextElementSibling?.classList.remove("hidden");
+},true);
+
 function downloadHtml(a,label="Installer"){
   if(a.apkPath){
     return `<button class="download" type="button" data-secure-download="${esc(a.id)}" data-apk-path="${esc(a.apkPath)}" data-apk-bucket="${esc(a.apkBucket||"app-apk")}">${esc(label)}</button>`;
@@ -1458,7 +1465,7 @@ async function loadAdminPublisher(){
     publisherAvailable=false;
     if(schemaMissing){
       $("publisherSetupNotice").classList.remove("hidden");
-      $("publisherSetupNotice").innerHTML='Exécute le fichier <code>supabase-v13-publisher.sql</code> dans l’éditeur SQL de Supabase. Il crée les tables, les stockages privés et les règles de sécurité.';
+      $("publisherSetupNotice").innerHTML='Exécute le fichier <code>SUPABASE_SETUP_COMPLETE_V15.sql</code> dans l’éditeur SQL de Supabase. La version V15.1 crée et sécurise les tables, les stockages privés et les règles d’accès.';
     }else{
       $("publisherSetupNotice").classList.remove("hidden");
       $("publisherSetupNotice").textContent=`Impossible de charger le centre de publication : ${error.message}`;
@@ -1499,7 +1506,7 @@ async function showPublisherScreens(app){
 function openPublisherForm(mode,app=null){
   if(!publisherAvailable){
     $("publisherSetupNotice").classList.remove("hidden");
-    $("publisherSetupNotice").innerHTML='Active d’abord le centre avec <code>supabase-v13-publisher.sql</code>.';
+    $("publisherSetupNotice").innerHTML='Active d’abord le centre avec <code>SUPABASE_SETUP_COMPLETE_V15.sql</code> (V15.1).';
     return;
   }
   const form=$("publisherForm");

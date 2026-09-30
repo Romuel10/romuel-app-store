@@ -21,15 +21,6 @@ function setProgress(percent,text){
 }
 
 async function verifyStoredFile(bucket,path){
-  for(const delay of [0,400,1000]){
-    if(delay)await new Promise(resolve=>setTimeout(resolve,delay));
-    const {data,error}=await sb.storage.from(bucket).createSignedUrl(path,45);
-    if(!error&&data?.signedUrl)return true;
-  }
-  return false;
-}
-
-async function verifyStoredFile(bucket,path){
   for(const delay of [0,500,1200]){
     if(delay)await new Promise(resolve=>setTimeout(resolve,delay));
     try{

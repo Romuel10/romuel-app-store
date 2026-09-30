@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.117.2";
-import { generateVapidKeys } from "npm:@mmmike/web-push@1.0.1/vapid";
+import { generateVapidKeys } from "npm:@mmmike/web-push@1.3.0/vapid";
 
 function adminKey(): string {
   const legacy=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");

@@ -966,6 +966,7 @@ authModal.addEventListener("click",e=>{if(e.target.matches("[data-close-auth]"))
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeUserMenu();closeModal();closeAuth();closeProfile();closeReport();closeAdmin()}});
 document.addEventListener("click",e=>{
   const wrap=$("userMenuWrap");
+  if(e.target.closest?.("#mobileAccountBtn"))return;
   if(currentUser && wrap && !wrap.contains(e.target))closeUserMenu();
 });
 

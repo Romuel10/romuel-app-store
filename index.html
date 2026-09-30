@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#f8f9fa">
   <meta name="description" content="Mada Apps, le catalogue indépendant d'applications Android conçues pour Madagascar.">
   <title>Mada Apps</title>
-  <link rel="stylesheet" href="./style.css?v=15.2">
+  <link rel="stylesheet" href="./style.css?v=15.3">
 </head>
 <body>
 <header class="topbar">
@@ -20,16 +20,61 @@
     </div>
 
     <div class="top-actions">
-      <div id="headerUser" class="header-user hidden">
-        <img id="headerAvatar" class="header-avatar" alt="">
-        <span id="headerUserName"></span>
-      </div>
       <button class="account-btn help-header-btn" id="helpBtn" type="button">Aide</button>
       <button class="icon-btn" id="themeBtn" type="button" aria-label="Changer le thème">☾</button>
-      <button class="account-btn account-entry-btn" id="profileBtn" type="button">Se connecter</button>
-      <button class="account-btn hidden" id="developerBtn" type="button">Développeur</button>
-      <button class="account-btn hidden" id="gendarmerieBtn" type="button">🛡 Gendarmerie</button>
-      <button class="account-btn hidden" id="adminBtn" type="button">Admin</button>
+
+      <div class="user-menu-wrap" id="userMenuWrap">
+        <button class="account-btn account-entry-btn user-menu-trigger" id="profileBtn" type="button" aria-haspopup="menu" aria-expanded="false">
+          <span id="profileBtnAvatar" class="menu-trigger-avatar hidden"></span>
+          <span id="profileBtnLabel">Se connecter</span>
+          <span id="profileBtnChevron" class="menu-trigger-chevron hidden" aria-hidden="true">▾</span>
+        </button>
+
+        <div id="userMenu" class="user-menu hidden" role="menu" aria-label="Menu du compte">
+          <div class="user-menu-profile">
+            <div id="userMenuAvatar" class="user-menu-avatar">M</div>
+            <div class="user-menu-identity">
+              <strong id="headerUserName">Utilisateur</strong>
+              <small id="headerUserEmail"></small>
+              <span id="headerRoleBadge" class="user-role-badge">Utilisateur</span>
+            </div>
+          </div>
+
+          <div class="user-menu-separator"></div>
+
+          <button id="menuProfileBtn" class="user-menu-item" type="button" role="menuitem">
+            <span class="user-menu-icon">👤</span>
+            <span><strong>Mon compte</strong><small>Profil, nom et photo</small></span>
+          </button>
+
+          <button id="menuFavoritesBtn" class="user-menu-item" type="button" role="menuitem">
+            <span class="user-menu-icon">♡</span>
+            <span><strong>Mes favoris</strong><small>Retrouver mes applications</small></span>
+          </button>
+
+          <button class="user-menu-item hidden" id="developerBtn" type="button" role="menuitem">
+            <span class="user-menu-icon">⌘</span>
+            <span><strong>Espace développeur</strong><small>Publier et suivre mes applications</small></span>
+          </button>
+
+          <button class="user-menu-item hidden" id="gendarmerieBtn" type="button" role="menuitem">
+            <span class="user-menu-icon">🛡</span>
+            <span><strong>Espace Gendarmerie</strong><small>Applications à accès réservé</small></span>
+          </button>
+
+          <button class="user-menu-item hidden" id="adminBtn" type="button" role="menuitem">
+            <span class="user-menu-icon">⚙</span>
+            <span><strong>Administration</strong><small>Gérer le Store et les accès</small></span>
+          </button>
+
+          <div class="user-menu-separator"></div>
+
+          <button id="headerSignOutBtn" class="user-menu-item danger-menu-item" type="button" role="menuitem">
+            <span class="user-menu-icon">↪</span>
+            <span><strong>Se déconnecter</strong><small>Quitter mon compte Mada Apps</small></span>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </header>
@@ -541,8 +586,8 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
-<script src="./supabase-config.js?v=15.2"></script>
+<script src="./supabase-config.js?v=15.3"></script>
 <script src="https://cdn.jsdelivr.net/npm/tus-js-client@4.3.1/dist/tus.min.js"></script>
-<script src="./script.js?v=15.2"></script>
+<script src="./script.js?v=15.3"></script>
 </body>
 </html>

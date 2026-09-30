@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#f8f9fa">
   <meta name="description" content="Mada Apps, le catalogue indépendant d'applications Android conçues pour Madagascar.">
   <title>Mada Apps</title>
-  <link rel="stylesheet" href="./style.css?v=15.4.1">
+  <link rel="stylesheet" href="./style.css?v=15.5">
 </head>
 <body>
 <header class="topbar">
@@ -22,6 +22,10 @@
     <div class="top-actions">
       <button class="account-btn help-header-btn" id="helpBtn" type="button">Aide</button>
       <button class="icon-btn" id="themeBtn" type="button" aria-label="Changer le thème">☾</button>
+      <button class="icon-btn notifications-header-btn hidden" id="notificationsBtn" type="button" aria-label="Notifications" aria-expanded="false">
+        <span aria-hidden="true">🔔</span>
+        <span id="notificationBadge" class="notification-badge hidden">0</span>
+      </button>
 
       <div class="user-menu-wrap" id="userMenuWrap">
         <button class="account-btn account-entry-btn user-menu-trigger" id="profileBtn" type="button" aria-haspopup="menu" aria-expanded="false">
@@ -52,6 +56,11 @@
             <span><strong>Mes favoris</strong><small>Retrouver mes applications</small></span>
           </button>
 
+          <button id="menuNotificationsBtn" class="user-menu-item" type="button" role="menuitem">
+            <span class="user-menu-icon">🔔</span>
+            <span><strong>Notifications</strong><small id="menuNotificationsHint">Voir les mises à jour</small></span>
+          </button>
+
           <button class="user-menu-item hidden" id="developerBtn" type="button" role="menuitem">
             <span class="user-menu-icon">⌘</span>
             <span><strong>Espace développeur</strong><small>Publier et suivre mes applications</small></span>
@@ -78,6 +87,35 @@
     </div>
   </div>
 </header>
+
+<div id="notificationsBackdrop" class="notification-backdrop hidden" aria-hidden="true"></div>
+<aside id="notificationsPanel" class="notifications-panel hidden" aria-labelledby="notificationsTitle">
+  <div class="notifications-panel-head">
+    <div>
+      <span class="eyebrow">MISES À JOUR</span>
+      <h2 id="notificationsTitle">Notifications</h2>
+      <p id="notificationsSummary">Aucune nouvelle notification.</p>
+    </div>
+    <button id="closeNotificationsBtn" class="notification-close" type="button" aria-label="Fermer les notifications">×</button>
+  </div>
+
+  <div id="browserNotificationCard" class="browser-notification-card">
+    <div>
+      <strong>Alertes sur cet appareil</strong>
+      <small id="browserNotificationText">Active les alertes du navigateur pour être prévenu dès qu’une mise à jour arrive pendant que Mada Apps est ouvert.</small>
+    </div>
+    <button id="enableBrowserNotificationsBtn" class="secondary-btn" type="button">Activer</button>
+  </div>
+
+  <div class="notifications-toolbar">
+    <span id="notificationsUnreadLabel">0 non lue</span>
+    <button id="markAllNotificationsBtn" class="text-action" type="button">Tout marquer comme lu</button>
+  </div>
+
+  <div id="notificationsList" class="notifications-list">
+    <div class="notification-empty">Connecte-toi pour voir tes notifications.</div>
+  </div>
+</aside>
 
 <main>
   <section class="hero">
@@ -601,8 +639,8 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
-<script src="./supabase-config.js?v=15.4.1"></script>
+<script src="./supabase-config.js?v=15.5"></script>
 <script src="https://cdn.jsdelivr.net/npm/tus-js-client@4.3.1/dist/tus.min.js"></script>
-<script src="./script.js?v=15.4.1"></script>
+<script src="./script.js?v=15.5"></script>
 </body>
 </html>

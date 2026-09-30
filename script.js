@@ -894,7 +894,7 @@ modal.addEventListener("click",e=>{if(e.target.matches("[data-close-modal]"))clo
 authModal.addEventListener("click",e=>{if(e.target.matches("[data-close-auth]"))closeAuth()});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeModal();closeAuth();closeProfile();closeReport();closeAdmin()}});
 
-$("loginFromReviewBtn").addEventListener("click",openAuth);
+$("loginFromReviewBtn").addEventListener("click",()=>{setAuthMode("signin");openAuth()});
 $("signInTab").addEventListener("click",()=>setAuthMode("signin"));
 $("signUpTab").addEventListener("click",()=>setAuthMode("signup"));
 
@@ -1138,8 +1138,16 @@ function closeAdmin(){
   closePublisherForm();
 }
 
-$("profileBtn").addEventListener("click",()=>currentUser?openProfile():openAuth());
-$("heroLoginBtn")?.addEventListener("click",()=>currentUser?openProfile():openAuth());
+$("profileBtn").addEventListener("click",()=>{
+  if(currentUser){openProfile();return}
+  setAuthMode("signin");
+  openAuth();
+});
+$("heroLoginBtn")?.addEventListener("click",()=>{
+  if(currentUser){openProfile();return}
+  setAuthMode("signin");
+  openAuth();
+});
 $("heroBrowseBtn")?.addEventListener("click",()=>document.querySelector(".store-tabs")?.scrollIntoView({behavior:"smooth",block:"start"}));
 $("helpBtn")?.addEventListener("click",()=>{
   const guide=$("gettingStarted");

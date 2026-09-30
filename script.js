@@ -19,8 +19,7 @@ let favorites=new Set(JSON.parse(localStorage.getItem(FAVORITES_KEY)||localStora
 let profile=null,isAdmin=false,isDeveloper=false,isGendarmerie=false,reportedReviewId=null,lastUnconfirmedEmail="";
 let selectedAvatarFile=null,removeAvatarRequested=false;
 let notifications=[],notificationChannel=null;
-let serviceWorkerRegistration=null,pushSubscription=null,pushLinkedToCurrentUser=false,deferredInstallPrompt=null;
-const PUSH_VAPID_PUBLIC_KEY="BICyHJPDho5vImxO1xkUkoL_S_Q1UvmIEkmCcUlK3YmIBavvtSRZJ621-fInEm7XJauEGV-qIQWEgBuzwv10cEA";
+let serviceWorkerRegistration=null,pushSubscription=null,pushLinkedToCurrentUser=false,deferredInstallPrompt=null,pushVapidPublicKey="";
 let pendingAppSlug=new URLSearchParams(location.search).get("app");
 const storageSizeCache=new Map();
 
@@ -622,6 +621,18 @@ function pushIsSupported(){
     && typeof Notification!=="undefined";
 }
 
+async function getPushVapidPublicKey(){
+  if(pushVapidPublicKey)return pushVapidPublicKey;
+  const {data,error}=await sb.from("web_push_config_public")
+    .select("public_key")
+    .eq("id",1)
+    .maybeSingle();
+  if(error)throw error;
+  pushVapidPublicKey=data?.public_key||"";
+  if(!pushVapidPublicKey)throw new Error("Configuration Push indisponible.");
+  return pushVapidPublicKey;
+}
+
 function urlBase64ToUint8Array(value){
   const padding="=".repeat((4-value.length%4)%4);
   const base64=(value+padding).replace(/-/g,"+").replace(/_/g,"/");
@@ -816,7 +827,7 @@ async function enablePushNotifications(){
     if(!subscription){
       subscription=await registration.pushManager.subscribe({
         userVisibleOnly:true,
-        applicationServerKey:urlBase64ToUint8Array(PUSH_VAPID_PUBLIC_KEY)
+        applicationServerKey:urlBase64ToUint8Array(await getPushVapidPublicKey())
       });
     }
 

@@ -2,7 +2,7 @@ name: Mada Apps Security Smoke
 
 on:
   push:
-    branches: [main]
+    branches: [main, mada-apps-v15-1-security-cleanup]
     paths:
       - "index.html"
       - "script.js"
@@ -72,27 +72,33 @@ jobs:
     steps:
       - name: Public catalogue remains readable
         run: |
-          status=$(curl -sS -o /tmp/apps -w '%{http_code}'             "$SUPABASE_URL/rest/v1/applications?select=slug,status,visibility&status=eq.published&visibility=eq.public"             -H "apikey: $SUPABASE_KEY" \
-            -H "Authorization: Bearer $SUPABASE_KEY")
+          status=$(curl -sS -o /tmp/apps -w '%{http_code}'             "$SUPABASE_URL/rest/v1/applications?select=slug,status,visibility&status=eq.published&visibility=eq.public"             -H "apikey: $SUPABASE_KEY"             -H "Authorization: Bearer $SUPABASE_KEY")
           if [ "$status" != "200" ]; then
             echo "Public catalogue HTTP $status"
             cat /tmp/apps
             exit 1
           fi
-          grep -Eq '^\[.*\]
+          python - <<'PY'
+          import json
+          with open("/tmp/apps", encoding="utf-8") as f:
+              data=json.load(f)
+          assert isinstance(data,list)
+          PY
 
       - name: Gendarmerie catalogue is hidden from anonymous users
         run: |
-          status=$(curl -sS -o /tmp/private -w '%{http_code}'             "$SUPABASE_URL/rest/v1/applications?select=slug,visibility&visibility=eq.gendarmerie"             -H "apikey: $SUPABASE_KEY" \
-            -H "Authorization: Bearer $SUPABASE_KEY")
-          test "$status" = "200"
+          status=$(curl -sS -o /tmp/private -w '%{http_code}'             "$SUPABASE_URL/rest/v1/applications?select=slug,visibility&visibility=eq.gendarmerie"             -H "apikey: $SUPABASE_KEY"             -H "Authorization: Bearer $SUPABASE_KEY")
+          if [ "$status" != "200" ]; then
+            echo "Gendarmerie catalogue HTTP $status"
+            cat /tmp/private
+            exit 1
+          fi
           test "$(cat /tmp/private)" = "[]"
 
       - name: Legacy admin tables are not anonymously readable
         run: |
           for table in developers app_submissions notifications downloads; do
-            status=$(curl -sS -o /tmp/body -w '%{http_code}'               "$SUPABASE_URL/rest/v1/$table?select=*&limit=1"               -H "apikey: $SUPABASE_KEY" \
-            -H "Authorization: Bearer $SUPABASE_KEY")
+            status=$(curl -sS -o /tmp/body -w '%{http_code}'               "$SUPABASE_URL/rest/v1/$table?select=*&limit=1"               -H "apikey: $SUPABASE_KEY"               -H "Authorization: Bearer $SUPABASE_KEY")
             if [ "$status" = "200" ]; then
               test "$(cat /tmp/body)" = "[]"
             else
@@ -102,30 +108,10 @@ jobs:
 
       - name: Admin RPC is not callable anonymously
         run: |
-          status=$(curl -sS -o /tmp/rpc -w '%{http_code}' -X POST             "$SUPABASE_URL/rest/v1/rpc/admin_list_users"             -H "apikey: $SUPABASE_KEY"             -H "Content-Type: application/json"             -d '{}')
-          test "$status" = "401" -o "$status" = "403" -o "$status" = "404"
- /tmp/apps
-
-      - name: Gendarmerie catalogue is hidden from anonymous users
-        run: |
-          status=$(curl -sS -o /tmp/private -w '%{http_code}'             "$SUPABASE_URL/rest/v1/applications?select=slug,visibility&visibility=eq.gendarmerie"             -H "apikey: $SUPABASE_KEY" \
-            -H "Authorization: Bearer $SUPABASE_KEY")
-          test "$status" = "200"
-          test "$(cat /tmp/private)" = "[]"
-
-      - name: Legacy admin tables are not anonymously readable
-        run: |
-          for table in developers app_submissions notifications downloads; do
-            status=$(curl -sS -o /tmp/body -w '%{http_code}'               "$SUPABASE_URL/rest/v1/$table?select=*&limit=1"               -H "apikey: $SUPABASE_KEY" \
-            -H "Authorization: Bearer $SUPABASE_KEY")
-            if [ "$status" = "200" ]; then
-              test "$(cat /tmp/body)" = "[]"
-            else
-              test "$status" = "401" -o "$status" = "403"
-            fi
-          done
-
-      - name: Admin RPC is not callable anonymously
-        run: |
-          status=$(curl -sS -o /tmp/rpc -w '%{http_code}' -X POST             "$SUPABASE_URL/rest/v1/rpc/admin_list_users"             -H "apikey: $SUPABASE_KEY"             -H "Content-Type: application/json"             -d '{}')
+          status=$(curl -sS -o /tmp/rpc -w '%{http_code}' -X POST             "$SUPABASE_URL/rest/v1/rpc/admin_list_users"             -H "apikey: $SUPABASE_KEY"             -H "Authorization: Bearer $SUPABASE_KEY"             -H "Content-Type: application/json"             -d '{}')
+          if [ "$status" = "200" ]; then
+            echo "Admin RPC unexpectedly callable anonymously"
+            cat /tmp/rpc
+            exit 1
+          fi
           test "$status" = "401" -o "$status" = "403" -o "$status" = "404"

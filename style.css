@@ -672,3 +672,77 @@ footer{background:var(--surface);border-top:1px solid var(--line)}
   .password-field{grid-template-columns:1fr}
   .password-toggle{min-height:42px}
 }
+
+
+/* =========================================================
+   V15.3 — menu utilisateur après connexion
+   ========================================================= */
+.user-menu-wrap{position:relative}
+.user-menu-trigger{display:flex;align-items:center;gap:8px;min-width:0;font-weight:900}
+.menu-trigger-avatar{
+  width:28px;height:28px;flex:0 0 28px;border-radius:50%;
+  display:grid;place-items:center;overflow:hidden;
+  background:linear-gradient(135deg,var(--accent2),var(--accent));
+  color:#06131c;font-size:11px;font-weight:950
+}
+.menu-trigger-avatar img{width:100%;height:100%;object-fit:cover}
+.menu-trigger-chevron{color:var(--muted);font-size:12px;transition:transform .18s}
+.user-menu-trigger[aria-expanded="true"] .menu-trigger-chevron{transform:rotate(180deg)}
+
+.user-menu{
+  position:absolute;right:0;top:calc(100% + 10px);z-index:80;
+  width:min(340px,calc(100vw - 24px));
+  padding:10px;
+  border:1px solid var(--line);
+  border-radius:20px;
+  background:var(--surface);
+  box-shadow:0 24px 70px rgba(0,0,0,.24)
+}
+.user-menu-profile{display:flex;align-items:center;gap:12px;padding:10px 10px 12px}
+.user-menu-avatar{
+  width:48px;height:48px;flex:0 0 48px;border-radius:50%;
+  display:grid;place-items:center;overflow:hidden;
+  background:linear-gradient(135deg,var(--accent2),var(--accent));
+  color:#06131c;font-weight:950
+}
+.user-menu-avatar img{width:100%;height:100%;object-fit:cover}
+.user-menu-identity{min-width:0;display:flex;flex-direction:column;align-items:flex-start}
+.user-menu-identity strong{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.user-menu-identity small{max-width:100%;margin-top:3px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.user-role-badge{
+  display:inline-flex;margin-top:7px;min-height:23px;align-items:center;
+  padding:0 8px;border:1px solid color-mix(in srgb,var(--accent) 30%,var(--line));
+  border-radius:999px;background:var(--surface3);color:var(--accent);
+  font-size:10px;font-weight:900;letter-spacing:.04em;text-transform:uppercase
+}
+.user-menu-separator{height:1px;background:var(--line);margin:5px 6px}
+.user-menu-item{
+  width:100%;min-height:58px;
+  display:grid;grid-template-columns:34px minmax(0,1fr);gap:10px;align-items:center;
+  padding:8px 10px;border:0;border-radius:13px;background:transparent;color:var(--text);
+  text-align:left;cursor:pointer
+}
+.user-menu-item:hover,.user-menu-item:focus-visible{background:var(--surface2);outline:none}
+.user-menu-icon{
+  width:32px;height:32px;border-radius:10px;background:var(--surface2);
+  display:grid;place-items:center;font-size:16px
+}
+.user-menu-item>span:last-child{min-width:0}
+.user-menu-item strong{display:block;font-size:14px}
+.user-menu-item small{display:block;margin-top:3px;color:var(--muted);font-size:11px;line-height:1.3}
+.danger-menu-item{color:var(--danger)}
+.danger-menu-item .user-menu-icon{background:color-mix(in srgb,var(--danger) 10%,var(--surface2))}
+
+@media(max-width:650px){
+  .user-menu-wrap{position:static}
+  .user-menu{
+    position:fixed;
+    top:76px;right:10px;left:10px;
+    width:auto;
+    max-height:calc(100dvh - 90px);
+    overflow:auto;
+    border-radius:20px
+  }
+  .user-menu-trigger{max-width:155px}
+  #profileBtnLabel{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+}

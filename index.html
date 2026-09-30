@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#f8f9fa">
   <meta name="description" content="Mada Apps, le catalogue indépendant d'applications Android conçues pour Madagascar.">
   <title>Mada Apps</title>
-  <link rel="stylesheet" href="./style.css?v=15.3">
+  <link rel="stylesheet" href="./style.css?v=15.4">
 </head>
 <body>
 <header class="topbar">
@@ -194,6 +194,21 @@
     <section id="privateApps" class="grid"></section>
   </section>
 </main>
+
+<nav id="mobileNav" class="mobile-nav" aria-label="Navigation mobile">
+  <button id="mobileHomeBtn" class="mobile-nav-item active" type="button" aria-current="page">
+    <span class="mobile-nav-icon">⌂</span><span>Accueil</span>
+  </button>
+  <button id="mobileAppsBtn" class="mobile-nav-item" type="button">
+    <span class="mobile-nav-icon">▦</span><span>Apps</span>
+  </button>
+  <button id="mobileFavoritesBtn" class="mobile-nav-item" type="button">
+    <span class="mobile-nav-icon">♡</span><span>Favoris</span>
+  </button>
+  <button id="mobileAccountBtn" class="mobile-nav-item" type="button">
+    <span class="mobile-nav-icon">●</span><span id="mobileAccountLabel">Connexion</span>
+  </button>
+</nav>
 
 <footer>
   <div class="footer-inner">
@@ -567,7 +582,7 @@
         <label for="authPassword">Mot de passe</label>
         <div class="password-field">
           <input id="authPassword" type="password" minlength="6" required autocomplete="current-password" placeholder="Ton mot de passe">
-          <button id="togglePasswordBtn" class="password-toggle" type="button" aria-label="Afficher le mot de passe">Afficher</button>
+          <button id="togglePasswordBtn" class="password-toggle" type="button" aria-label="Afficher le mot de passe" aria-pressed="false">Afficher</button>
         </div>
         <small id="authModeHint" class="auth-mode-hint">Entre les identifiants utilisés lors de la création de ton compte.</small>
 
@@ -586,8 +601,8 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
-<script src="./supabase-config.js?v=15.3"></script>
+<script src="./supabase-config.js?v=15.4"></script>
 <script src="https://cdn.jsdelivr.net/npm/tus-js-client@4.3.1/dist/tus.min.js"></script>
-<script src="./script.js?v=15.3"></script>
+<script src="./script.js?v=15.4"></script>
 </body>
 </html>

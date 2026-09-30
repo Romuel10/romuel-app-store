@@ -261,7 +261,21 @@ with check (private.is_admin());
 
 create policy "app_versions_delete"
 on public.app_versions for delete to authenticated
-using (private.is_admin());
+using (
+  private.is_admin()
+  or (
+    private.is_developer()
+    and created_by=(select auth.uid())
+    and status in ('pending','rejected')
+    and exists(
+      select 1 from public.applications a
+      where a.id=app_id
+        and a.created_by=(select auth.uid())
+        and a.visibility='public'
+        and a.status in ('draft','pending','rejected')
+    )
+  )
+);
 
 alter table public.app_screenshots enable row level security;
 create policy "app_screenshots_select"
@@ -291,7 +305,20 @@ with check (private.is_admin());
 
 create policy "app_screenshots_delete"
 on public.app_screenshots for delete to authenticated
-using (private.is_admin());
+using (
+  private.is_admin()
+  or (
+    private.is_developer()
+    and created_by=(select auth.uid())
+    and exists(
+      select 1 from public.applications a
+      where a.id=app_id
+        and a.created_by=(select auth.uid())
+        and a.visibility='public'
+        and a.status in ('draft','pending','rejected')
+    )
+  )
+);
 
 alter table public.favorites enable row level security;
 create policy "favorites_select"

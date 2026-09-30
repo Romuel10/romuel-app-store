@@ -965,3 +965,45 @@ footer{background:var(--surface);border-top:1px solid var(--line)}
   .mobile-nav-item{font-size:9px}
   .mobile-nav-icon{font-size:18px}
 }
+
+
+/* =========================================================
+   V15.4.1 — correction Mon espace sur navigateurs mobiles
+   ========================================================= */
+@media(max-width:650px){
+  .topbar{
+    overflow:visible!important
+  }
+
+  .user-menu-wrap{
+    position:static!important
+  }
+
+  .user-menu{
+    position:absolute!important;
+    top:calc(100% + 6px)!important;
+    left:8px!important;
+    right:8px!important;
+    bottom:auto!important;
+    width:auto!important;
+    max-height:calc(100dvh - 170px)!important;
+    overflow-y:auto!important;
+    overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
+    z-index:120!important;
+    border-radius:18px!important;
+    box-shadow:0 18px 55px rgba(0,0,0,.34)!important
+  }
+
+  .user-menu-profile{
+    position:sticky;
+    top:-10px;
+    z-index:2;
+    background:var(--surface);
+    border-radius:14px 14px 0 0
+  }
+
+  .user-menu-item{
+    min-height:56px
+  }
+}

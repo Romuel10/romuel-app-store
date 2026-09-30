@@ -19,6 +19,8 @@ let favorites=new Set(JSON.parse(localStorage.getItem(FAVORITES_KEY)||localStora
 let profile=null,isAdmin=false,isDeveloper=false,isGendarmerie=false,reportedReviewId=null,lastUnconfirmedEmail="";
 let selectedAvatarFile=null,removeAvatarRequested=false;
 let notifications=[],notificationChannel=null;
+let serviceWorkerRegistration=null,pushSubscription=null,pushLinkedToCurrentUser=false,deferredInstallPrompt=null;
+const PUSH_VAPID_PUBLIC_KEY="BICyHJPDho5vImxO1xkUkoL_S_Q1UvmIEkmCcUlK3YmIBavvtSRZJ621-fInEm7XJauEGV-qIQWEgBuzwv10cEA";
 let pendingAppSlug=new URLSearchParams(location.search).get("app");
 const storageSizeCache=new Map();
 
@@ -605,31 +607,284 @@ function unreadNotificationCount(){
   return notifications.filter(item=>!item.read).length;
 }
 
-function refreshBrowserNotificationUI(){
-  const card=$("browserNotificationCard");
-  const button=$("enableBrowserNotificationsBtn");
-  const text=$("browserNotificationText");
+function isStandalonePwa(){
+  return window.matchMedia?.("(display-mode: standalone)")?.matches===true || window.navigator.standalone===true;
+}
+
+function isIosDevice(){
+  return /iphone|ipad|ipod/i.test(navigator.userAgent||"");
+}
+
+function pushIsSupported(){
+  return window.isSecureContext
+    && "serviceWorker" in navigator
+    && "PushManager" in window
+    && typeof Notification!=="undefined";
+}
+
+function urlBase64ToUint8Array(value){
+  const padding="=".repeat((4-value.length%4)%4);
+  const base64=(value+padding).replace(/-/g,"+").replace(/_/g,"/");
+  const raw=atob(base64);
+  return Uint8Array.from([...raw].map(char=>char.charCodeAt(0)));
+}
+
+function isAllowedPushEndpoint(endpoint){
+  try{
+    const url=new URL(endpoint);
+    if(url.protocol!=="https:")return false;
+    const host=url.hostname.toLowerCase();
+    return host==="fcm.googleapis.com"
+      || host==="updates.push.services.mozilla.com"
+      || host.endsWith(".push.services.mozilla.com")
+      || host.endsWith(".push.apple.com");
+  }catch{return false}
+}
+
+async function registerMadaServiceWorker(){
+  if(!("serviceWorker" in navigator))return null;
+  if(serviceWorkerRegistration)return serviceWorkerRegistration;
+  const registration=await navigator.serviceWorker.register("./sw.js",{scope:"./"});
+  serviceWorkerRegistration=await navigator.serviceWorker.ready;
+  return serviceWorkerRegistration||registration;
+}
+
+function refreshPwaInstallUI(){
+  const card=$("pwaInstallCard");
+  const button=$("installPwaBtn");
+  const text=$("pwaInstallText");
   if(!card||!button||!text)return;
 
-  if(typeof Notification==="undefined"){
+  if(isStandalonePwa()){
     card.classList.add("hidden");
     return;
   }
 
-  card.classList.remove("hidden");
-  if(Notification.permission==="granted"){
-    text.textContent="Les alertes de ce navigateur sont activées. Tu seras prévenu dès qu’une mise à jour arrive pendant que Mada Apps est ouvert.";
-    button.textContent="Activées";
+  if(deferredInstallPrompt){
+    card.classList.remove("hidden");
+    text.textContent="Installe Mada Apps sur ton écran d’accueil pour l’ouvrir comme une application.";
+    button.textContent="Installer";
+    button.classList.remove("hidden");
+    button.disabled=false;
+    return;
+  }
+
+  if(isIosDevice()){
+    card.classList.remove("hidden");
+    text.textContent="Sur iPhone/iPad : ouvre le menu Partager puis choisis « Sur l’écran d’accueil ». Les notifications push pourront ensuite être activées.";
+    button.textContent="Comment faire";
+    button.classList.remove("hidden");
+    button.disabled=false;
+    return;
+  }
+
+  card.classList.add("hidden");
+}
+
+async function installMadaPwa(){
+  if(deferredInstallPrompt){
+    const prompt=deferredInstallPrompt;
+    deferredInstallPrompt=null;
+    await prompt.prompt();
+    try{await prompt.userChoice}catch{}
+    refreshPwaInstallUI();
+    return;
+  }
+  if(isIosDevice()){
+    alert("Sur iPhone/iPad : touche Partager, puis « Sur l’écran d’accueil ». Ouvre ensuite Mada Apps depuis son icône et active les notifications.");
+  }
+}
+
+function refreshBrowserNotificationUI(){
+  const card=$("browserNotificationCard");
+  const button=$("pushNotificationsBtn");
+  const text=$("browserNotificationText");
+  if(!card||!button||!text)return;
+
+  refreshPwaInstallUI();
+
+  if(!pushIsSupported()){
+    card.classList.remove("hidden");
+    text.textContent="Les notifications push ne sont pas prises en charge par ce navigateur ou ce contexte.";
+    button.textContent="Indisponible";
     button.disabled=true;
-  }else if(Notification.permission==="denied"){
-    text.textContent="Les alertes ont été bloquées par le navigateur. Tu peux les réactiver dans les paramètres du site.";
+    return;
+  }
+
+  if(isIosDevice()&&!isStandalonePwa()){
+    card.classList.remove("hidden");
+    text.textContent="Sur iPhone/iPad, ajoute d’abord Mada Apps à l’écran d’accueil puis ouvre-le depuis son icône.";
+    button.textContent="Installer d’abord";
+    button.disabled=true;
+    return;
+  }
+
+  card.classList.remove("hidden");
+
+  if(Notification.permission==="denied"){
+    text.textContent="Les notifications sont bloquées. Réactive-les dans les paramètres du navigateur ou du téléphone.";
     button.textContent="Bloquées";
     button.disabled=true;
-  }else{
-    text.textContent="Active les alertes du navigateur pour être prévenu dès qu’une mise à jour arrive pendant que Mada Apps est ouvert.";
-    button.textContent="Activer";
-    button.disabled=false;
+    return;
   }
+
+  if(pushLinkedToCurrentUser){
+    text.textContent="Activées : les mises à jour peuvent arriver sur cet appareil même lorsque Mada Apps est fermé.";
+    button.textContent="Désactiver";
+    button.disabled=false;
+    button.classList.add("push-enabled");
+    return;
+  }
+
+  button.classList.remove("push-enabled");
+  text.textContent="Active les notifications push pour recevoir les mises à jour même lorsque Mada Apps est fermé.";
+  button.textContent="Activer";
+  button.disabled=!currentUser;
+}
+
+async function loadPushDeviceState(){
+  pushSubscription=null;
+  pushLinkedToCurrentUser=false;
+
+  if(!currentUser||!pushIsSupported()){
+    refreshBrowserNotificationUI();
+    return;
+  }
+
+  try{
+    const registration=await registerMadaServiceWorker();
+    if(!registration){
+      refreshBrowserNotificationUI();
+      return;
+    }
+
+    pushSubscription=await registration.pushManager.getSubscription();
+    if(!pushSubscription){
+      refreshBrowserNotificationUI();
+      return;
+    }
+
+    const {data,error}=await sb.from("push_subscriptions")
+      .select("id")
+      .eq("user_id",currentUser.id)
+      .eq("endpoint",pushSubscription.endpoint)
+      .maybeSingle();
+
+    if(error)console.warn("État Push:",error.message);
+    pushLinkedToCurrentUser=!!data;
+  }catch(error){
+    console.warn("État Push:",error);
+  }
+
+  refreshBrowserNotificationUI();
+}
+
+async function enablePushNotifications(){
+  if(!currentUser){
+    setAuthMode("signin");
+    openAuth();
+    return;
+  }
+
+  if(!pushIsSupported()){
+    refreshBrowserNotificationUI();
+    return;
+  }
+
+  if(isIosDevice()&&!isStandalonePwa()){
+    refreshPwaInstallUI();
+    return;
+  }
+
+  const button=$("pushNotificationsBtn");
+  if(button)button.disabled=true;
+
+  try{
+    const permission=Notification.permission==="granted"
+      ?"granted"
+      :await Notification.requestPermission();
+
+    if(permission!=="granted"){
+      await loadPushDeviceState();
+      return;
+    }
+
+    const registration=await registerMadaServiceWorker();
+    if(!registration)throw new Error("Service Worker indisponible.");
+
+    let subscription=await registration.pushManager.getSubscription();
+    if(!subscription){
+      subscription=await registration.pushManager.subscribe({
+        userVisibleOnly:true,
+        applicationServerKey:urlBase64ToUint8Array(PUSH_VAPID_PUBLIC_KEY)
+      });
+    }
+
+    if(!isAllowedPushEndpoint(subscription.endpoint)){
+      await subscription.unsubscribe();
+      throw new Error("Service de notifications non reconnu sur cet appareil.");
+    }
+
+    const serialized=subscription.toJSON();
+    const p256dh=serialized.keys?.p256dh;
+    const auth=serialized.keys?.auth;
+    if(!p256dh||!auth)throw new Error("Clés d’abonnement Push incomplètes.");
+
+    const {error}=await sb.from("push_subscriptions").upsert({
+      user_id:currentUser.id,
+      endpoint:subscription.endpoint,
+      p256dh,
+      auth_key:auth,
+      user_agent:navigator.userAgent.slice(0,500),
+      enabled:true,
+      updated_at:new Date().toISOString()
+    },{onConflict:"user_id,endpoint"});
+
+    if(error)throw error;
+
+    pushSubscription=subscription;
+    pushLinkedToCurrentUser=true;
+  }catch(error){
+    console.warn("Activation Push:",error);
+    alert(error?.message||"Impossible d’activer les notifications push sur cet appareil.");
+  }
+
+  refreshBrowserNotificationUI();
+}
+
+async function disablePushNotifications({silent=false}={}){
+  if(!pushIsSupported()){
+    pushSubscription=null;
+    pushLinkedToCurrentUser=false;
+    refreshBrowserNotificationUI();
+    return;
+  }
+
+  try{
+    const registration=await registerMadaServiceWorker();
+    const subscription=pushSubscription||await registration?.pushManager.getSubscription();
+
+    if(subscription&&currentUser){
+      const {error}=await sb.from("push_subscriptions")
+        .delete()
+        .eq("user_id",currentUser.id)
+        .eq("endpoint",subscription.endpoint);
+      if(error&&!silent)console.warn("Suppression abonnement Push:",error.message);
+    }
+
+    if(subscription)await subscription.unsubscribe();
+  }catch(error){
+    if(!silent)console.warn("Désactivation Push:",error);
+  }
+
+  pushSubscription=null;
+  pushLinkedToCurrentUser=false;
+  refreshBrowserNotificationUI();
+}
+
+async function togglePushNotifications(){
+  if(pushLinkedToCurrentUser)await disablePushNotifications();
+  else await enablePushNotifications();
 }
 
 function refreshNotificationBadges(){
@@ -793,6 +1048,7 @@ async function openNotificationTarget(item){
 }
 
 function showBrowserUpdateAlert(item){
+  if(pushLinkedToCurrentUser)return;
   if(typeof Notification==="undefined"||Notification.permission!=="granted")return;
   try{
     const alert=new Notification(item.title||"Mada Apps",{
@@ -809,18 +1065,7 @@ function showBrowserUpdateAlert(item){
   }
 }
 
-async function requestBrowserNotifications(){
-  if(typeof Notification==="undefined"){
-    refreshBrowserNotificationUI();
-    return;
-  }
-  try{
-    await Notification.requestPermission();
-  }catch(error){
-    console.warn("Permission notifications:",error);
-  }
-  refreshBrowserNotificationUI();
-}
+
 
 function stopNotificationSubscription(){
   if(notificationChannel){
@@ -864,6 +1109,8 @@ function subscribeToNotifications(){
 function clearNotificationState(){
   stopNotificationSubscription();
   notifications=[];
+  pushSubscription=null;
+  pushLinkedToCurrentUser=false;
   closeNotifications();
   renderNotifications();
   refreshBrowserNotificationUI();
@@ -1044,6 +1291,7 @@ async function refreshAuthUI(){
       await loadFavoritesFromSupabase();
       await loadNotifications();
       subscribeToNotifications();
+      await loadPushDeviceState();
     }else{
       clearNotificationState();
       await loadProfile();
@@ -1313,7 +1561,7 @@ $("resendConfirmBtn")?.addEventListener("click",async()=>{
   msg.className="form-message success";msg.textContent="E-mail de confirmation renvoyé. Vérifie aussi le dossier spam.";
 });
 
-$("signOutBtn").addEventListener("click",async()=>{await sb.auth.signOut();closeAuth()});
+$("signOutBtn").addEventListener("click",async()=>{await disablePushNotifications({silent:true});await sb.auth.signOut();closeAuth()});
 sb.auth.onAuthStateChange((_event,session)=>{
   currentUser=session?.user||null;
 
@@ -1569,7 +1817,8 @@ $("menuNotificationsBtn")?.addEventListener("click",()=>{
 });
 $("closeNotificationsBtn")?.addEventListener("click",closeNotifications);
 $("notificationsBackdrop")?.addEventListener("click",closeNotifications);
-$("enableBrowserNotificationsBtn")?.addEventListener("click",requestBrowserNotifications);
+$("pushNotificationsBtn")?.addEventListener("click",togglePushNotifications);
+$("installPwaBtn")?.addEventListener("click",installMadaPwa);
 $("markAllNotificationsBtn")?.addEventListener("click",markAllNotificationsRead);
 $("notificationsList")?.addEventListener("click",e=>{
   const button=e.target.closest("[data-notification-id]");
@@ -1589,12 +1838,13 @@ $("menuFavoritesBtn")?.addEventListener("click",()=>{
 });
 $("headerSignOutBtn")?.addEventListener("click",async()=>{
   closeUserMenu();
+  await disablePushNotifications({silent:true});
   await sb.auth.signOut();
 });
 $("developerBtn")?.addEventListener("click",()=>{closeUserMenu();location.href="developer-dashboard.html"});
 $("gendarmerieBtn")?.addEventListener("click",()=>{closeUserMenu();location.href="gendarmerie.html"});
 $("profileLoginBtn").addEventListener("click",()=>{closeProfile();openAuth()});
-$("profileSignOutBtn").addEventListener("click",async()=>{closeUserMenu();await sb.auth.signOut();closeProfile()});
+$("profileSignOutBtn").addEventListener("click",async()=>{closeUserMenu();await disablePushNotifications({silent:true});await sb.auth.signOut();closeProfile()});
 $("adminBtn").addEventListener("click",()=>{closeUserMenu();openAdmin()});
 
 $("profileModal").addEventListener("click",e=>{if(e.target.matches("[data-close-profile]"))closeProfile()});
@@ -2331,6 +2581,18 @@ function applyStoreTheme(dark){
   $("themeBtn").setAttribute("aria-label",dark?"Activer le thème clair":"Activer le thème sombre");
   document.querySelector('meta[name="theme-color"]')?.setAttribute("content",dark?"#111418":"#f8f9fa");
 }
+window.addEventListener("beforeinstallprompt",event=>{
+  event.preventDefault();
+  deferredInstallPrompt=event;
+  refreshPwaInstallUI();
+});
+window.addEventListener("appinstalled",()=>{
+  deferredInstallPrompt=null;
+  refreshPwaInstallUI();
+});
+registerMadaServiceWorker().catch(error=>console.warn("Service Worker:",error));
+refreshPwaInstallUI();
+
 applyStoreTheme(localStorage.getItem("madaapps_theme")==="dark");
 $("themeBtn").addEventListener("click",()=>{
   const dark=!document.body.classList.contains("dark");

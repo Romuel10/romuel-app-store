@@ -373,7 +373,28 @@ function renderHome(){
   $("ratedApps").innerHTML=rated.length?rated.map(featureCard).join(""):'<div class="empty-state">Aucune application.</div>';
 }
 
+function refreshMobileNav(){
+  const mobileNav=$("mobileNav");
+  if(!mobileNav)return;
+  const map={
+    home:$("mobileHomeBtn"),
+    all:$("mobileAppsBtn"),
+    favorites:$("mobileFavoritesBtn")
+  };
+  Object.values(map).forEach(btn=>{
+    btn?.classList.remove("active");
+    btn?.removeAttribute("aria-current");
+  });
+  const active=map[currentStoreTab];
+  if(active){
+    active.classList.add("active");
+    active.setAttribute("aria-current","page");
+  }
+  $("mobileAccountLabel").textContent=currentUser?"Compte":"Connexion";
+}
+
 function refreshStoreView(){
+  refreshMobileNav();
   $("appCountHero").textContent=apps.length;
   document.querySelectorAll(".store-tab").forEach(b=>b.classList.toggle("active",b.dataset.storeTab===currentStoreTab));
   $("homeView").classList.toggle("hidden",currentStoreTab!=="home");
@@ -579,6 +600,7 @@ function refreshProfileUI(){
   $("gendarmerieBtn").classList.toggle("hidden",!isGendarmerie);
 
   $("profileBtnLabel").textContent=loggedIn?"Mon espace":"Se connecter";
+  $("mobileAccountLabel").textContent=loggedIn?"Compte":"Connexion";
   $("profileBtn").classList.toggle("account-entry-btn",!loggedIn);
   $("profileBtnChevron").classList.toggle("hidden",!loggedIn);
   $("heroLoginBtn").textContent=loggedIn?"Ouvrir mon espace":"Se connecter / Créer un compte";
@@ -706,6 +728,7 @@ function openAuth(){
   $("authPassword").type="password";
   $("togglePasswordBtn").textContent="Afficher";
   $("togglePasswordBtn").setAttribute("aria-label","Afficher le mot de passe");
+  $("togglePasswordBtn").setAttribute("aria-pressed","false");
   refreshAuthUI();
   setTimeout(()=>$("authEmail")?.focus(),60);
 }
@@ -943,6 +966,7 @@ authModal.addEventListener("click",e=>{if(e.target.matches("[data-close-auth]"))
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeUserMenu();closeModal();closeAuth();closeProfile();closeReport();closeAdmin()}});
 document.addEventListener("click",e=>{
   const wrap=$("userMenuWrap");
+  if(e.target.closest?.("#mobileAccountBtn"))return;
   if(currentUser && wrap && !wrap.contains(e.target))closeUserMenu();
 });
 
@@ -1227,6 +1251,33 @@ $("togglePasswordBtn")?.addEventListener("click",()=>{
   input.type=reveal?"text":"password";
   $("togglePasswordBtn").textContent=reveal?"Masquer":"Afficher";
   $("togglePasswordBtn").setAttribute("aria-label",reveal?"Masquer le mot de passe":"Afficher le mot de passe");
+  $("togglePasswordBtn").setAttribute("aria-pressed",reveal?"true":"false");
+});
+$("mobileHomeBtn")?.addEventListener("click",()=>{
+  closeUserMenu();
+  currentStoreTab="home";
+  refreshStoreView();
+  window.scrollTo({top:0,behavior:"smooth"});
+});
+$("mobileAppsBtn")?.addEventListener("click",()=>{
+  closeUserMenu();
+  currentStoreTab="all";
+  refreshStoreView();
+  document.querySelector(".store-tabs")?.scrollIntoView({behavior:"smooth",block:"start"});
+});
+$("mobileFavoritesBtn")?.addEventListener("click",()=>{
+  closeUserMenu();
+  currentStoreTab="favorites";
+  refreshStoreView();
+  document.querySelector(".store-tabs")?.scrollIntoView({behavior:"smooth",block:"start"});
+});
+$("mobileAccountBtn")?.addEventListener("click",()=>{
+  if(currentUser){
+    toggleUserMenu();
+    return;
+  }
+  setAuthMode("signin");
+  openAuth();
 });
 $("menuProfileBtn")?.addEventListener("click",()=>{
   closeUserMenu();

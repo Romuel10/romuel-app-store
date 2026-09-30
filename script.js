@@ -538,6 +538,38 @@ function refreshPrivateAccessUI(){
     }
   }
 }
+function closeUserMenu(){
+  const menu=$("userMenu");
+  if(!menu)return;
+  menu.classList.add("hidden");
+  $("profileBtn")?.setAttribute("aria-expanded","false");
+}
+
+function openUserMenu(){
+  if(!currentUser)return;
+  $("userMenu")?.classList.remove("hidden");
+  $("profileBtn")?.setAttribute("aria-expanded","true");
+}
+
+function toggleUserMenu(){
+  if(!currentUser)return;
+  const menu=$("userMenu");
+  if(!menu)return;
+  if(menu.classList.contains("hidden"))openUserMenu();
+  else closeUserMenu();
+}
+
+function accountRoleLabel(){
+  if(isAdmin)return "Administrateur";
+  if(isDeveloper)return "Développeur";
+  if(isGendarmerie)return "Gendarmerie";
+  return "Utilisateur";
+}
+
+function accountInitials(){
+  return initials(profile?.display_name||currentUser?.email?.split("@")[0]||"M")||"M";
+}
+
 function refreshProfileUI(){
   const loggedIn=!!currentUser;
   $("profileLoggedOut").classList.toggle("hidden",loggedIn);
@@ -545,9 +577,11 @@ function refreshProfileUI(){
   $("adminBtn").classList.toggle("hidden",!isAdmin);
   $("developerBtn").classList.toggle("hidden",!isDeveloper);
   $("gendarmerieBtn").classList.toggle("hidden",!isGendarmerie);
-  $("profileBtn").textContent=loggedIn?"Mon compte":"Se connecter";
+
+  $("profileBtnLabel").textContent=loggedIn?"Mon espace":"Se connecter";
   $("profileBtn").classList.toggle("account-entry-btn",!loggedIn);
-  $("heroLoginBtn").textContent=loggedIn?"Ouvrir mon compte":"Se connecter / Créer un compte";
+  $("profileBtnChevron").classList.toggle("hidden",!loggedIn);
+  $("heroLoginBtn").textContent=loggedIn?"Ouvrir mon espace":"Se connecter / Créer un compte";
   $("gettingStarted")?.classList.toggle("hidden",loggedIn || localStorage.getItem("madaapps_hide_beginner_guide")==="1");
 
   if(loggedIn){
@@ -555,17 +589,31 @@ function refreshProfileUI(){
     setAvatarPreview(profile?.avatar_url||"");
     selectedAvatarFile=null;
     removeAvatarRequested=false;
-    $("headerUser").classList.remove("hidden");
-    $("headerUserName").textContent=profile?.display_name||currentUser.email||"Utilisateur";
+
+    const displayName=profile?.display_name||currentUser.email?.split("@")[0]||"Utilisateur";
+    const roleLabel=accountRoleLabel();
+    $("headerUserName").textContent=displayName;
+    $("headerUserEmail").textContent=currentUser.email||"";
+    $("headerRoleBadge").textContent=roleLabel;
+
+    const triggerAvatar=$("profileBtnAvatar");
+    triggerAvatar.classList.remove("hidden");
     if(profile?.avatar_url){
-      $("headerAvatar").src=profile.avatar_url;
-      $("headerAvatar").style.display="";
+      triggerAvatar.innerHTML=`<img src="${esc(profile.avatar_url)}" alt="">`;
+      $("userMenuAvatar").innerHTML=`<img src="${esc(profile.avatar_url)}" alt="">`;
     }else{
-      $("headerAvatar").removeAttribute("src");
-      $("headerAvatar").style.display="none";
+      const ini=esc(accountInitials());
+      triggerAvatar.textContent=ini;
+      $("userMenuAvatar").textContent=ini;
     }
   }else{
-    $("headerUser").classList.add("hidden");
+    $("profileBtnAvatar").classList.add("hidden");
+    $("profileBtnAvatar").textContent="";
+    $("userMenuAvatar").textContent="M";
+    $("headerUserName").textContent="Utilisateur";
+    $("headerUserEmail").textContent="";
+    $("headerRoleBadge").textContent="Utilisateur";
+    closeUserMenu();
   }
 }
 
@@ -892,7 +940,11 @@ document.addEventListener("click",e=>{
 
 modal.addEventListener("click",e=>{if(e.target.matches("[data-close-modal]"))closeModal()});
 authModal.addEventListener("click",e=>{if(e.target.matches("[data-close-auth]"))closeAuth()});
-document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeModal();closeAuth();closeProfile();closeReport();closeAdmin()}});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeUserMenu();closeModal();closeAuth();closeProfile();closeReport();closeAdmin()}});
+document.addEventListener("click",e=>{
+  const wrap=$("userMenuWrap");
+  if(currentUser && wrap && !wrap.contains(e.target))closeUserMenu();
+});
 
 $("loginFromReviewBtn").addEventListener("click",()=>{setAuthMode("signin");openAuth()});
 $("signInTab").addEventListener("click",()=>setAuthMode("signin"));
@@ -1138,13 +1190,18 @@ function closeAdmin(){
   closePublisherForm();
 }
 
-$("profileBtn").addEventListener("click",()=>{
-  if(currentUser){openProfile();return}
+$("profileBtn").addEventListener("click",event=>{
+  event.stopPropagation();
+  if(currentUser){toggleUserMenu();return}
   setAuthMode("signin");
   openAuth();
 });
 $("heroLoginBtn")?.addEventListener("click",()=>{
-  if(currentUser){openProfile();return}
+  if(currentUser){
+    document.querySelector(".topbar")?.scrollIntoView({behavior:"smooth",block:"start"});
+    setTimeout(openUserMenu,250);
+    return;
+  }
   setAuthMode("signin");
   openAuth();
 });
@@ -1171,11 +1228,25 @@ $("togglePasswordBtn")?.addEventListener("click",()=>{
   $("togglePasswordBtn").textContent=reveal?"Masquer":"Afficher";
   $("togglePasswordBtn").setAttribute("aria-label",reveal?"Masquer le mot de passe":"Afficher le mot de passe");
 });
-$("developerBtn")?.addEventListener("click",()=>location.href="developer-dashboard.html");
-$("gendarmerieBtn")?.addEventListener("click",()=>location.href="gendarmerie.html");
+$("menuProfileBtn")?.addEventListener("click",()=>{
+  closeUserMenu();
+  openProfile();
+});
+$("menuFavoritesBtn")?.addEventListener("click",()=>{
+  closeUserMenu();
+  currentStoreTab="favorites";
+  refreshStoreView();
+  document.querySelector(".store-tabs")?.scrollIntoView({behavior:"smooth",block:"start"});
+});
+$("headerSignOutBtn")?.addEventListener("click",async()=>{
+  closeUserMenu();
+  await sb.auth.signOut();
+});
+$("developerBtn")?.addEventListener("click",()=>{closeUserMenu();location.href="developer-dashboard.html"});
+$("gendarmerieBtn")?.addEventListener("click",()=>{closeUserMenu();location.href="gendarmerie.html"});
 $("profileLoginBtn").addEventListener("click",()=>{closeProfile();openAuth()});
-$("profileSignOutBtn").addEventListener("click",async()=>{await sb.auth.signOut();closeProfile()});
-$("adminBtn").addEventListener("click",openAdmin);
+$("profileSignOutBtn").addEventListener("click",async()=>{closeUserMenu();await sb.auth.signOut();closeProfile()});
+$("adminBtn").addEventListener("click",()=>{closeUserMenu();openAdmin()});
 
 $("profileModal").addEventListener("click",e=>{if(e.target.matches("[data-close-profile]"))closeProfile()});
 $("reportModal").addEventListener("click",e=>{if(e.target.matches("[data-close-report]"))closeReport()});

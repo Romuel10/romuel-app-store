@@ -29,38 +29,73 @@ async function verifyStoredFile(bucket,path){
   return false;
 }
 
-async function uploadFile(bucket,path,file,onProgress=()=>{}){
-  const contentType=file.type||(bucket==="app-apk"?"application/vnd.android.package-archive":"application/octet-stream");
+async function verifyStoredFile(bucket,path){
+  for(const delay of [0,500,1200]){
+    if(delay)await new Promise(resolve=>setTimeout(resolve,delay));
+    try{
+      const {data,error}=await sb.storage.from(bucket).createSignedUrl(path,45);
+      if(!error&&data?.signedUrl)return true;
+    }catch{}
+  }
+  return false;
+}
 
-  if(file.size<=6*1024*1024||!window.tus){
-    onProgress(15);
-    const {error}=await sb.storage.from(bucket).upload(path,file,{
-      upsert:false,
-      contentType,
-      cacheControl:"3600"
-    });
-    if(error)throw error;
-    if(!await verifyStoredFile(bucket,path)){
-      throw new Error("Le fichier envoyé n’a pas été retrouvé dans le stockage. Réessaie avec une connexion stable.");
-    }
-    onProgress(100);
-    return path;
+const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+
+function isNetworkError(error){
+  const message=String(error?.message||error||"");
+  return /failed to fetch|networkerror|network error|load failed|fetch failed|connection|timeout|timed out/i.test(message);
+}
+
+async function getFreshAccessToken(){
+  let {data:{session},error}=await sb.auth.getSession();
+  if(error)throw error;
+
+  const expiresSoon=session?.expires_at
+    ? session.expires_at*1000<Date.now()+90_000
+    : false;
+
+  if(session&&expiresSoon){
+    const refreshed=await sb.auth.refreshSession();
+    if(refreshed.error)throw refreshed.error;
+    session=refreshed.data.session;
   }
 
-  const {data:{session},error}=await sb.auth.getSession();
-  if(error||!session)throw error||new Error("Reconnecte-toi avant l’envoi.");
+  if(!session?.access_token){
+    throw new Error("Session expirée. Reconnecte-toi avant de publier.");
+  }
+  return session.access_token;
+}
 
-  const projectUrl=new URL(SUPABASE_URL);
-  const host=projectUrl.hostname.endsWith(".supabase.co")
-    ? projectUrl.hostname.replace(".supabase.co",".storage.supabase.co")
-    : projectUrl.hostname;
+async function standardStorageUpload(bucket,path,file,contentType,onProgress){
+  onProgress(8);
+  const {error}=await sb.storage.from(bucket).upload(path,file,{
+    upsert:false,
+    contentType,
+    cacheControl:"3600"
+  });
+  if(error)throw error;
+
+  onProgress(92);
+  if(!await verifyStoredFile(bucket,path)){
+    throw new Error("Le fichier a été envoyé mais sa vérification a échoué.");
+  }
+  onProgress(100);
+}
+
+async function tusStorageUpload(bucket,path,file,contentType,endpoint,onProgress){
+  if(!window.tus?.Upload){
+    throw new Error("Le module d’envoi reprenable n’est pas disponible.");
+  }
+
+  const accessToken=await getFreshAccessToken();
 
   await new Promise((resolve,reject)=>{
-    new tus.Upload(file,{
-      endpoint:`${projectUrl.protocol}//${host}/storage/v1/upload/resumable`,
+    const upload=new tus.Upload(file,{
+      endpoint,
       retryDelays:[0,3000,5000,10000,20000],
       headers:{
-        authorization:`Bearer ${session.access_token}`,
+        authorization:`Bearer ${accessToken}`,
         apikey:SUPABASE_KEY,
         "x-upsert":"false"
       },
@@ -68,17 +103,110 @@ async function uploadFile(bucket,path,file,onProgress=()=>{}){
       removeFingerprintOnSuccess:true,
       storeFingerprintForResuming:false,
       chunkSize:6*1024*1024,
-      metadata:{bucketName:bucket,objectName:path,contentType,cacheControl:"3600"},
-      onError:reject,
+      metadata:{
+        bucketName:bucket,
+        objectName:path,
+        contentType,
+        cacheControl:"3600"
+      },
+      onError:error=>reject(error instanceof Error?error:new Error(String(error))),
       onProgress:(sent,total)=>onProgress(total?Math.round(sent/total*100):0),
       onSuccess:resolve
-    }).start();
+    });
+    upload.start();
   });
+}
 
-  if(!await verifyStoredFile(bucket,path)){
-    throw new Error("L’envoi semble terminé, mais le fichier n’est pas disponible dans le stockage.");
+async function uploadFile(bucket,path,file,onProgress=()=>{}){
+  const contentType=file.type||(bucket==="app-apk"
+    ?"application/vnd.android.package-archive"
+    :"application/octet-stream");
+
+  if(file.size>500*1024*1024){
+    throw new Error("Le fichier dépasse la limite de 500 Mo.");
   }
-  return path;
+
+  const useResumable=file.size>6*1024*1024&&window.tus?.Upload;
+  let lastError=null;
+
+  if(useResumable){
+    const projectUrl=new URL(SUPABASE_URL);
+    const directHost=projectUrl.hostname.endsWith(".supabase.co")
+      ? projectUrl.hostname.replace(".supabase.co",".storage.supabase.co")
+      : projectUrl.hostname;
+
+    const endpoints=[
+      `${projectUrl.protocol}//${directHost}/storage/v1/upload/resumable`,
+      `${SUPABASE_URL.replace(/\/$/,"")}/storage/v1/upload/resumable`
+    ];
+
+    for(let index=0;index<endpoints.length;index++){
+      try{
+        setProgress(
+          Math.max(1,Math.round((index/endpoints.length)*8)),
+          index===0?"Connexion au stockage…":"Nouvelle tentative d’envoi…"
+        );
+        await tusStorageUpload(bucket,path,file,contentType,endpoints[index],onProgress);
+
+        if(await verifyStoredFile(bucket,path)){
+          onProgress(100);
+          return path;
+        }
+        throw new Error("Envoi terminé mais fichier non vérifiable.");
+      }catch(error){
+        lastError=error;
+        console.warn("Échec TUS",endpoints[index],error);
+
+        if(await verifyStoredFile(bucket,path)){
+          onProgress(100);
+          return path;
+        }
+
+        if(!isNetworkError(error)&&index===0){
+          throw error;
+        }
+        await wait(700);
+      }
+    }
+  }
+
+  try{
+    setProgress(10,"Envoi sécurisé via Supabase…");
+    await standardStorageUpload(bucket,path,file,contentType,onProgress);
+    return path;
+  }catch(error){
+    lastError=error;
+    console.warn("Échec upload standard",error);
+
+    if(await verifyStoredFile(bucket,path)){
+      onProgress(100);
+      return path;
+    }
+
+    if(isNetworkError(error)){
+      await wait(1200);
+      try{
+        setProgress(12,"Connexion instable — nouvelle tentative…");
+        await standardStorageUpload(bucket,path,file,contentType,onProgress);
+        return path;
+      }catch(secondError){
+        lastError=secondError;
+        if(await verifyStoredFile(bucket,path)){
+          onProgress(100);
+          return path;
+        }
+      }
+    }
+  }
+
+  const detail=String(lastError?.message||lastError||"Erreur inconnue");
+  if(isNetworkError(lastError)){
+    throw new Error(
+      "Impossible de joindre le stockage Supabase. Vérifie la connexion Internet puis réessaie. " +
+      "La publication n’a pas été conservée. Détail : " + detail
+    );
+  }
+  throw lastError||new Error("Échec de l’envoi du fichier.");
 }
 
 async function cleanupUploadedObjects(objects){

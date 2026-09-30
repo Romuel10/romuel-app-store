@@ -50,7 +50,7 @@ on public.push_subscriptions
 for delete to authenticated
 using ((select auth.uid()) = user_id);
 
-revoke all on public.push_subscriptions from anon;
+revoke all on public.push_subscriptions from anon, authenticated;
 grant select, insert, update, delete on public.push_subscriptions to authenticated;
 
 create table if not exists public.web_push_config_public (

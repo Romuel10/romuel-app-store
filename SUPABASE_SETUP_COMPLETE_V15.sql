@@ -1383,6 +1383,9 @@ create unique index if not exists notifications_user_event_key_uidx
 create index if not exists notifications_user_unread_created_idx
   on public.notifications(user_id, "read", created_at desc);
 
+create index if not exists notifications_app_id_idx
+  on public.notifications(app_id);
+
 alter table public.notifications enable row level security;
 
 drop policy if exists notifications_admin_only on public.notifications;

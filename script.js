@@ -304,7 +304,14 @@ async function fetchPublisherCatalog(visibility){
   return rows.map(row=>normalizePublisherApp(row,iconUrls,screenUrls));
 }
 
-function iconHtml(a){const n=esc(a.name),ini=esc(initials(a.name));return a.icon?`<img class="icon" src="${esc(a.icon)}" alt="Logo ${n}" onerror="this.style.display='none';this.nextElementSibling.style.display='grid'"><div class="fallback" style="display:none">${ini}</div>`:`<div class="fallback">${ini}</div>`}
+function iconHtml(a){const n=esc(a.name),ini=esc(initials(a.name));return a.icon?`<img class="icon" src="${esc(a.icon)}" alt="Logo ${n}"><div class="fallback hidden">${ini}</div>`:`<div class="fallback">${ini}</div>`}
+document.addEventListener("error",event=>{
+  const image=event.target;
+  if(!(image instanceof HTMLImageElement)||!image.classList.contains("icon"))return;
+  image.classList.add("hidden");
+  image.nextElementSibling?.classList.remove("hidden");
+},true);
+
 function downloadHtml(a,label="Installer"){
   if(a.apkPath){
     return `<button class="download" type="button" data-secure-download="${esc(a.id)}" data-apk-path="${esc(a.apkPath)}" data-apk-bucket="${esc(a.apkBucket||"app-apk")}">${esc(label)}</button>`;

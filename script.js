@@ -2295,67 +2295,207 @@ function setPublisherProgress(percent,textValue){
   $("publisherProgressText").textContent=textValue;
 }
 
-async function uploadPublisherFile(bucket,path,file,onProgress=()=>{}){
-  const contentType=file.type||(bucket==="app-apk"?"application/vnd.android.package-archive":"application/octet-stream");
+const publisherWait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 
-  const verifyUpload=async()=>{
-    for(const delay of [0,400,1000]){
-      if(delay)await new Promise(resolve=>setTimeout(resolve,delay));
+function isPublisherNetworkError(error){
+  const message=String(error?.message||error||"");
+  return /failed to fetch|networkerror|network error|load failed|fetch failed|connection|timeout|timed out/i.test(message);
+}
+
+async function verifyPublisherUpload(bucket,path){
+  for(const delay of [0,500,1200]){
+    if(delay)await publisherWait(delay);
+    try{
       const {data,error}=await sb.storage.from(bucket).createSignedUrl(path,60);
       if(!error&&data?.signedUrl)return true;
-    }
-    return false;
-  };
+    }catch{}
+  }
+  return false;
+}
 
-  if(file.size<=6*1024*1024||!window.tus){
-    onProgress(15);
-    const {error}=await sb.storage.from(bucket).upload(path,file,{upsert:false,contentType,cacheControl:"3600"});
-    if(error)throw error;
-    if(!await verifyUpload())throw new Error("Le fichier n’a pas été retrouvé dans Supabase Storage après son envoi.");
-    onProgress(100);
-    return path;
+async function publisherAccessToken(){
+  let {data:{session},error}=await sb.auth.getSession();
+  if(error)throw error;
+
+  const expiresSoon=session?.expires_at
+    ? session.expires_at*1000<Date.now()+90_000
+    : false;
+
+  if(session&&expiresSoon){
+    const refreshed=await sb.auth.refreshSession();
+    if(refreshed.error)throw refreshed.error;
+    session=refreshed.data.session;
   }
 
-  const {data:{session},error:sessionError}=await sb.auth.getSession();
-  if(sessionError||!session)throw sessionError||new Error("Reconnecte-toi avant l’envoi du fichier.");
-  const projectUrl=new URL(SUPABASE_URL);
-  const storageHost=projectUrl.hostname.endsWith(".supabase.co")?projectUrl.hostname.replace(".supabase.co",".storage.supabase.co"):projectUrl.hostname;
-  const endpoint=`${projectUrl.protocol}//${storageHost}/storage/v1/upload/resumable`;
+  if(!session?.access_token){
+    throw new Error("Session expirée. Reconnecte-toi avant de publier.");
+  }
+  return session.access_token;
+}
 
-  let tusError=null;
-  try{
-    await new Promise((resolve,reject)=>{
-      const upload=new tus.Upload(file,{
-        endpoint,
-        retryDelays:[0,3000,5000,10000,20000],
-        headers:{authorization:`Bearer ${session.access_token}`,apikey:SUPABASE_KEY,"x-upsert":"false"},
-        uploadDataDuringCreation:true,
-        removeFingerprintOnSuccess:true,
-        storeFingerprintForResuming:false,
-        chunkSize:6*1024*1024,
-        metadata:{bucketName:bucket,objectName:path,contentType,cacheControl:"3600"},
-        onError:reject,
-        onProgress:(sent,total)=>onProgress(total?Math.round(sent/total*100):0),
-        onSuccess:resolve
-      });
-      upload.start();
+async function publisherTusUpload(bucket,path,file,contentType,endpoint,onProgress){
+  if(!window.tus?.Upload){
+    throw new Error("Le module d’envoi reprenable n’est pas disponible.");
+  }
+
+  const accessToken=await publisherAccessToken();
+
+  await new Promise((resolve,reject)=>{
+    const upload=new tus.Upload(file,{
+      endpoint,
+      retryDelays:[0,3000,5000,10000,20000],
+      headers:{
+        authorization:`Bearer ${accessToken}`,
+        apikey:SUPABASE_KEY,
+        "x-upsert":"false"
+      },
+      uploadDataDuringCreation:true,
+      removeFingerprintOnSuccess:true,
+      storeFingerprintForResuming:false,
+      chunkSize:6*1024*1024,
+      metadata:{
+        bucketName:bucket,
+        objectName:path,
+        contentType,
+        cacheControl:"3600"
+      },
+      onError:error=>reject(error instanceof Error?error:new Error(String(error))),
+      onProgress:(sent,total)=>onProgress(total?Math.round(sent/total*100):0),
+      onSuccess:resolve
     });
-  }catch(error){
-    tusError=error;
+    upload.start();
+  });
+}
+
+async function publisherStandardUpload(bucket,path,file,contentType,onProgress,upsert=false){
+  onProgress(10);
+  const {error}=await sb.storage.from(bucket).upload(path,file,{
+    upsert,
+    contentType,
+    cacheControl:"3600"
+  });
+  if(error)throw error;
+
+  onProgress(92);
+  if(!await verifyPublisherUpload(bucket,path)){
+    throw new Error("Le fichier a été envoyé mais sa vérification a échoué.");
+  }
+  onProgress(100);
+}
+
+async function uploadPublisherFile(bucket,path,file,onProgress=()=>{}){
+  const contentType=file.type||(bucket==="app-apk"
+    ?"application/vnd.android.package-archive"
+    :"application/octet-stream");
+
+  if(file.size>500*1024*1024){
+    throw new Error("Le fichier dépasse la limite de 500 Mo.");
   }
 
-  if(!tusError&&await verifyUpload())return path;
+  let lastError=null;
+  const useTus=file.size>6*1024*1024&&window.tus?.Upload;
 
-  // Certains navigateurs Android peuvent annoncer la fin d'un envoi TUS
-  // alors que l'objet n'a pas été finalisé. On refait alors un envoi standard
-  // et on vérifie réellement la présence du fichier avant d'écrire en base.
-  onProgress(10);
-  const {error:fallbackError}=await sb.storage.from(bucket).upload(path,file,{upsert:true,contentType,cacheControl:"3600"});
-  const stored=await verifyUpload();
-  if(fallbackError&&!stored)throw fallbackError;
-  if(!stored)throw new Error("Le fichier n’a pas été enregistré dans Supabase Storage. Réessaie avec une connexion stable.");
-  onProgress(100);
-  return path;
+  if(useTus){
+    const projectUrl=new URL(SUPABASE_URL);
+    const storageHost=projectUrl.hostname.endsWith(".supabase.co")
+      ? projectUrl.hostname.replace(".supabase.co",".storage.supabase.co")
+      : projectUrl.hostname;
+
+    const endpoints=[
+      `${projectUrl.protocol}//${storageHost}/storage/v1/upload/resumable`,
+      `${SUPABASE_URL.replace(/\/$/,"")}/storage/v1/upload/resumable`
+    ];
+
+    for(let index=0;index<endpoints.length;index++){
+      try{
+        setPublisherProgress(
+          Math.max(2,Math.round(index/endpoints.length*8)),
+          index===0?"Connexion au stockage…":"Nouvelle tentative d’envoi…"
+        );
+
+        await publisherTusUpload(
+          bucket,
+          path,
+          file,
+          contentType,
+          endpoints[index],
+          onProgress
+        );
+
+        if(await verifyPublisherUpload(bucket,path)){
+          onProgress(100);
+          return path;
+        }
+        throw new Error("Envoi terminé mais fichier non vérifiable.");
+      }catch(error){
+        lastError=error;
+        console.warn("Échec TUS publication",endpoints[index],error);
+
+        if(await verifyPublisherUpload(bucket,path)){
+          onProgress(100);
+          return path;
+        }
+
+        if(!isPublisherNetworkError(error)&&index===0){
+          throw error;
+        }
+        await publisherWait(700);
+      }
+    }
+  }
+
+  try{
+    setPublisherProgress(10,"Envoi sécurisé via Supabase…");
+    await publisherStandardUpload(
+      bucket,
+      path,
+      file,
+      contentType,
+      onProgress,
+      useTus
+    );
+    return path;
+  }catch(error){
+    lastError=error;
+    console.warn("Échec upload standard publication",error);
+
+    if(await verifyPublisherUpload(bucket,path)){
+      onProgress(100);
+      return path;
+    }
+
+    if(isPublisherNetworkError(error)){
+      await publisherWait(1200);
+      try{
+        setPublisherProgress(12,"Connexion instable — nouvelle tentative…");
+        await publisherStandardUpload(
+          bucket,
+          path,
+          file,
+          contentType,
+          onProgress,
+          true
+        );
+        return path;
+      }catch(secondError){
+        lastError=secondError;
+        if(await verifyPublisherUpload(bucket,path)){
+          onProgress(100);
+          return path;
+        }
+      }
+    }
+  }
+
+  const detail=String(lastError?.message||lastError||"Erreur inconnue");
+  if(isPublisherNetworkError(lastError)){
+    throw new Error(
+      "Impossible de joindre le stockage Supabase. Vérifie la connexion Internet puis réessaie. " +
+      "La publication n’a pas été enregistrée. Détail : " + detail
+    );
+  }
+
+  throw lastError||new Error("Échec de l’envoi du fichier.");
 }
 
 function validatePublisherFiles(icon,screens){

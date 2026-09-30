@@ -545,6 +545,10 @@ function refreshProfileUI(){
   $("adminBtn").classList.toggle("hidden",!isAdmin);
   $("developerBtn").classList.toggle("hidden",!isDeveloper);
   $("gendarmerieBtn").classList.toggle("hidden",!isGendarmerie);
+  $("profileBtn").textContent=loggedIn?"Mon compte":"Se connecter";
+  $("profileBtn").classList.toggle("account-entry-btn",!loggedIn);
+  $("heroLoginBtn").textContent=loggedIn?"Ouvrir mon compte":"Se connecter / Créer un compte";
+  $("gettingStarted")?.classList.toggle("hidden",loggedIn || localStorage.getItem("madaapps_hide_beginner_guide")==="1");
 
   if(loggedIn){
     $("profileName").value=profile?.display_name||"";
@@ -651,7 +655,11 @@ function closeModal(options={}){
 
 function openAuth(){
   authModal.classList.add("show");authModal.setAttribute("aria-hidden","false");document.body.classList.add("modal-open");
+  $("authPassword").type="password";
+  $("togglePasswordBtn").textContent="Afficher";
+  $("togglePasswordBtn").setAttribute("aria-label","Afficher le mot de passe");
   refreshAuthUI();
+  setTimeout(()=>$("authEmail")?.focus(),60);
 }
 function closeAuth(){authModal.classList.remove("show");authModal.setAttribute("aria-hidden","true");document.body.classList.remove("modal-open")}
 
@@ -662,6 +670,13 @@ function setAuthMode(mode){
   $("authTitle").textContent=mode==="signin"?"Connexion":"Créer un compte";
   $("authSubmitBtn").textContent=mode==="signin"?"Se connecter":"Créer mon compte";
   $("authPassword").autocomplete=mode==="signin"?"current-password":"new-password";
+  $("authPassword").placeholder=mode==="signin"?"Ton mot de passe":"Au moins 6 caractères";
+  $("authLead").textContent=mode==="signin"
+    ?"Connecte-toi avec ton adresse e-mail. Si tu n’as pas encore de compte, choisis « Créer un compte »."
+    :"Crée ton compte gratuitement pour synchroniser tes favoris, publier des avis et accéder à tes espaces autorisés.";
+  $("authModeHint").textContent=mode==="signin"
+    ?"Entre les identifiants utilisés lors de la création de ton compte."
+    :"Choisis un mot de passe d’au moins 6 caractères. Un e-mail de confirmation peut être demandé.";
   $("authMessage").textContent="";
   $("resendConfirmBtn")?.classList.add("hidden");
   lastUnconfirmedEmail="";
@@ -1123,7 +1138,31 @@ function closeAdmin(){
   closePublisherForm();
 }
 
-$("profileBtn").addEventListener("click",openProfile);
+$("profileBtn").addEventListener("click",()=>currentUser?openProfile():openAuth());
+$("heroLoginBtn")?.addEventListener("click",()=>currentUser?openProfile():openAuth());
+$("heroBrowseBtn")?.addEventListener("click",()=>document.querySelector(".store-tabs")?.scrollIntoView({behavior:"smooth",block:"start"}));
+$("helpBtn")?.addEventListener("click",()=>{
+  const guide=$("gettingStarted");
+  if(guide?.classList.contains("hidden")&&!currentUser){
+    localStorage.removeItem("madaapps_hide_beginner_guide");
+    guide.classList.remove("hidden");
+  }
+  (guide&&!guide.classList.contains("hidden")?guide:document.querySelector(".quick-help"))?.scrollIntoView({behavior:"smooth",block:"center"});
+});
+$("guideLoginBtn")?.addEventListener("click",()=>{setAuthMode("signin");openAuth()});
+$("guideSignupBtn")?.addEventListener("click",()=>{setAuthMode("signup");openAuth()});
+$("guideBrowseBtn")?.addEventListener("click",()=>document.querySelector(".store-tabs")?.scrollIntoView({behavior:"smooth",block:"start"}));
+$("dismissGuideBtn")?.addEventListener("click",()=>{
+  localStorage.setItem("madaapps_hide_beginner_guide","1");
+  $("gettingStarted")?.classList.add("hidden");
+});
+$("togglePasswordBtn")?.addEventListener("click",()=>{
+  const input=$("authPassword");
+  const reveal=input.type==="password";
+  input.type=reveal?"text":"password";
+  $("togglePasswordBtn").textContent=reveal?"Masquer":"Afficher";
+  $("togglePasswordBtn").setAttribute("aria-label",reveal?"Masquer le mot de passe":"Afficher le mot de passe");
+});
 $("developerBtn")?.addEventListener("click",()=>location.href="developer-dashboard.html");
 $("gendarmerieBtn")?.addEventListener("click",()=>location.href="gendarmerie.html");
 $("profileLoginBtn").addEventListener("click",()=>{closeProfile();openAuth()});

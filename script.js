@@ -2453,8 +2453,31 @@ async function uploadPublisherFile(bucket,path,file,onProgress=()=>{}){
     ?"application/vnd.android.package-archive"
     :"application/octet-stream");
 
+  const r2Status=window.MadaR2?.status
+    ? await window.MadaR2.status().catch(()=>({configured:false}))
+    : {configured:false};
+
+  if(r2Status?.configured&&window.MadaR2?.upload){
+    try{
+      setPublisherProgress(8,"Envoi vers Cloudflare R2…");
+      await window.MadaR2.upload(bucket,path,file,onProgress);
+      return "r2";
+    }catch(error){
+      console.warn("Échec R2, tentative de secours Supabase:",error);
+      if(file.size>500*1024*1024){
+        throw new Error(
+          "L'APK dépasse 500 Mo et nécessite Cloudflare R2. " +
+          String(error?.message||error||"Échec R2.")
+        );
+      }
+      setPublisherProgress(9,"R2 indisponible — secours Supabase…");
+    }
+  }
+
   if(file.size>500*1024*1024){
-    throw new Error("Le fichier dépasse la limite de 500 Mo.");
+    throw new Error(
+      "Ce fichier dépasse 500 Mo. Configure Cloudflare R2 pour les gros APK."
+    );
   }
 
   let lastError=null;
@@ -2475,7 +2498,7 @@ async function uploadPublisherFile(bucket,path,file,onProgress=()=>{}){
       try{
         setPublisherProgress(
           Math.max(2,Math.round(index/endpoints.length*8)),
-          index===0?"Connexion au stockage…":"Nouvelle tentative d’envoi…"
+          index===0?"Connexion au stockage Supabase…":"Nouvelle tentative Supabase…"
         );
 
         await publisherTusUpload(
@@ -2489,7 +2512,7 @@ async function uploadPublisherFile(bucket,path,file,onProgress=()=>{}){
 
         if(await verifyPublisherUpload(bucket,path)){
           onProgress(100);
-          return path;
+          return "supabase";
         }
         throw new Error("Envoi terminé mais fichier non vérifiable.");
       }catch(error){
@@ -2498,7 +2521,7 @@ async function uploadPublisherFile(bucket,path,file,onProgress=()=>{}){
 
         if(await verifyPublisherUpload(bucket,path)){
           onProgress(100);
-          return path;
+          return "supabase";
         }
 
         if(!isPublisherNetworkError(error)&&index===0){
@@ -2519,14 +2542,14 @@ async function uploadPublisherFile(bucket,path,file,onProgress=()=>{}){
       onProgress,
       useTus
     );
-    return path;
+    return "supabase";
   }catch(error){
     lastError=error;
     console.warn("Échec upload standard publication",error);
 
     if(await verifyPublisherUpload(bucket,path)){
       onProgress(100);
-      return path;
+      return "supabase";
     }
 
     if(isPublisherNetworkError(error)){
@@ -2541,12 +2564,12 @@ async function uploadPublisherFile(bucket,path,file,onProgress=()=>{}){
           onProgress,
           true
         );
-        return path;
+        return "supabase";
       }catch(secondError){
         lastError=secondError;
         if(await verifyPublisherUpload(bucket,path)){
           onProgress(100);
-          return path;
+          return "supabase";
         }
       }
     }
@@ -2555,7 +2578,7 @@ async function uploadPublisherFile(bucket,path,file,onProgress=()=>{}){
   const detail=String(lastError?.message||lastError||"Erreur inconnue");
   if(isPublisherNetworkError(lastError)){
     throw new Error(
-      "Impossible de joindre le stockage Supabase. Vérifie la connexion Internet puis réessaie. " +
+      "Impossible de joindre le stockage. Vérifie la connexion Internet puis réessaie. " +
       "La publication n’a pas été enregistrée. Détail : " + detail
     );
   }
@@ -2573,14 +2596,14 @@ function validatePublisherFiles(icon,screens){
 
 async function uploadPublisherMedia(appId,icon,screens,progressStart=75,uploadedObjects=[]){
   let iconPath=null;
-  const screenPaths=[];
+  let iconProvider="supabase";
+  const screenFiles=[];
   const total=(icon?1:0)+screens.length;
   let done=0;
 
   if(icon){
     iconPath=`${appId}/icon/${Date.now()}-${safeFileName(icon.name)}`;
-    uploadedObjects.push({bucket:"app-icons",path:iconPath});
-    await uploadPublisherFile(
+    iconProvider=await uploadPublisherFile(
       "app-icons",
       iconPath,
       icon,
@@ -2589,14 +2612,14 @@ async function uploadPublisherMedia(appId,icon,screens,progressStart=75,uploaded
         "Envoi du logo…"
       )
     );
+    uploadedObjects.push({bucket:"app-icons",path:iconPath,provider:iconProvider});
     done++;
   }
 
   for(let i=0;i<screens.length;i++){
     const file=screens[i];
     const path=`${appId}/screens/${Date.now()}-${i}-${safeFileName(file.name)}`;
-    uploadedObjects.push({bucket:"app-screenshots",path});
-    await uploadPublisherFile(
+    const provider=await uploadPublisherFile(
       "app-screenshots",
       path,
       file,
@@ -2605,38 +2628,59 @@ async function uploadPublisherMedia(appId,icon,screens,progressStart=75,uploaded
         `Envoi de la capture ${i+1}/${screens.length}…`
       )
     );
-    screenPaths.push(path);
+    uploadedObjects.push({bucket:"app-screenshots",path,provider});
+    screenFiles.push({path,provider});
     done++;
   }
 
-  return {iconPath,screenPaths};
+  return {iconPath,iconProvider,screenFiles};
 }
 
 async function cleanupPublisherObjects(objects){
-  const byBucket=new Map();
+  const supabaseByBucket=new Map();
+  const r2Objects=[];
+
   for(const item of objects||[]){
     if(!item?.bucket||!item?.path)continue;
-    if(!byBucket.has(item.bucket))byBucket.set(item.bucket,[]);
-    byBucket.get(item.bucket).push(item.path);
+    if(item.provider==="r2"){
+      r2Objects.push(item);
+    }else{
+      if(!supabaseByBucket.has(item.bucket))supabaseByBucket.set(item.bucket,[]);
+      supabaseByBucket.get(item.bucket).push(item.path);
+    }
   }
 
-  for(const [bucket,paths] of byBucket){
+  for(const [bucket,paths] of supabaseByBucket){
     try{
       const unique=[...new Set(paths)];
       const {error}=await sb.storage.from(bucket).remove(unique);
-      if(error)console.warn("Nettoyage publication",bucket,error.message);
+      if(error)console.warn("Nettoyage Supabase",bucket,error.message);
     }catch(error){
-      console.warn("Nettoyage publication",bucket,error);
+      console.warn("Nettoyage Supabase",bucket,error);
+    }
+  }
+
+  for(const item of r2Objects){
+    try{
+      await window.MadaR2?.remove?.(item.bucket,item.path);
+    }catch(error){
+      console.warn("Nettoyage R2",item.bucket,item.path,error);
     }
   }
 }
 
-function publisherScreenPayload(paths,startOrder=0){
-  return (paths||[]).map((storage_path,index)=>({
-    storage_path,
-    alt_text:`Capture ${startOrder+index+1}`,
-    sort_order:startOrder+index
-  }));
+function publisherScreenPayload(files,startOrder=0){
+  return (files||[]).map((file,index)=>{
+    const item=typeof file==="string"
+      ? {path:file,provider:"supabase"}
+      : file;
+    return {
+      storage_path:item.path,
+      storage_provider:item.provider||"supabase",
+      alt_text:`Capture ${startOrder+index+1}`,
+      sort_order:startOrder+index
+    };
+  });
 }
 
 async function insertPublisherScreens(appId,paths,startOrder=0){

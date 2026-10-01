@@ -17,6 +17,7 @@ on:
       - "SUPABASE_RPC_HARDENING_V15_1_1.sql"
       - "SUPABASE_NOTIFICATIONS_V15_5.sql"
       - "SUPABASE_WEB_PUSH_V15_6.sql"
+      - "SUPABASE_PUBLISH_WORKFLOW_V15_8.sql"
       - "supabase/functions/**"
       - "_headers"
       - ".github/workflows/mada-apps-security-smoke.yml"
@@ -36,6 +37,7 @@ on:
       - "SUPABASE_RPC_HARDENING_V15_1_1.sql"
       - "SUPABASE_NOTIFICATIONS_V15_5.sql"
       - "SUPABASE_WEB_PUSH_V15_6.sql"
+      - "SUPABASE_PUBLISH_WORKFLOW_V15_8.sql"
       - "supabase/functions/**"
       - "_headers"
       - ".github/workflows/mada-apps-security-smoke.yml"
@@ -92,6 +94,13 @@ jobs:
           grep -q 'push_subscriptions' SUPABASE_WEB_PUSH_V15_6.sql
           grep -q 'dispatch_app_update_web_push' SUPABASE_WEB_PUSH_V15_6.sql
           grep -q 'revoke all on public.push_subscriptions from anon, authenticated' SUPABASE_WEB_PUSH_V15_6.sql
+          grep -q 'private.admin_publish_application' SUPABASE_PUBLISH_WORKFLOW_V15_8.sql
+          grep -q 'private.admin_publish_version' SUPABASE_PUBLISH_WORKFLOW_V15_8.sql
+          grep -q 'private.developer_resubmit_version' SUPABASE_PUBLISH_WORKFLOW_V15_8.sql
+          grep -q 'admin_publish_application' script.js
+          grep -q 'admin_publish_version' script.js
+          grep -q 'developer_resubmit_version' developer-dashboard.js
+          grep -q 'cleanupPublisherObjects' script.js
 
   live-anon-security:
     runs-on: ubuntu-latest

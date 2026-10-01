@@ -6,6 +6,10 @@ import {
   GetObjectCommand,
   HeadObjectCommand,
   DeleteObjectCommand,
+  CreateMultipartUploadCommand,
+  UploadPartCommand,
+  CompleteMultipartUploadCommand,
+  AbortMultipartUploadCommand,
 } from "npm:@aws-sdk/client-s3@3";
 import { getSignedUrl } from "npm:@aws-sdk/s3-request-presigner@3";
 
@@ -81,6 +85,33 @@ function logicalBucket(value: unknown) {
 
 function objectKey(bucket: string, path: string) {
   return `${bucket}/${path}`;
+}
+
+function appIdFromPath(path: string) {
+  const id = path.split("/")[0] || "";
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)
+    ? id
+    : null;
+}
+
+async function canWritePath(
+  ctx: Awaited<ReturnType<typeof authContext>>,
+  path: string,
+) {
+  if (!ctx.user) return false;
+  if (ctx.isAdmin) return true;
+  if (!ctx.isDeveloper) return false;
+
+  const appId = appIdFromPath(path);
+  if (!appId) return false;
+
+  const { data: app } = await ctx.adminClient
+    .from("applications")
+    .select("id,created_by")
+    .eq("id", appId)
+    .maybeSingle();
+
+  return Boolean(app && app.created_by === ctx.user.id);
 }
 
 function r2Client() {
@@ -260,12 +291,11 @@ Deno.serve(async (req: Request) => {
     const s3 = r2Client();
 
     if (action === "sign-upload") {
-      if (!ctx.user || (!ctx.isAdmin && !ctx.isDeveloper)) {
-        return json({ error: "Rôle Admin ou Développeur requis" }, 403);
-      }
-
       const bucket = logicalBucket(body?.bucket);
       const path = safePath(body?.path);
+      if (!(await canWritePath(ctx, path))) {
+        return json({ error: "Écriture non autorisée pour cette application" }, 403);
+      }
       const contentType = String(body?.contentType || "application/octet-stream");
       const size = Number(body?.size || 0);
 
@@ -284,12 +314,14 @@ Deno.serve(async (req: Request) => {
     }
 
     if (action === "head") {
-      if (!ctx.user || (!ctx.isAdmin && !ctx.isDeveloper)) {
-        return json({ error: "Rôle Admin ou Développeur requis" }, 403);
-      }
-
       const bucket = logicalBucket(body?.bucket);
       const path = safePath(body?.path);
+      const allowed =
+        (await canWritePath(ctx, path)) ||
+        (await canRead(ctx, bucket, path));
+      if (!allowed) {
+        return json({ error: "Accès refusé" }, 403);
+      }
 
       try {
         const result = await s3.send(
@@ -312,18 +344,142 @@ Deno.serve(async (req: Request) => {
     }
 
     if (action === "delete") {
-      if (!ctx.user || (!ctx.isAdmin && !ctx.isDeveloper)) {
-        return json({ error: "Rôle Admin ou Développeur requis" }, 403);
-      }
-
       const bucket = logicalBucket(body?.bucket);
       const path = safePath(body?.path);
+      if (!(await canWritePath(ctx, path))) {
+        return json({ error: "Suppression non autorisée" }, 403);
+      }
       await s3.send(
         new DeleteObjectCommand({
           Bucket: r2Bucket,
           Key: objectKey(bucket, path),
         }),
       );
+      return json({ ok: true });
+    }
+
+    if (action === "multipart-create") {
+      const bucket = logicalBucket(body?.bucket);
+      const path = safePath(body?.path);
+      if (!(await canWritePath(ctx, path))) {
+        return json({ error: "Écriture non autorisée pour cette application" }, 403);
+      }
+
+      const size = Number(body?.size || 0);
+      if (size <= 0 || size > 5 * 1024 * 1024 * 1024 * 1024) {
+        return json({ error: "Taille de fichier multipart invalide" }, 400);
+      }
+
+      const result = await s3.send(
+        new CreateMultipartUploadCommand({
+          Bucket: r2Bucket,
+          Key: objectKey(bucket, path),
+          ContentType: String(body?.contentType || "application/octet-stream"),
+        }),
+      );
+
+      if (!result.UploadId) {
+        throw new Error("R2 n'a pas retourné d'identifiant multipart");
+      }
+
+      return json({
+        uploadId: result.UploadId,
+        provider: "r2",
+        path,
+      });
+    }
+
+    if (action === "multipart-sign-part") {
+      const bucket = logicalBucket(body?.bucket);
+      const path = safePath(body?.path);
+      if (!(await canWritePath(ctx, path))) {
+        return json({ error: "Écriture non autorisée pour cette application" }, 403);
+      }
+
+      const uploadId = String(body?.uploadId || "");
+      const partNumber = Number(body?.partNumber || 0);
+      if (!uploadId || !Number.isInteger(partNumber) || partNumber < 1 || partNumber > 10000) {
+        return json({ error: "Partie multipart invalide" }, 400);
+      }
+
+      const url = await getSignedUrl(
+        s3,
+        new UploadPartCommand({
+          Bucket: r2Bucket,
+          Key: objectKey(bucket, path),
+          UploadId: uploadId,
+          PartNumber: partNumber,
+        }),
+        { expiresIn: 15 * 60 },
+      );
+
+      return json({ url, partNumber, expiresIn: 900 });
+    }
+
+    if (action === "multipart-complete") {
+      const bucket = logicalBucket(body?.bucket);
+      const path = safePath(body?.path);
+      if (!(await canWritePath(ctx, path))) {
+        return json({ error: "Écriture non autorisée pour cette application" }, 403);
+      }
+
+      const uploadId = String(body?.uploadId || "");
+      const rawParts = Array.isArray(body?.parts) ? body.parts : [];
+      if (!uploadId || !rawParts.length || rawParts.length > 10000) {
+        return json({ error: "Multipart incomplet" }, 400);
+      }
+
+      const parts = rawParts
+        .map((part: any) => ({
+          PartNumber: Number(part?.partNumber || part?.PartNumber || 0),
+          ETag: String(part?.etag || part?.ETag || ""),
+        }))
+        .filter((part: any) =>
+          Number.isInteger(part.PartNumber) &&
+          part.PartNumber > 0 &&
+          part.PartNumber <= 10000 &&
+          part.ETag
+        )
+        .sort((a: any, b: any) => a.PartNumber - b.PartNumber);
+
+      if (parts.length !== rawParts.length) {
+        return json({ error: "Liste des parties invalide" }, 400);
+      }
+
+      const result = await s3.send(
+        new CompleteMultipartUploadCommand({
+          Bucket: r2Bucket,
+          Key: objectKey(bucket, path),
+          UploadId: uploadId,
+          MultipartUpload: { Parts: parts },
+        }),
+      );
+
+      return json({
+        ok: true,
+        etag: result.ETag || null,
+        path,
+      });
+    }
+
+    if (action === "multipart-abort") {
+      const bucket = logicalBucket(body?.bucket);
+      const path = safePath(body?.path);
+      if (!(await canWritePath(ctx, path))) {
+        return json({ error: "Écriture non autorisée pour cette application" }, 403);
+      }
+
+      const uploadId = String(body?.uploadId || "");
+      if (!uploadId) return json({ error: "Upload multipart invalide" }, 400);
+
+      await s3.send(
+        new AbortMultipartUploadCommand({
+          Bucket: r2Bucket,
+          Key: objectKey(bucket, path),
+          UploadId: uploadId,
+        }),
+      );
+
       return json({ ok: true });
     }
 

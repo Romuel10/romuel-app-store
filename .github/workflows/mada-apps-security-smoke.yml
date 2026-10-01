@@ -66,6 +66,7 @@ jobs:
           node --check script.js
           node --check sw.js
           node --check developer-dashboard.js
+          node --check storage-provider.js
           node --check gendarmerie.js
           node --check apps.js
 
@@ -212,3 +213,23 @@ jobs:
             exit 1
           fi
           test "$status" = "401" -o "$status" = "403" -o "$status" = "404"
+
+          status=$(curl -sS -o /tmp/publish-v2 -w '%{http_code}' -X POST             "$SUPABASE_URL/rest/v1/rpc/admin_publish_application_v2"             -H "apikey: $SUPABASE_KEY"             -H "Authorization: Bearer $SUPABASE_KEY"             -H "Content-Type: application/json"             -d '{"p_payload":{},"p_screens":[]}')
+          if [ "$status" = "200" ]; then
+            echo "Publisher V2 RPC unexpectedly callable anonymously"
+            cat /tmp/publish-v2
+            exit 1
+          fi
+          test "$status" = "401" -o "$status" = "403" -o "$status" = "404"
+
+      - name: R2 bridge status endpoint responds
+        run: |
+          status=$(curl -sS -o /tmp/r2status -w '%{http_code}' -X POST             "$SUPABASE_URL/functions/v1/r2-storage"             -H "apikey: $SUPABASE_KEY"             -H "Authorization: Bearer $SUPABASE_KEY"             -H "Content-Type: application/json"             -d '{"action":"status"}')
+          test "$status" = "200"
+          python - <<'PY'
+          import json
+          with open("/tmp/r2status", encoding="utf-8") as f:
+              data=json.load(f)
+          assert "configured" in data
+          assert data.get("provider") in ("r2","supabase")
+          PY

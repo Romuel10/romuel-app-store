@@ -2980,10 +2980,12 @@ $("publisherExistingScreens").addEventListener("click",async e=>{
   const btn=e.target.closest("[data-delete-publisher-screen]");
   if(!btn||!confirm("Supprimer définitivement cette capture d’écran ?"))return;
   btn.disabled=true;
-  const id=btn.dataset.deletePublisherScreen,path=btn.dataset.screenPath;
+  const id=btn.dataset.deletePublisherScreen;
+  const path=btn.dataset.screenPath;
+  const provider=btn.dataset.screenProvider||"supabase";
   const {error}=await sb.from("app_screenshots").delete().eq("id",id);
   if(error){alert(error.message);btn.disabled=false;return}
-  await sb.storage.from("app-screenshots").remove([path]);
+  await cleanupPublisherObjects([{bucket:"app-screenshots",path,provider}]);
   const appId=$("publisherAppId").value;
   await loadAdminPublisher();
   const app=publisherRowById(appId);

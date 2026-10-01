@@ -2245,8 +2245,28 @@ function renderPublisherApps(){
   renderLegacyPublisherApps();
 }
 
+async function updatePublisherStorageNotice(){
+  const box=$("publisherStorageNotice");
+  if(!box)return;
+
+  box.classList.remove("hidden");
+  box.classList.remove("success","error");
+
+  const status=window.MadaR2?.status
+    ? await window.MadaR2.status(true).catch(()=>({configured:false,provider:"supabase"}))
+    : {configured:false,provider:"supabase"};
+
+  if(status?.configured){
+    box.classList.add("success");
+    box.innerHTML="<strong>Stockage principal : Cloudflare R2</strong><br>Les nouveaux APK et médias utilisent R2. Supabase Storage reste disponible comme secours.";
+  }else{
+    box.innerHTML="<strong>Stockage actuel : Supabase</strong><br>L’architecture R2 est prête mais les identifiants Cloudflare ne sont pas encore configurés. Les publications continuent normalement sur Supabase.";
+  }
+}
+
 async function loadAdminPublisher(){
   if(!isAdmin)return;
+  updatePublisherStorageNotice().catch(error=>console.warn("Storage status:",error));
   const box=$("publisherAppList");
   box.innerHTML='<p class="form-message">Chargement des applications…</p>';
   const {data,error}=await sb.from("applications")

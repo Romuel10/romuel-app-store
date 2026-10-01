@@ -113,8 +113,31 @@ async function uploadFile(bucket,path,file,onProgress=()=>{}){
     ?"application/vnd.android.package-archive"
     :"application/octet-stream");
 
+  const r2Status=window.MadaR2?.status
+    ? await window.MadaR2.status().catch(()=>({configured:false}))
+    : {configured:false};
+
+  if(r2Status?.configured&&window.MadaR2?.upload){
+    try{
+      setProgress(8,"Envoi vers Cloudflare R2…");
+      await window.MadaR2.upload(bucket,path,file,onProgress);
+      return "r2";
+    }catch(error){
+      console.warn("Échec R2, secours Supabase:",error);
+      if(file.size>500*1024*1024){
+        throw new Error(
+          "L'APK dépasse 500 Mo et nécessite Cloudflare R2. " +
+          String(error?.message||error||"Échec R2.")
+        );
+      }
+      setProgress(9,"R2 indisponible — secours Supabase…");
+    }
+  }
+
   if(file.size>500*1024*1024){
-    throw new Error("Le fichier dépasse la limite de 500 Mo.");
+    throw new Error(
+      "Ce fichier dépasse 500 Mo. Cloudflare R2 doit être configuré pour ce gros APK."
+    );
   }
 
   const useResumable=file.size>6*1024*1024&&window.tus?.Upload;
@@ -135,13 +158,13 @@ async function uploadFile(bucket,path,file,onProgress=()=>{}){
       try{
         setProgress(
           Math.max(1,Math.round((index/endpoints.length)*8)),
-          index===0?"Connexion au stockage…":"Nouvelle tentative d’envoi…"
+          index===0?"Connexion au stockage Supabase…":"Nouvelle tentative Supabase…"
         );
         await tusStorageUpload(bucket,path,file,contentType,endpoints[index],onProgress);
 
         if(await verifyStoredFile(bucket,path)){
           onProgress(100);
-          return path;
+          return "supabase";
         }
         throw new Error("Envoi terminé mais fichier non vérifiable.");
       }catch(error){
@@ -150,7 +173,7 @@ async function uploadFile(bucket,path,file,onProgress=()=>{}){
 
         if(await verifyStoredFile(bucket,path)){
           onProgress(100);
-          return path;
+          return "supabase";
         }
 
         if(!isNetworkError(error)&&index===0){
@@ -164,14 +187,14 @@ async function uploadFile(bucket,path,file,onProgress=()=>{}){
   try{
     setProgress(10,"Envoi sécurisé via Supabase…");
     await standardStorageUpload(bucket,path,file,contentType,onProgress);
-    return path;
+    return "supabase";
   }catch(error){
     lastError=error;
     console.warn("Échec upload standard",error);
 
     if(await verifyStoredFile(bucket,path)){
       onProgress(100);
-      return path;
+      return "supabase";
     }
 
     if(isNetworkError(error)){
@@ -179,12 +202,12 @@ async function uploadFile(bucket,path,file,onProgress=()=>{}){
       try{
         setProgress(12,"Connexion instable — nouvelle tentative…");
         await standardStorageUpload(bucket,path,file,contentType,onProgress);
-        return path;
+        return "supabase";
       }catch(secondError){
         lastError=secondError;
         if(await verifyStoredFile(bucket,path)){
           onProgress(100);
-          return path;
+          return "supabase";
         }
       }
     }
@@ -193,7 +216,7 @@ async function uploadFile(bucket,path,file,onProgress=()=>{}){
   const detail=String(lastError?.message||lastError||"Erreur inconnue");
   if(isNetworkError(lastError)){
     throw new Error(
-      "Impossible de joindre le stockage Supabase. Vérifie la connexion Internet puis réessaie. " +
+      "Impossible de joindre le stockage. Vérifie la connexion Internet puis réessaie. " +
       "La publication n’a pas été conservée. Détail : " + detail
     );
   }
@@ -201,18 +224,33 @@ async function uploadFile(bucket,path,file,onProgress=()=>{}){
 }
 
 async function cleanupUploadedObjects(objects){
-  const byBucket=new Map();
-  for(const item of objects){
+  const supabaseByBucket=new Map();
+  const r2Objects=[];
+
+  for(const item of objects||[]){
     if(!item?.bucket||!item?.path)continue;
-    if(!byBucket.has(item.bucket))byBucket.set(item.bucket,[]);
-    byBucket.get(item.bucket).push(item.path);
+    if(item.provider==="r2"){
+      r2Objects.push(item);
+    }else{
+      if(!supabaseByBucket.has(item.bucket))supabaseByBucket.set(item.bucket,[]);
+      supabaseByBucket.get(item.bucket).push(item.path);
+    }
   }
-  for(const [bucket,paths] of byBucket){
+
+  for(const [bucket,paths] of supabaseByBucket){
     try{
-      const {error}=await sb.storage.from(bucket).remove(paths);
-      if(error)console.warn("Nettoyage Storage",bucket,error.message);
+      const {error}=await sb.storage.from(bucket).remove([...new Set(paths)]);
+      if(error)console.warn("Nettoyage Supabase",bucket,error.message);
     }catch(error){
-      console.warn("Nettoyage Storage",bucket,error);
+      console.warn("Nettoyage Supabase",bucket,error);
+    }
+  }
+
+  for(const item of r2Objects){
+    try{
+      await window.MadaR2?.remove?.(item.bucket,item.path);
+    }catch(error){
+      console.warn("Nettoyage R2",item.bucket,item.path,error);
     }
   }
 }
@@ -268,7 +306,7 @@ function gate(title,textValue,ok){
 
 async function loadApps(){
   const {data,error}=await sb.from("applications")
-    .select("id,slug,name,version,category,description,status,visibility,review_note,created_at,updated_at,app_versions(id,version,status,review_note,created_at,apk_path)")
+    .select("id,slug,name,version,category,description,status,visibility,review_note,created_at,updated_at,apk_storage_provider,icon_storage_provider,app_versions(id,version,status,review_note,created_at,apk_path,storage_provider)")
     .eq("created_by",currentUser.id)
     .order("updated_at",{ascending:false});
 

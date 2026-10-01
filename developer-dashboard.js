@@ -268,7 +268,7 @@ function gate(title,textValue,ok){
 
 async function loadApps(){
   const {data,error}=await sb.from("applications")
-    .select("id,slug,name,version,category,description,status,visibility,review_note,created_at,updated_at,app_versions(id,version,status,review_note,created_at)")
+    .select("id,slug,name,version,category,description,status,visibility,review_note,created_at,updated_at,app_versions(id,version,status,review_note,created_at,apk_path)")
     .eq("created_by",currentUser.id)
     .order("updated_at",{ascending:false});
 
@@ -298,6 +298,7 @@ function renderApps(){
   $("developerAppsList").innerHTML=myApps.length
     ? myApps.map(app=>{
         const pending=(app.app_versions||[]).filter(version=>version.status==="pending");
+        const rejected=(app.app_versions||[]).filter(version=>version.status==="rejected");
         return `<article class="dev-app-row">
           <div class="dev-app-main">
             <h4>${esc(app.name)}</h4>
@@ -305,11 +306,14 @@ function renderApps(){
             <div class="dev-statuses">
               <span class="dev-status ${esc(app.status)}">${esc(labelStatus(app.status))}</span>
               ${pending.map(version=>`<span class="dev-status pending">v${esc(version.version)} en validation</span>`).join("")}
+              ${rejected.map(version=>`<span class="dev-status rejected">v${esc(version.version)} refusée</span>`).join("")}
             </div>
             ${app.review_note?`<p class="form-message error">Motif : ${esc(app.review_note)}</p>`:""}
+            ${rejected.map(version=>`<p class="form-message error">v${esc(version.version)} : ${esc(version.review_note||"mise à jour refusée")}</p>`).join("")}
           </div>
           <div class="dev-actions">
             ${app.status==="published"?`<button class="secondary-btn" data-new-version="${esc(app.id)}">＋ Nouvelle version</button>`:""}
+            ${rejected.map(version=>`<button class="secondary-btn" data-retry-version="${esc(version.id)}" data-app-id="${esc(app.id)}">Corriger v${esc(version.version)}</button>`).join("")}
             ${app.status==="rejected"?`<button class="primary-btn" data-resubmit="${esc(app.id)}">Renvoyer en validation</button>`:""}
           </div>
         </article>`;
@@ -322,6 +326,8 @@ function openCreate(){
   form.reset();
   $("devMode").value="create";
   $("devAppId").value="";
+  $("devVersionId").value="";
+  $("devVersion").readOnly=false;
   $("devFormEyebrow").textContent="NOUVELLE APPLICATION";
   $("devFormTitle").textContent="Soumettre une application";
   $("devMetadataFields").classList.remove("hidden");
@@ -333,19 +339,24 @@ function openCreate(){
   $("devName").focus();
 }
 
-function openVersion(app){
+function openVersion(app,rejectedVersion=null){
   const form=$("developerForm");
   form.reset();
-  $("devMode").value="version";
+  $("devMode").value=rejectedVersion?"version-retry":"version";
   $("devAppId").value=app.id;
-  $("devFormEyebrow").textContent="MISE À JOUR";
-  $("devFormTitle").textContent=`Nouvelle version — ${app.name}`;
+  $("devVersionId").value=rejectedVersion?.id||"";
+  $("devVersion").readOnly=!!rejectedVersion;
+  $("devFormEyebrow").textContent=rejectedVersion?"CORRECTION DE VERSION":"MISE À JOUR";
+  $("devFormTitle").textContent=rejectedVersion
+    ? `Corriger v${rejectedVersion.version} — ${app.name}`
+    : `Nouvelle version — ${app.name}`;
   $("devMetadataFields").classList.add("hidden");
   $("devMediaFields").classList.add("hidden");
   $("devApk").required=true;
   $("devMessage").textContent="";
   $("devProgressWrap").classList.add("hidden");
   $("developerFormSection").classList.remove("hidden");
+  if(rejectedVersion)$("devVersion").value=rejectedVersion.version;
   $("devVersion").focus();
 }
 
@@ -368,6 +379,14 @@ $("devApk").addEventListener("change",event=>{
 });
 
 $("developerAppsList").addEventListener("click",async event=>{
+  const retryButton=event.target.closest("[data-retry-version]");
+  if(retryButton){
+    const app=myApps.find(item=>item.id===retryButton.dataset.appId);
+    const rejected=app?.app_versions?.find(item=>item.id===retryButton.dataset.retryVersion);
+    if(app&&rejected)openVersion(app,rejected);
+    return;
+  }
+
   const versionButton=event.target.closest("[data-new-version]");
   if(versionButton){
     const app=myApps.find(item=>item.id===versionButton.dataset.newVersion);
@@ -493,6 +512,10 @@ $("developerForm").addEventListener("submit",async event=>{
       }catch(error){
         await sb.from("app_versions").delete().eq("app_id",appId).eq("created_by",currentUser.id);
         await sb.from("app_screenshots").delete().eq("app_id",appId).eq("created_by",currentUser.id);
+        await sb.from("applications")
+          .update({apk_path:null,icon_path:null})
+          .eq("id",appId)
+          .eq("created_by",currentUser.id);
         await cleanupUploadedObjects(uploaded);
         await sb.from("applications").delete().eq("id",appId).eq("created_by",currentUser.id);
         throw error;
@@ -504,19 +527,47 @@ $("developerForm").addEventListener("submit",async event=>{
         throw new Error("Une version est déjà en attente de validation.");
       }
 
+      const retry=mode==="version-retry";
+      const rejected=retry
+        ? (app.app_versions||[]).find(item=>item.id===$("devVersionId").value&&item.status==="rejected")
+        : null;
+
+      if(retry&&!rejected){
+        throw new Error("La version refusée n’est plus disponible. Actualise la page.");
+      }
+
+      if(!retry&&(app.app_versions||[]).some(item=>item.version===version)){
+        throw new Error("Cette version existe déjà. Si elle a été refusée, utilise le bouton « Corriger ».");
+      }
+
       const path=`${app.id}/versions/${slugify(version)||"version"}-${Date.now()}/${safeFileName(apk.name)}`;
       const uploaded=[{bucket:"app-apk",path}];
+
       try{
         await uploadFile("app-apk",path,apk,progress=>setProgress(5+progress*.90,`Envoi APK… ${progress}%`));
-        const {error}=await sb.from("app_versions").insert({
-          app_id:app.id,
-          version,
-          apk_path:path,
-          changes,
-          status:"pending",
-          created_by:currentUser.id
-        });
-        if(error)throw error;
+
+        if(retry){
+          const {data,error}=await sb.rpc("developer_resubmit_version",{
+            target_version:rejected.id,
+            new_apk_path:path,
+            new_changes:changes
+          });
+          if(error)throw error;
+
+          if(data?.replacedApkPath&&data.replacedApkPath!==path){
+            await cleanupUploadedObjects([{bucket:"app-apk",path:data.replacedApkPath}]);
+          }
+        }else{
+          const {error}=await sb.from("app_versions").insert({
+            app_id:app.id,
+            version,
+            apk_path:path,
+            changes,
+            status:"pending",
+            created_by:currentUser.id
+          });
+          if(error)throw error;
+        }
       }catch(error){
         await cleanupUploadedObjects(uploaded);
         throw error;

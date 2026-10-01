@@ -66,9 +66,11 @@ Les APK publics peuvent être téléchargés sans connexion. Les fichiers privé
 
 ## Gros fichiers
 
-Le chemin R2 est prévu pour des fichiers jusqu'à 5 Go avec l'upload PUT actuel.
+À partir d'environ **100 Mo**, Mada Apps bascule automatiquement sur l'upload multipart R2.
 
-Pour des APK/fichiers au-delà ou pour une reprise fine de très gros uploads, une phase ultérieure pourra utiliser le multipart R2.
+Le fichier est découpé en blocs. Si un bloc échoue, ce bloc est réessayé sans recommencer tout le fichier.
+
+R2 permet jusqu'à 10 000 parties et des objets allant jusqu'à environ 5 TiB. Le multipart est donc adapté aux très gros APK, archives et futurs contenus lourds.
 
 ## Migration des anciens fichiers
 

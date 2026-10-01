@@ -1,10 +1,10 @@
-const CACHE_NAME="mada-apps-v15.8";
+const CACHE_NAME="mada-apps-v15.9";
 const CORE_ASSETS=[
   "./",
   "./index.html",
-  "./style.css?v=15.8",
-  "./script.js?v=15.8",
-  "./manifest.webmanifest?v=15.8"
+  "./style.css?v=15.9",
+  "./script.js?v=15.9","./storage-provider.js?v=15.9",
+  "./manifest.webmanifest?v=15.9"
 ];
 
 self.addEventListener("install",event=>{

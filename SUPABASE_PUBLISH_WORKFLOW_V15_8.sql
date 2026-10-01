@@ -390,6 +390,11 @@ revoke all on function public.admin_publish_version(uuid,text,text,text[],text,j
 revoke all on function public.admin_edit_application(uuid,text,text,text,text,text,text,jsonb) from public;
 revoke all on function public.developer_resubmit_version(uuid,text,text[]) from public;
 
+revoke all on function public.admin_publish_application(jsonb,jsonb) from anon;
+revoke all on function public.admin_publish_version(uuid,text,text,text[],text,jsonb) from anon;
+revoke all on function public.admin_edit_application(uuid,text,text,text,text,text,text,jsonb) from anon;
+revoke all on function public.developer_resubmit_version(uuid,text,text[]) from anon;
+
 grant execute on function public.admin_publish_application(jsonb,jsonb) to authenticated;
 grant execute on function public.admin_publish_version(uuid,text,text,text[],text,jsonb) to authenticated;
 grant execute on function public.admin_edit_application(uuid,text,text,text,text,text,text,jsonb) to authenticated;

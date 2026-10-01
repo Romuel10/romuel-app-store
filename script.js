@@ -163,12 +163,41 @@ async function signedUrlMap(bucket,paths,expires=3600){
   return map;
 }
 
-async function storageFileSize(bucket,path){
+async function assetUrlMap(bucket,items,expires=3600){
+  const rows=(items||[]).filter(item=>item?.path);
+  const map=new Map();
+  const supabasePaths=rows
+    .filter(item=>(item.provider||"supabase")==="supabase")
+    .map(item=>item.path);
+  const r2Paths=rows
+    .filter(item=>item.provider==="r2")
+    .map(item=>item.path);
+
+  const [supabaseMap,r2Map]=await Promise.all([
+    signedUrlMap(bucket,supabasePaths,expires),
+    window.MadaR2?.signedUrls
+      ? window.MadaR2.signedUrls(bucket,r2Paths,expires).catch(error=>{
+          console.warn("URLs R2:",error);
+          return new Map();
+        })
+      : Promise.resolve(new Map())
+  ]);
+
+  for(const [path,url] of supabaseMap)map.set(path,url);
+  for(const [path,url] of r2Map)map.set(path,url);
+  return map;
+}
+
+async function storageFileSize(bucket,path,provider="supabase"){
   if(!bucket||!path)return 0;
-  const cacheKey=`${bucket}:${path}`;
+  const cacheKey=`${provider}:${bucket}:${path}`;
   if(storageSizeCache.has(cacheKey))return storageSizeCache.get(cacheKey);
 
   const request=(async()=>{
+    if(provider==="r2"&&window.MadaR2?.size){
+      return Number(await window.MadaR2.size(bucket,path)||0);
+    }
+
     const cut=path.lastIndexOf("/");
     const folder=cut>=0?path.slice(0,cut):"";
     const fileName=cut>=0?path.slice(cut+1):path;
@@ -192,8 +221,12 @@ async function hydratePublisherFileSizes(rows,bucket="app-apk"){
   await Promise.all((rows||[]).map(async row=>{
     const versions=row.app_versions||[];
     const sizes=await Promise.all([
-      storageFileSize(bucket,row.apk_path),
-      ...versions.map(version=>storageFileSize(bucket,version.apk_path))
+      storageFileSize(bucket,row.apk_path,row.apk_storage_provider||"supabase"),
+      ...versions.map(version=>storageFileSize(
+        bucket,
+        version.apk_path,
+        version.storage_provider||"supabase"
+      ))
     ]);
     row.apk_size_bytes=sizes[0]||0;
     versions.forEach((version,index)=>{version.apk_size_bytes=sizes[index+1]||0});
@@ -218,6 +251,7 @@ async function restoreScreenshotRowsFromStorage(rows){
       .map((file,index)=>({
         id:null,
         storage_path:`${folder}/${file.name}`,
+        storage_provider:"supabase",
         alt_text:`Capture de ${row.name}`,
         sort_order:index
       }));
@@ -230,6 +264,7 @@ function normalizePublisherApp(row,iconUrls,screenUrls){
     .sort((a,b)=>(a.sort_order||0)-(b.sort_order||0))
     .map(x=>screenUrls.get(x.storage_path))
     .filter(Boolean);
+
   const versions=[...(row.app_versions||[])]
     .sort((a,b)=>new Date(b.published_at)-new Date(a.published_at))
     .map(v=>({
@@ -237,6 +272,7 @@ function normalizePublisherApp(row,iconUrls,screenUrls){
       version:v.version,
       apkPath:v.apk_path,
       apkBucket:"app-apk",
+      apkProvider:v.storage_provider||"supabase",
       sizeBytes:Number(v.apk_size_bytes||0),
       source:"supabase",
       published:v.published_at,
@@ -248,6 +284,7 @@ function normalizePublisherApp(row,iconUrls,screenUrls){
       version:row.version,
       apkPath:row.apk_path,
       apkBucket:"app-apk",
+      apkProvider:row.apk_storage_provider||"supabase",
       sizeBytes:Number(row.apk_size_bytes||0),
       source:"supabase",
       published:row.updated_at||row.published_at,
@@ -269,10 +306,12 @@ function normalizePublisherApp(row,iconUrls,screenUrls){
     apk:"#",
     apkPath:row.apk_path,
     apkBucket:"app-apk",
+    apkProvider:row.apk_storage_provider||"supabase",
     sizeBytes:Number(row.apk_size_bytes||0),
     downloads:Number(row.download_count||0),
     icon:iconUrls.get(row.icon_path)||"",
     iconPath:row.icon_path||null,
+    iconProvider:row.icon_storage_provider||"supabase",
     screenshots,
     published:row.updated_at||row.published_at||row.created_at,
     versions
@@ -281,7 +320,7 @@ function normalizePublisherApp(row,iconUrls,screenUrls){
 
 async function fetchPublisherCatalog(visibility){
   const {data,error}=await sb.from("applications")
-    .select("id,slug,name,version,category,description,changes,visibility,status,icon_path,apk_path,download_count,published_at,updated_at,created_at,app_versions(id,version,apk_path,changes,published_at),app_screenshots(id,storage_path,alt_text,sort_order)")
+    .select("id,slug,name,version,category,description,changes,visibility,status,icon_path,icon_storage_provider,apk_path,apk_storage_provider,download_count,published_at,updated_at,created_at,app_versions(id,version,apk_path,storage_provider,changes,published_at),app_screenshots(id,storage_path,storage_provider,alt_text,sort_order)")
     .eq("visibility",visibility)
     .eq("status","published")
     .order("updated_at",{ascending:false});
@@ -300,9 +339,25 @@ async function fetchPublisherCatalog(visibility){
     restoreScreenshotRowsFromStorage(rows),
     hydratePublisherFileSizes(rows)
   ]);
+
   const assetLifetime=visibility==="gendarmerie"?300:3600;
-  const iconUrls=await signedUrlMap("app-icons",rows.map(x=>x.icon_path),assetLifetime);
-  const screenUrls=await signedUrlMap("app-screenshots",rows.flatMap(x=>(x.app_screenshots||[]).map(s=>s.storage_path)),assetLifetime);
+  const iconUrls=await assetUrlMap(
+    "app-icons",
+    rows.map(x=>({
+      path:x.icon_path,
+      provider:x.icon_storage_provider||"supabase"
+    })),
+    assetLifetime
+  );
+  const screenUrls=await assetUrlMap(
+    "app-screenshots",
+    rows.flatMap(x=>(x.app_screenshots||[]).map(s=>({
+      path:s.storage_path,
+      provider:s.storage_provider||"supabase"
+    }))),
+    assetLifetime
+  );
+
   return rows.map(row=>normalizePublisherApp(row,iconUrls,screenUrls));
 }
 

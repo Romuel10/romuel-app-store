@@ -61,3 +61,8 @@ La V15.1 consolide la sécurité sans repartir de zéro :
 Pour une installation ou remise à niveau, exécuter **`SUPABASE_SETUP_COMPLETE_V15.sql`**. Les fichiers `SUPABASE_SECURITY_CLEANUP_V15_1.sql` et `SUPABASE_RPC_HARDENING_V15_1_1.sql` restent disponibles comme migrations séparées et traçables.
 
 > Supabase peut encore recommander **Leaked Password Protection** dans Auth. Ce réglage est un paramètre de projet Supabase et doit être activé dans les réglages Auth lorsque le plan utilisé le permet.
+
+
+## Stockage hybride V15.9
+
+Mada Apps peut utiliser **Cloudflare R2** pour les APK, logos et captures, tout en conservant Supabase pour l'authentification, la base et les permissions. Les fichiers historiques Supabase restent compatibles. Voir `R2_SETUP.md`.

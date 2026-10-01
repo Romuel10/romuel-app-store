@@ -2770,13 +2770,13 @@ $("publisherForm").addEventListener("submit",async e=>{
       if(duplicate)throw new Error("Cet identifiant est déjà utilisé par une autre application.");
 
       const apkPath=`${appId}/versions/${slugify(version)||"version"}-${Date.now()}/${safeFileName(apk.name)}`;
-      uploadedObjects.push({bucket:"app-apk",path:apkPath});
-      await uploadPublisherFile(
+      const apkProvider=await uploadPublisherFile(
         "app-apk",
         apkPath,
         apk,
         p=>setPublisherProgress(5+p*.65,`Envoi de l’APK… ${p}%`)
       );
+      uploadedObjects.push({bucket:"app-apk",path:apkPath,provider:apkProvider});
 
       const media=await uploadPublisherMedia(appId,icon,screens,72,uploadedObjects);
       const payload={
@@ -2790,12 +2790,14 @@ $("publisherForm").addEventListener("submit",async e=>{
         visibility:$("publisherVisibility").value,
         status:$("publisherStatus").value,
         icon_path:media.iconPath,
-        apk_path:apkPath
+        icon_storage_provider:media.iconProvider,
+        apk_path:apkPath,
+        apk_storage_provider:apkProvider
       };
 
-      const {error}=await sb.rpc("admin_publish_application",{
+      const {error}=await sb.rpc("admin_publish_application_v2",{
         p_payload:payload,
-        p_screens:publisherScreenPayload(media.screenPaths,0)
+        p_screens:publisherScreenPayload(media.screenFiles,0)
       });
       if(error)throw error;
       committed=true;
@@ -2803,16 +2805,21 @@ $("publisherForm").addEventListener("submit",async e=>{
       if(!current)throw new Error("Application introuvable. Actualise le tableau de bord.");
 
       const media=await uploadPublisherMedia(appId,icon,screens,20,uploadedObjects);
-      const {data,error}=await sb.rpc("admin_edit_application",{
-        target_app:appId,
-        new_name:$("publisherName").value.trim(),
-        new_category:$("publisherCategory").value.trim()||"Autres",
-        new_description:$("publisherDescription").value.trim(),
-        new_visibility:$("publisherVisibility").value,
-        new_status:$("publisherStatus").value,
-        new_icon_path:media.iconPath,
-        new_screens:publisherScreenPayload(
-          media.screenPaths,
+      const payload={
+        app_id:appId,
+        name:$("publisherName").value.trim(),
+        category:$("publisherCategory").value.trim()||"Autres",
+        description:$("publisherDescription").value.trim(),
+        visibility:$("publisherVisibility").value,
+        status:$("publisherStatus").value,
+        icon_path:media.iconPath,
+        icon_storage_provider:media.iconProvider
+      };
+
+      const {data,error}=await sb.rpc("admin_edit_application_v2",{
+        p_payload:payload,
+        p_screens:publisherScreenPayload(
+          media.screenFiles,
           nextPublisherScreenOrder(current)
         )
       });
@@ -2820,29 +2827,39 @@ $("publisherForm").addEventListener("submit",async e=>{
       committed=true;
 
       if(data?.replacedIconPath){
-        await cleanupPublisherObjects([{bucket:"app-icons",path:data.replacedIconPath}]);
+        await cleanupPublisherObjects([{
+          bucket:"app-icons",
+          path:data.replacedIconPath,
+          provider:data.replacedIconProvider||"supabase"
+        }]);
       }
     }else{
       if(!current)throw new Error("Application introuvable. Actualise le tableau de bord.");
 
       const apkPath=`${appId}/versions/${slugify(version)||"version"}-${Date.now()}/${safeFileName(apk.name)}`;
-      uploadedObjects.push({bucket:"app-apk",path:apkPath});
-      await uploadPublisherFile(
+      const apkProvider=await uploadPublisherFile(
         "app-apk",
         apkPath,
         apk,
         p=>setPublisherProgress(5+p*.65,`Envoi de l’APK… ${p}%`)
       );
+      uploadedObjects.push({bucket:"app-apk",path:apkPath,provider:apkProvider});
 
       const media=await uploadPublisherMedia(appId,icon,screens,72,uploadedObjects);
-      const {data,error}=await sb.rpc("admin_publish_version",{
-        target_app:appId,
-        new_version:version,
-        new_apk_path:apkPath,
-        new_changes:changes,
-        new_icon_path:media.iconPath,
-        new_screens:publisherScreenPayload(
-          media.screenPaths,
+      const payload={
+        app_id:appId,
+        version,
+        apk_path:apkPath,
+        storage_provider:apkProvider,
+        changes,
+        icon_path:media.iconPath,
+        icon_storage_provider:media.iconProvider
+      };
+
+      const {data,error}=await sb.rpc("admin_publish_version_v2",{
+        p_payload:payload,
+        p_screens:publisherScreenPayload(
+          media.screenFiles,
           nextPublisherScreenOrder(current)
         )
       });
@@ -2850,8 +2867,16 @@ $("publisherForm").addEventListener("submit",async e=>{
       committed=true;
 
       const obsolete=[];
-      if(data?.replacedApkPath)obsolete.push({bucket:"app-apk",path:data.replacedApkPath});
-      if(data?.replacedIconPath)obsolete.push({bucket:"app-icons",path:data.replacedIconPath});
+      if(data?.replacedApkPath)obsolete.push({
+        bucket:"app-apk",
+        path:data.replacedApkPath,
+        provider:data.replacedApkProvider||"supabase"
+      });
+      if(data?.replacedIconPath)obsolete.push({
+        bucket:"app-icons",
+        path:data.replacedIconPath,
+        provider:data.replacedIconProvider||"supabase"
+      });
       if(obsolete.length)await cleanupPublisherObjects(obsolete);
     }
 

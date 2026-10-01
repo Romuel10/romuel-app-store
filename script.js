@@ -2506,24 +2506,72 @@ function validatePublisherFiles(icon,screens){
   }
 }
 
-async function uploadPublisherMedia(appId,icon,screens,progressStart=75){
+async function uploadPublisherMedia(appId,icon,screens,progressStart=75,uploadedObjects=[]){
   let iconPath=null;
   const screenPaths=[];
   const total=(icon?1:0)+screens.length;
   let done=0;
+
   if(icon){
     iconPath=`${appId}/icon/${Date.now()}-${safeFileName(icon.name)}`;
-    await uploadPublisherFile("app-icons",iconPath,icon,p=>setPublisherProgress(progressStart+((done+p/100)/Math.max(total,1))*(98-progressStart),"Envoi du logo…"));
+    uploadedObjects.push({bucket:"app-icons",path:iconPath});
+    await uploadPublisherFile(
+      "app-icons",
+      iconPath,
+      icon,
+      p=>setPublisherProgress(
+        progressStart+((done+p/100)/Math.max(total,1))*(98-progressStart),
+        "Envoi du logo…"
+      )
+    );
     done++;
   }
+
   for(let i=0;i<screens.length;i++){
     const file=screens[i];
     const path=`${appId}/screens/${Date.now()}-${i}-${safeFileName(file.name)}`;
-    await uploadPublisherFile("app-screenshots",path,file,p=>setPublisherProgress(progressStart+((done+p/100)/Math.max(total,1))*(98-progressStart),`Envoi de la capture ${i+1}/${screens.length}…`));
+    uploadedObjects.push({bucket:"app-screenshots",path});
+    await uploadPublisherFile(
+      "app-screenshots",
+      path,
+      file,
+      p=>setPublisherProgress(
+        progressStart+((done+p/100)/Math.max(total,1))*(98-progressStart),
+        `Envoi de la capture ${i+1}/${screens.length}…`
+      )
+    );
     screenPaths.push(path);
     done++;
   }
+
   return {iconPath,screenPaths};
+}
+
+async function cleanupPublisherObjects(objects){
+  const byBucket=new Map();
+  for(const item of objects||[]){
+    if(!item?.bucket||!item?.path)continue;
+    if(!byBucket.has(item.bucket))byBucket.set(item.bucket,[]);
+    byBucket.get(item.bucket).push(item.path);
+  }
+
+  for(const [bucket,paths] of byBucket){
+    try{
+      const unique=[...new Set(paths)];
+      const {error}=await sb.storage.from(bucket).remove(unique);
+      if(error)console.warn("Nettoyage publication",bucket,error.message);
+    }catch(error){
+      console.warn("Nettoyage publication",bucket,error);
+    }
+  }
+}
+
+function publisherScreenPayload(paths,startOrder=0){
+  return (paths||[]).map((storage_path,index)=>({
+    storage_path,
+    alt_text:`Capture ${startOrder+index+1}`,
+    sort_order:startOrder+index
+  }));
 }
 
 async function insertPublisherScreens(appId,paths,startOrder=0){
@@ -2554,7 +2602,7 @@ async function refreshAfterPublisherChange(){
 $("publisherForm").addEventListener("submit",async e=>{
   e.preventDefault();
   if(!isAdmin||isPublisherSubmitting)return;
-  const form=e.currentTarget;
+
   const mode=$("publisherMode").value;
   const appId=mode==="create"?makeId():$("publisherAppId").value;
   const current=mode==="create"?null:publisherRowById(appId);
@@ -2564,11 +2612,32 @@ $("publisherForm").addEventListener("submit",async e=>{
   const apk=$("publisherApk").files?.[0]||null;
   const version=$("publisherVersion").value.trim();
   const changes=linesToArray($("publisherChanges").value);
-  try{validatePublisherFiles(icon,screens)}catch(err){msg.className="form-message error";msg.textContent=err.message;return}
+  const uploadedObjects=[];
+  let committed=false;
 
-  if((mode==="create"||mode==="update")&&!apk){msg.className="form-message error";msg.textContent="Choisis le fichier APK.";return}
-  if((mode==="create"||mode==="update")&&!version){msg.className="form-message error";msg.textContent="Indique le numéro de version.";return}
-  if(apk&&!/\.apk$/i.test(apk.name)){msg.className="form-message error";msg.textContent="Le fichier choisi doit être un APK.";return}
+  try{
+    validatePublisherFiles(icon,screens);
+  }catch(err){
+    msg.className="form-message error";
+    msg.textContent=err.message;
+    return;
+  }
+
+  if((mode==="create"||mode==="update")&&!apk){
+    msg.className="form-message error";
+    msg.textContent="Choisis le fichier APK.";
+    return;
+  }
+  if((mode==="create"||mode==="update")&&!version){
+    msg.className="form-message error";
+    msg.textContent="Indique le numéro de version.";
+    return;
+  }
+  if(apk&&!/\.apk$/i.test(apk.name)){
+    msg.className="form-message error";
+    msg.textContent="Le fichier choisi doit être un APK.";
+    return;
+  }
 
   isPublisherSubmitting=true;
   $("publisherSubmitBtn").disabled=true;
@@ -2582,69 +2651,122 @@ $("publisherForm").addEventListener("submit",async e=>{
       const name=$("publisherName").value.trim();
       const slug=slugify($("publisherSlug").value.trim());
       if(!name||!slug)throw new Error("Le nom et l’identifiant sont obligatoires.");
-      const {data:duplicate,error:duplicateError}=await sb.from("applications").select("id").eq("slug",slug).maybeSingle();
+
+      const {data:duplicate,error:duplicateError}=await sb
+        .from("applications")
+        .select("id")
+        .eq("slug",slug)
+        .maybeSingle();
       if(duplicateError)throw duplicateError;
       if(duplicate)throw new Error("Cet identifiant est déjà utilisé par une autre application.");
 
-      const stamp=Date.now();
-      const apkPath=`${appId}/versions/${slugify(version)||"version"}-${stamp}/${safeFileName(apk.name)}`;
-      await uploadPublisherFile("app-apk",apkPath,apk,p=>setPublisherProgress(5+p*.65,`Envoi de l’APK… ${p}%`));
-      const media=await uploadPublisherMedia(appId,icon,screens,72);
-      const status=$("publisherStatus").value;
-      const now=new Date().toISOString();
-      const row={
-        id:appId,slug,name,version,category:$("publisherCategory").value.trim()||"Autres",
-        description:$("publisherDescription").value.trim(),changes,visibility:$("publisherVisibility").value,
-        status,icon_path:media.iconPath,apk_path:apkPath,created_by:currentUser.id,
-        published_at:status==="published"?now:null
+      const apkPath=`${appId}/versions/${slugify(version)||"version"}-${Date.now()}/${safeFileName(apk.name)}`;
+      uploadedObjects.push({bucket:"app-apk",path:apkPath});
+      await uploadPublisherFile(
+        "app-apk",
+        apkPath,
+        apk,
+        p=>setPublisherProgress(5+p*.65,`Envoi de l’APK… ${p}%`)
+      );
+
+      const media=await uploadPublisherMedia(appId,icon,screens,72,uploadedObjects);
+      const payload={
+        id:appId,
+        slug,
+        name,
+        version,
+        category:$("publisherCategory").value.trim()||"Autres",
+        description:$("publisherDescription").value.trim(),
+        changes,
+        visibility:$("publisherVisibility").value,
+        status:$("publisherStatus").value,
+        icon_path:media.iconPath,
+        apk_path:apkPath
       };
-      const {error:appError}=await sb.from("applications").insert(row);
-      if(appError)throw appError;
-      const {error:versionError}=await sb.from("app_versions").insert({app_id:appId,version,apk_path:apkPath,changes,published_at:now,created_by:currentUser.id});
-      if(versionError)throw versionError;
-      await insertPublisherScreens(appId,media.screenPaths,0);
+
+      const {error}=await sb.rpc("admin_publish_application",{
+        p_payload:payload,
+        p_screens:publisherScreenPayload(media.screenPaths,0)
+      });
+      if(error)throw error;
+      committed=true;
     }else if(mode==="edit"){
       if(!current)throw new Error("Application introuvable. Actualise le tableau de bord.");
-      const media=await uploadPublisherMedia(appId,icon,screens,20);
-      const status=$("publisherStatus").value;
-      const updates={
-        name:$("publisherName").value.trim(),category:$("publisherCategory").value.trim()||"Autres",
-        description:$("publisherDescription").value.trim(),visibility:$("publisherVisibility").value,status
-      };
-      if(media.iconPath)updates.icon_path=media.iconPath;
-      if(status==="published"&&!current.published_at)updates.published_at=new Date().toISOString();
-      const {error}=await sb.from("applications").update(updates).eq("id",appId);
+
+      const media=await uploadPublisherMedia(appId,icon,screens,20,uploadedObjects);
+      const {data,error}=await sb.rpc("admin_edit_application",{
+        target_app:appId,
+        new_name:$("publisherName").value.trim(),
+        new_category:$("publisherCategory").value.trim()||"Autres",
+        new_description:$("publisherDescription").value.trim(),
+        new_visibility:$("publisherVisibility").value,
+        new_status:$("publisherStatus").value,
+        new_icon_path:media.iconPath,
+        new_screens:publisherScreenPayload(
+          media.screenPaths,
+          nextPublisherScreenOrder(current)
+        )
+      });
       if(error)throw error;
-      await insertPublisherScreens(appId,media.screenPaths,nextPublisherScreenOrder(current));
+      committed=true;
+
+      if(data?.replacedIconPath){
+        await cleanupPublisherObjects([{bucket:"app-icons",path:data.replacedIconPath}]);
+      }
     }else{
       if(!current)throw new Error("Application introuvable. Actualise le tableau de bord.");
-      const existingVersion=(current.app_versions||[]).find(v=>v.version===version);
-      const stamp=Date.now();
-      const apkPath=`${appId}/versions/${slugify(version)||"version"}-${stamp}/${safeFileName(apk.name)}`;
-      await uploadPublisherFile("app-apk",apkPath,apk,p=>setPublisherProgress(5+p*.65,`Envoi de l’APK… ${p}%`));
-      const media=await uploadPublisherMedia(appId,icon,screens,72);
-      const now=new Date().toISOString();
-      const versionRequest=existingVersion
-        ? sb.from("app_versions").update({apk_path:apkPath,changes,published_at:now}).eq("id",existingVersion.id)
-        : sb.from("app_versions").insert({app_id:appId,version,apk_path:apkPath,changes,published_at:now,created_by:currentUser.id});
-      const {error:versionError}=await versionRequest;
-      if(versionError)throw versionError;
-      const updates={version,apk_path:apkPath,changes};
-      if(media.iconPath)updates.icon_path=media.iconPath;
-      const {error:appError}=await sb.from("applications").update(updates).eq("id",appId);
-      if(appError)throw appError;
-      await insertPublisherScreens(appId,media.screenPaths,nextPublisherScreenOrder(current));
+
+      const apkPath=`${appId}/versions/${slugify(version)||"version"}-${Date.now()}/${safeFileName(apk.name)}`;
+      uploadedObjects.push({bucket:"app-apk",path:apkPath});
+      await uploadPublisherFile(
+        "app-apk",
+        apkPath,
+        apk,
+        p=>setPublisherProgress(5+p*.65,`Envoi de l’APK… ${p}%`)
+      );
+
+      const media=await uploadPublisherMedia(appId,icon,screens,72,uploadedObjects);
+      const {data,error}=await sb.rpc("admin_publish_version",{
+        target_app:appId,
+        new_version:version,
+        new_apk_path:apkPath,
+        new_changes:changes,
+        new_icon_path:media.iconPath,
+        new_screens:publisherScreenPayload(
+          media.screenPaths,
+          nextPublisherScreenOrder(current)
+        )
+      });
+      if(error)throw error;
+      committed=true;
+
+      const obsolete=[];
+      if(data?.replacedApkPath)obsolete.push({bucket:"app-apk",path:data.replacedApkPath});
+      if(data?.replacedIconPath)obsolete.push({bucket:"app-icons",path:data.replacedIconPath});
+      if(obsolete.length)await cleanupPublisherObjects(obsolete);
     }
 
-    const successText=mode==="update"?"La version et son APK sont enregistrés.":mode==="edit"?"La configuration est enregistrée.":"L’application est publiée.";
+    const successText=
+      mode==="update"
+        ?"La version et son APK sont enregistrés."
+        :mode==="edit"
+          ?"La configuration est enregistrée."
+          :"L’application est publiée.";
+
     await refreshAfterPublisherChange();
     const refreshed=publisherRowById(appId);
     if(refreshed)openPublisherForm(mode==="create"?"edit":mode,refreshed);
+
     setPublisherProgress(100,"Publication terminée.");
     msg.className="form-message success";
     msg.textContent=successText;
   }catch(err){
     console.error("Publication:",err);
+
+    if(!committed&&uploadedObjects.length){
+      await cleanupPublisherObjects(uploadedObjects);
+    }
+
     msg.className="form-message error";
     msg.textContent=err?.message||"La publication a échoué.";
     setPublisherProgress(0,"Publication interrompue.");

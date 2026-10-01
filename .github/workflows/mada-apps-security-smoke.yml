@@ -101,6 +101,8 @@ jobs:
           grep -q 'admin_publish_version' script.js
           grep -q 'developer_resubmit_version' developer-dashboard.js
           grep -q 'cleanupPublisherObjects' script.js
+          grep -q 'id="devVersionId"' developer-dashboard.html
+          grep -q 'from anon' SUPABASE_PUBLISH_WORKFLOW_V15_8.sql
 
   live-anon-security:
     runs-on: ubuntu-latest
@@ -172,6 +174,24 @@ jobs:
           if [ "$status" = "200" ]; then
             echo "Admin RPC unexpectedly callable anonymously"
             cat /tmp/rpc
+            exit 1
+          fi
+          test "$status" = "401" -o "$status" = "403" -o "$status" = "404"
+
+      - name: Publisher RPCs are not callable anonymously
+        run: |
+          status=$(curl -sS -o /tmp/publish-rpc -w '%{http_code}' -X POST             "$SUPABASE_URL/rest/v1/rpc/admin_publish_application"             -H "apikey: $SUPABASE_KEY"             -H "Authorization: Bearer $SUPABASE_KEY"             -H "Content-Type: application/json"             -d '{"p_payload":{},"p_screens":[]}')
+          if [ "$status" = "200" ]; then
+            echo "Publisher admin RPC unexpectedly callable anonymously"
+            cat /tmp/publish-rpc
+            exit 1
+          fi
+          test "$status" = "401" -o "$status" = "403" -o "$status" = "404"
+
+          status=$(curl -sS -o /tmp/retry-rpc -w '%{http_code}' -X POST             "$SUPABASE_URL/rest/v1/rpc/developer_resubmit_version"             -H "apikey: $SUPABASE_KEY"             -H "Authorization: Bearer $SUPABASE_KEY"             -H "Content-Type: application/json"             -d '{"target_version":"00000000-0000-0000-0000-000000000000","new_apk_path":"test.apk","new_changes":[]}')
+          if [ "$status" = "200" ]; then
+            echo "Developer resubmit RPC unexpectedly callable anonymously"
+            cat /tmp/retry-rpc
             exit 1
           fi
           test "$status" = "401" -o "$status" = "403" -o "$status" = "404"

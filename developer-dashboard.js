@@ -490,6 +490,7 @@ $("developerForm").addEventListener("submit",async event=>{
         visibility:"public",
         status:"draft",
         apk_path:apkPath,
+        apk_storage_provider:"supabase",
         created_by:currentUser.id
       };
 
@@ -498,30 +499,45 @@ $("developerForm").addEventListener("submit",async event=>{
 
       const uploaded=[];
       try{
-        await uploadFile("app-apk",apkPath,apk,progress=>setProgress(5+progress*.60,`Envoi APK… ${progress}%`));
-        uploaded.push({bucket:"app-apk",path:apkPath});
+        const apkProvider=await uploadFile(
+          "app-apk",
+          apkPath,
+          apk,
+          progress=>setProgress(5+progress*.60,`Envoi APK… ${progress}%`)
+        );
+        uploaded.push({bucket:"app-apk",path:apkPath,provider:apkProvider});
 
         let iconPath=null;
+        let iconProvider="supabase";
         if(icon){
           iconPath=`${appId}/icon/${Date.now()}-${safeFileName(icon.name)}`;
-          await uploadFile("app-icons",iconPath,icon,progress=>setProgress(66+progress*.10,`Envoi logo… ${progress}%`));
-          uploaded.push({bucket:"app-icons",path:iconPath});
+          iconProvider=await uploadFile(
+            "app-icons",
+            iconPath,
+            icon,
+            progress=>setProgress(66+progress*.10,`Envoi logo… ${progress}%`)
+          );
+          uploaded.push({bucket:"app-icons",path:iconPath,provider:iconProvider});
         }
 
         const screenRows=[];
         for(let index=0;index<screens.length;index++){
           const file=screens[index];
           const path=`${appId}/screens/${Date.now()}-${index}-${safeFileName(file.name)}`;
-          await uploadFile(
+          const provider=await uploadFile(
             "app-screenshots",
             path,
             file,
-            progress=>setProgress(77+((index+progress/100)/Math.max(1,screens.length))*18,`Capture ${index+1}/${screens.length}…`)
+            progress=>setProgress(
+              77+((index+progress/100)/Math.max(1,screens.length))*18,
+              `Capture ${index+1}/${screens.length}…`
+            )
           );
-          uploaded.push({bucket:"app-screenshots",path});
+          uploaded.push({bucket:"app-screenshots",path,provider});
           screenRows.push({
             app_id:appId,
             storage_path:path,
+            storage_provider:provider,
             alt_text:`Capture ${index+1}`,
             sort_order:index,
             created_by:currentUser.id
@@ -537,25 +553,49 @@ $("developerForm").addEventListener("submit",async event=>{
           app_id:appId,
           version,
           apk_path:apkPath,
+          storage_provider:apkProvider,
           changes,
           status:"pending",
           created_by:currentUser.id
         });
         if(versionError)throw versionError;
 
-        const finalUpdate={status:"pending"};
-        if(iconPath)finalUpdate.icon_path=iconPath;
-        const {error:finalError}=await sb.from("applications").update(finalUpdate).eq("id",appId);
+        const finalUpdate={
+          status:"pending",
+          apk_storage_provider:apkProvider
+        };
+        if(iconPath){
+          finalUpdate.icon_path=iconPath;
+          finalUpdate.icon_storage_provider=iconProvider;
+        }
+        const {error:finalError}=await sb
+          .from("applications")
+          .update(finalUpdate)
+          .eq("id",appId);
         if(finalError)throw finalError;
       }catch(error){
-        await sb.from("app_versions").delete().eq("app_id",appId).eq("created_by",currentUser.id);
-        await sb.from("app_screenshots").delete().eq("app_id",appId).eq("created_by",currentUser.id);
+        await sb.from("app_versions")
+          .delete()
+          .eq("app_id",appId)
+          .eq("created_by",currentUser.id);
+        await sb.from("app_screenshots")
+          .delete()
+          .eq("app_id",appId)
+          .eq("created_by",currentUser.id);
         await sb.from("applications")
-          .update({apk_path:null,icon_path:null})
+          .update({
+            apk_path:null,
+            icon_path:null,
+            apk_storage_provider:"supabase",
+            icon_storage_provider:"supabase"
+          })
           .eq("id",appId)
           .eq("created_by",currentUser.id);
         await cleanupUploadedObjects(uploaded);
-        await sb.from("applications").delete().eq("id",appId).eq("created_by",currentUser.id);
+        await sb.from("applications")
+          .delete()
+          .eq("id",appId)
+          .eq("created_by",currentUser.id);
         throw error;
       }
     }else{
@@ -567,7 +607,9 @@ $("developerForm").addEventListener("submit",async event=>{
 
       const retry=mode==="version-retry";
       const rejected=retry
-        ? (app.app_versions||[]).find(item=>item.id===$("devVersionId").value&&item.status==="rejected")
+        ? (app.app_versions||[]).find(
+            item=>item.id===$("devVersionId").value&&item.status==="rejected"
+          )
         : null;
 
       if(retry&&!rejected){
@@ -575,31 +617,47 @@ $("developerForm").addEventListener("submit",async event=>{
       }
 
       if(!retry&&(app.app_versions||[]).some(item=>item.version===version)){
-        throw new Error("Cette version existe déjà. Si elle a été refusée, utilise le bouton « Corriger ».");
+        throw new Error(
+          "Cette version existe déjà. Si elle a été refusée, utilise le bouton « Corriger »."
+        );
       }
 
       const path=`${app.id}/versions/${slugify(version)||"version"}-${Date.now()}/${safeFileName(apk.name)}`;
-      const uploaded=[{bucket:"app-apk",path}];
+      const uploaded=[];
 
       try{
-        await uploadFile("app-apk",path,apk,progress=>setProgress(5+progress*.90,`Envoi APK… ${progress}%`));
+        const provider=await uploadFile(
+          "app-apk",
+          path,
+          apk,
+          progress=>setProgress(5+progress*.90,`Envoi APK… ${progress}%`)
+        );
+        uploaded.push({bucket:"app-apk",path,provider});
 
         if(retry){
-          const {data,error}=await sb.rpc("developer_resubmit_version",{
-            target_version:rejected.id,
-            new_apk_path:path,
-            new_changes:changes
+          const {data,error}=await sb.rpc("developer_resubmit_version_v2",{
+            p_payload:{
+              version_id:rejected.id,
+              apk_path:path,
+              storage_provider:provider,
+              changes
+            }
           });
           if(error)throw error;
 
           if(data?.replacedApkPath&&data.replacedApkPath!==path){
-            await cleanupUploadedObjects([{bucket:"app-apk",path:data.replacedApkPath}]);
+            await cleanupUploadedObjects([{
+              bucket:"app-apk",
+              path:data.replacedApkPath,
+              provider:data.replacedApkProvider||"supabase"
+            }]);
           }
         }else{
           const {error}=await sb.from("app_versions").insert({
             app_id:app.id,
             version,
             apk_path:path,
+            storage_provider:provider,
             changes,
             status:"pending",
             created_by:currentUser.id

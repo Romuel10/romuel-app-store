@@ -2250,7 +2250,7 @@ async function loadAdminPublisher(){
   const box=$("publisherAppList");
   box.innerHTML='<p class="form-message">Chargement des applications…</p>';
   const {data,error}=await sb.from("applications")
-    .select("id,slug,name,version,category,description,changes,visibility,status,icon_path,apk_path,download_count,published_at,updated_at,created_at,app_versions(id,version,apk_path,changes,published_at),app_screenshots(id,storage_path,alt_text,sort_order)")
+    .select("id,slug,name,version,category,description,changes,visibility,status,icon_path,icon_storage_provider,apk_path,apk_storage_provider,download_count,published_at,updated_at,created_at,app_versions(id,version,apk_path,storage_provider,changes,published_at),app_screenshots(id,storage_path,storage_provider,alt_text,sort_order)")
     .order("updated_at",{ascending:false});
 
   if(error){
@@ -2280,18 +2280,34 @@ function resetPublisherMessage(){
   $("publisherMessage").textContent="";
   $("publisherProgressWrap").classList.add("hidden");
   $("publisherProgressBar").style.width="0%";
-  $("publisherApkSizeHint").textContent="Le fichier est envoyé dans l’espace sécurisé Supabase. Sa taille sera détectée automatiquement.";
+  $("publisherApkSizeHint").textContent="Stockage automatique : Cloudflare R2 si configuré, sinon Supabase. La taille est détectée automatiquement.";
 }
 
 async function showPublisherScreens(app){
-  publisherScreens=[...(app?.app_screenshots||[])].filter(x=>x.storage_path).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
+  publisherScreens=[...(app?.app_screenshots||[])]
+    .filter(x=>x.storage_path)
+    .sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
   const wrap=$("publisherExistingScreens");
   if(!publisherScreens.length){wrap.innerHTML="";wrap.classList.add("hidden");return}
-  const urls=await signedUrlMap("app-screenshots",publisherScreens.map(x=>x.storage_path),1200);
+
+  const urls=await assetUrlMap(
+    "app-screenshots",
+    publisherScreens.map(x=>({
+      path:x.storage_path,
+      provider:x.storage_provider||"supabase"
+    })),
+    1200
+  );
+
   wrap.innerHTML=publisherScreens.map((screen,index)=>`
     <div class="publisher-screen-item">
       <img src="${esc(urls.get(screen.storage_path)||"")}" alt="Capture ${index+1}">
-      <button type="button" data-delete-publisher-screen="${esc(screen.id)}" data-screen-path="${esc(screen.storage_path)}" aria-label="Supprimer cette capture">×</button>
+      <button
+        type="button"
+        data-delete-publisher-screen="${esc(screen.id)}"
+        data-screen-path="${esc(screen.storage_path)}"
+        data-screen-provider="${esc(screen.storage_provider||"supabase")}"
+        aria-label="Supprimer cette capture">×</button>
     </div>`).join("");
   wrap.classList.remove("hidden");
 }

@@ -375,6 +375,16 @@ language sql
 set search_path = ''
 as $$ select private.developer_resubmit_version(target_version,new_apk_path,new_changes); $$;
 
+revoke all on function private.admin_publish_application(jsonb,jsonb) from public;
+revoke all on function private.admin_publish_version(uuid,text,text,text[],text,jsonb) from public;
+revoke all on function private.admin_edit_application(uuid,text,text,text,text,text,text,jsonb) from public;
+revoke all on function private.developer_resubmit_version(uuid,text,text[]) from public;
+
+grant execute on function private.admin_publish_application(jsonb,jsonb) to authenticated;
+grant execute on function private.admin_publish_version(uuid,text,text,text[],text,jsonb) to authenticated;
+grant execute on function private.admin_edit_application(uuid,text,text,text,text,text,text,jsonb) to authenticated;
+grant execute on function private.developer_resubmit_version(uuid,text,text[]) to authenticated;
+
 revoke all on function public.admin_publish_application(jsonb,jsonb) from public;
 revoke all on function public.admin_publish_version(uuid,text,text,text[],text,jsonb) from public;
 revoke all on function public.admin_edit_application(uuid,text,text,text,text,text,text,jsonb) from public;

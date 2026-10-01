@@ -18,6 +18,10 @@ on:
       - "SUPABASE_NOTIFICATIONS_V15_5.sql"
       - "SUPABASE_WEB_PUSH_V15_6.sql"
       - "SUPABASE_PUBLISH_WORKFLOW_V15_8.sql"
+      - "SUPABASE_R2_STORAGE_V15_9.sql"
+      - "storage-provider.js"
+      - "R2_SETUP.md"
+      - "r2-cors.json"
       - "supabase/functions/**"
       - "_headers"
       - ".github/workflows/mada-apps-security-smoke.yml"
@@ -38,6 +42,10 @@ on:
       - "SUPABASE_NOTIFICATIONS_V15_5.sql"
       - "SUPABASE_WEB_PUSH_V15_6.sql"
       - "SUPABASE_PUBLISH_WORKFLOW_V15_8.sql"
+      - "SUPABASE_R2_STORAGE_V15_9.sql"
+      - "storage-provider.js"
+      - "R2_SETUP.md"
+      - "r2-cors.json"
       - "supabase/functions/**"
       - "_headers"
       - ".github/workflows/mada-apps-security-smoke.yml"
@@ -103,6 +111,15 @@ jobs:
           grep -q 'cleanupPublisherObjects' script.js
           grep -q 'id="devVersionId"' developer-dashboard.html
           grep -q 'from anon' SUPABASE_PUBLISH_WORKFLOW_V15_8.sql
+          grep -q 'admin_publish_application_v2' SUPABASE_R2_STORAGE_V15_9.sql
+          grep -q 'admin_publish_version_v2' SUPABASE_R2_STORAGE_V15_9.sql
+          grep -q 'developer_resubmit_version_v2' SUPABASE_R2_STORAGE_V15_9.sql
+          grep -q 'apk_storage_provider' SUPABASE_R2_STORAGE_V15_9.sql
+          grep -q 'MadaR2' storage-provider.js
+          grep -q 'admin_publish_application_v2' script.js
+          grep -q 'developer_resubmit_version_v2' developer-dashboard.js
+          grep -q 'storage-provider.js?v=15.9' index.html
+          grep -q 'storage-provider.js?v=15.9' developer-dashboard.html
 
   live-anon-security:
     runs-on: ubuntu-latest

@@ -1,0 +1,12 @@
+[
+  {
+    "AllowedOrigins": [
+      "https://romuel10.github.io",
+      "https://romuelapps.pages.dev"
+    ],
+    "AllowedMethods": ["GET", "PUT", "HEAD"],
+    "AllowedHeaders": ["Content-Type"],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3600
+  }
+]

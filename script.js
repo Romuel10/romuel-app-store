@@ -371,7 +371,7 @@ document.addEventListener("error",event=>{
 
 function downloadHtml(a,label="Installer"){
   if(a.apkPath){
-    return `<button class="download" type="button" data-secure-download="${esc(a.id)}" data-apk-path="${esc(a.apkPath)}" data-apk-bucket="${esc(a.apkBucket||"app-apk")}">${esc(label)}</button>`;
+    return `<button class="download" type="button" data-secure-download="${esc(a.id)}" data-apk-path="${esc(a.apkPath)}" data-apk-bucket="${esc(a.apkBucket||"app-apk")}" data-storage-provider="${esc(a.apkProvider||"supabase")}">${esc(label)}</button>`;
   }
   return `<a class="download" href="${esc(a.apk)}">${esc(label)}</a>`;
 }
@@ -1257,7 +1257,7 @@ async function syncFavorite(appId,shouldFavorite){
 
 function versionDownloadHtml(app,version){
   if(version.apkPath){
-    return `<button class="version-download" type="button" data-secure-download="${esc(app.id)}" data-apk-path="${esc(version.apkPath)}" data-apk-bucket="${esc(version.apkBucket||app.apkBucket||"app-apk")}">Installer</button>`;
+    return `<button class="version-download" type="button" data-secure-download="${esc(app.id)}" data-apk-path="${esc(version.apkPath)}" data-apk-bucket="${esc(version.apkBucket||app.apkBucket||"app-apk")}" data-storage-provider="${esc(version.apkProvider||app.apkProvider||"supabase")}">Installer</button>`;
   }
   return `<a href="${esc(version.apk||app.apk)}">Installer</a>`;
 }
@@ -1280,11 +1280,13 @@ function openDetails(app,options={}){
     modalDownload.dataset.secureDownload=app.id;
     modalDownload.dataset.apkPath=app.apkPath;
     modalDownload.dataset.apkBucket=app.apkBucket||"app-apk";
+    modalDownload.dataset.storageProvider=app.apkProvider||"supabase";
   }else{
     modalDownload.href=app.apk;
     delete modalDownload.dataset.secureDownload;
     delete modalDownload.dataset.apkPath;
     delete modalDownload.dataset.apkBucket;
+    delete modalDownload.dataset.storageProvider;
   }
   $("modalDownloads").textContent=Number(app.downloads||0).toLocaleString("fr-FR");
   $("favoriteBtn").textContent=favorites.has(app.id)?"♥ Favori":"♡ Favori";
@@ -2028,15 +2030,23 @@ document.addEventListener("click",async e=>{
   }
   const path=btn.dataset.apkPath;
   const bucket=btn.dataset.apkBucket||"app-apk";
+  const provider=btn.dataset.storageProvider||"supabase";
   if(!path)return;
   btn.disabled=true;
   const old=btn.textContent;
   btn.textContent="Préparation…";
   try{
-    const {data,error}=await sb.storage.from(bucket).createSignedUrl(path,120);
-    if(error)throw error;
+    let url=null;
+    if(provider==="r2"){
+      if(!window.MadaR2?.signedUrl)throw new Error("Service R2 indisponible.");
+      url=await window.MadaR2.signedUrl(bucket,path,120);
+      if(!url)throw new Error("URL R2 indisponible.");
+    }else{
+      const {data,error}=await sb.storage.from(bucket).createSignedUrl(path,120);
+      if(error)throw error;
+      url=data.signedUrl;
+    }
     if(app)await trackDownload(app);
-    const url=data.signedUrl;
     location.href=url;
   }catch(err){
     const status=Number(err?.statusCode||err?.status);

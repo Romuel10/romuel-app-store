@@ -3,8 +3,9 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="referrer" content="no-referrer" />
   <meta name="theme-color" content="#173f49" />
-  <meta name="sekoly-build" content="2026-09-29-custom-documents-v1" />
+  <meta name="sekoly-build" content="2026-10-04-secure-submission-v2" />
   <title>Préinscription Sekoly</title>
   <style>
     :root{color-scheme:light;--bg:#eef5f5;--card:#fff;--card2:#f8fbfb;--ink:#17242b;--muted:#687780;--line:#d8e4e7;--brand:#173f49;--brand2:#245d68;--accent:#2f7a54;--accentSoft:#eaf6ef;--danger:#b94141;--warning:#9a651f;--shadow:0 18px 55px rgba(21,56,66,.10)}
@@ -550,12 +551,13 @@
     Object.entries(map).forEach(([k,v])=>{if(form.elements[k]&&v)form.elements[k].value=v});
   }
 
-  async function uploadOne(file,applicationId,documentCode,familyToken){
+  async function uploadOne(file,applicationId,documentCode,access){
     const fd=new FormData();
     fd.append('file',file);
     fd.append('applicationId',applicationId||'');
     fd.append('documentCode',documentCode||'');
-    const res=await fetch(ENDPOINT+'?action=upload&family='+encodeURIComponent(familyToken),{method:'POST',body:fd});
+    const capability=access.familyToken?'family='+encodeURIComponent(access.familyToken):'submission='+encodeURIComponent(access.submissionToken);
+    const res=await fetch(ENDPOINT+'?action=upload&'+capability,{method:'POST',body:fd});
     const out=await res.json();if(!res.ok)throw new Error(out.error||'Envoi du document impossible.');return out;
   }
   async function uploadDocuments(result){
@@ -564,12 +566,12 @@
       const file=input.files&&input.files[0];if(!file)return;
       const code=input.dataset.familyDocCode||'';
       if(code==='CIN_SECONDARY'&&!String(form.elements.secondaryLastName.value||'').trim())return;
-      jobs.push(uploadOne(file,'',code,result.familyToken));
+      jobs.push(uploadOne(file,'',code,result));
     });
     qa('[data-doc-code]').forEach(input=>{
       const file=input.files&&input.files[0];if(!file)return;
       const app=result.applications&&result.applications[Number(input.dataset.childIndex)];
-      if(app)jobs.push(uploadOne(file,app.id,input.dataset.docCode||'',result.familyToken));
+      if(app)jobs.push(uploadOne(file,app.id,input.dataset.docCode||'',result));
     });
     const settled=await Promise.allSettled(jobs);
     return {uploaded:settled.filter(x=>x.status==='fulfilled').length,failed:settled.filter(x=>x.status==='rejected').length};
@@ -605,8 +607,8 @@
       const up=await uploadDocuments(result);
       try{localStorage.removeItem(DRAFT_KEY)}catch{}
       form.classList.add('hidden');q('#progress').classList.add('hidden');q('#reference').textContent=result.referenceCode;
-      q('#uploadStatus').textContent=up.uploaded?up.uploaded+' document(s) transmis'+(up.failed?' · '+up.failed+' échec(s)':''):'Les pièces manquantes pourront être ajoutées ensuite.';
-      q('#portalLink').href=result.portalUrl||'#';q('#success').classList.remove('hidden');scrollTo({top:0,behavior:'smooth'});
+      q('#uploadStatus').textContent=up.uploaded?up.uploaded+' document(s) transmis'+(up.failed?' · '+up.failed+' échec(s)':''):'Contactez l’établissement pour les pièces manquantes.';
+      q('#portalLink').classList.toggle('hidden',!result.portalUrl);if(result.portalUrl)q('#portalLink').href=result.portalUrl;q('#success').classList.remove('hidden');scrollTo({top:0,behavior:'smooth'});
     }catch(err){alert(err?.message||'Envoi impossible.');button.disabled=false;button.textContent='Envoyer la demande';saving.textContent=''}
   });
 
@@ -659,7 +661,7 @@
         const file=input.files&&input.files[0];if(!file)return;
         input.disabled=true;
         try{
-          await uploadOne(file,input.dataset.portalUpload,input.dataset.portalCode,PORTAL);
+          await uploadOne(file,input.dataset.portalUpload,input.dataset.portalCode,{familyToken:PORTAL});
           await bootPortal();
         }catch(err){alert(err?.message||'Envoi impossible.');input.disabled=false}
       }));

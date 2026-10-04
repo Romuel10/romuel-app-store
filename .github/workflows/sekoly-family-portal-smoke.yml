@@ -1,6 +1,11 @@
 name: Sekoly Family Portal Smoke
 
 on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "sekoly/enrollment/**"
+      - ".github/workflows/sekoly-family-portal-smoke.yml"
   push:
     branches: [main]
     paths:
@@ -16,7 +21,28 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify portal syntax and scoped upload
+        shell: bash
+        run: |
+          node <<'JS'
+          const fs = require('node:fs');
+          const assert = require('node:assert/strict');
+          const vm = require('node:vm');
+          const html = fs.readFileSync('sekoly/enrollment/index.html', 'utf8');
+          const scripts = [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)];
+          assert.ok(scripts.length > 0);
+          scripts.forEach((match, index) => new vm.Script(match[1], { filename: 'portal-' + index + '.js' }));
+          assert.ok(html.includes('encodeURIComponent(access.submissionToken)'));
+          assert.ok(html.includes('no-referrer'));
+          assert.ok(html.includes("classList.toggle('hidden',!result.portalUrl)"));
+          console.log('Portal syntax and scoped upload verified');
+          JS
       - name: Verify GitHub Pages serves real HTML
+        if: github.event_name != 'pull_request'
         shell: bash
         run: |
           set -euo pipefail
@@ -26,7 +52,7 @@ jobs:
             curl -sS -D /tmp/h -o /tmp/b "$URL" || true
             status="$(awk 'NR==1{print $2}' /tmp/h 2>/dev/null || true)"
             type="$(grep -i '^content-type:' /tmp/h | tail -1 | tr -d '\r' || true)"
-            marker="$(grep -c '2026-09-29-custom-documents-v1' /tmp/b 2>/dev/null || true)"
+            marker="$(grep -c '2026-10-04-secure-submission-v2' /tmp/b 2>/dev/null || true)"
             if [ "$status" = "200" ] && echo "$type" | grep -qi 'text/html' && [ "$marker" -gt 0 ]; then
               ok=1
               break
@@ -39,6 +65,7 @@ jobs:
           grep -qi 'SEKOLY · INSCRIPTION' /tmp/b
 
       - name: Verify Supabase bootstrap API
+        if: github.event_name != 'pull_request'
         shell: bash
         run: |
           set -euo pipefail

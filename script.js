@@ -17,7 +17,7 @@ let publisherApps=[],publisherScreens=[],publisherAvailable=true,isPublisherSubm
 const FAVORITES_KEY="madaapps_favorites";
 let favorites=new Set(JSON.parse(localStorage.getItem(FAVORITES_KEY)||localStorage.getItem("romuelapps_favorites")||"[]"));
 let profile=null,isAdmin=false,isDeveloper=false,isGendarmerie=false,reportedReviewId=null,lastUnconfirmedEmail="";
-let authBusy=false,confirmationResendBusy=false,confirmationResendAt=0,confirmationTimer=null;
+let authBusy=false,signupStep=0,confirmationResendBusy=false,confirmationResendAt=0,confirmationTimer=null;
 let selectedAvatarFile=null,removeAvatarRequested=false;
 let notifications=[],notificationChannel=null;
 let serviceWorkerRegistration=null,pushSubscription=null,pushLinkedToCurrentUser=false,deferredInstallPrompt=null,pushVapidPublicKey="";
@@ -1322,16 +1322,79 @@ function closeModal(options={}){
 function openAuth(){
   authModal.classList.add("show");authModal.setAttribute("aria-hidden","false");document.body.classList.add("modal-open");
   $("authPassword").type="password";
+  $("authPasswordConfirm").type="password";
   $("togglePasswordBtn").textContent="Afficher";
   $("togglePasswordBtn").setAttribute("aria-label","Afficher le mot de passe");
   $("togglePasswordBtn").setAttribute("aria-pressed","false");
   refreshAuthUI();
   if(!$("emailConfirmation").classList.contains("hidden"))updateConfirmationResend();
-  setTimeout(()=>($("emailConfirmation").classList.contains("hidden")?$("authEmail"):$("authTitle"))?.focus(),60);
+  setTimeout(()=>{
+    const target=!$("emailConfirmation").classList.contains("hidden")?"authTitle":authMode==="signup"&&signupStep===2?"authPassword":"authEmail";
+    $(target)?.focus();
+  },60);
 }
 function closeAuth(){
   authModal.classList.remove("show");authModal.setAttribute("aria-hidden","true");document.body.classList.remove("modal-open");
   clearInterval(confirmationTimer);confirmationTimer=null;
+  $("authPassword").value="";$("authPasswordConfirm").value="";
+  ["authPassword","authPasswordConfirm"].forEach(id=>setAuthFieldFeedback(id));
+  updateSignupPasswordChecks();
+}
+
+function updateSignupProgress(step){
+  $("signupProgress").classList.remove("hidden");
+  $("signupProgressText").textContent=`Étape ${step} sur 3`;
+  ["signupEmailProgress","signupPasswordProgress","signupConfirmationProgress"].forEach((id,index)=>{
+    $(id).classList.toggle("completed",index+1<step);
+    if(index+1===step)$(id).setAttribute("aria-current","step");
+    else $(id).removeAttribute("aria-current");
+  });
+}
+function setAuthFieldFeedback(id,message=""){
+  $(id).setAttribute("aria-invalid",message?"true":"false");
+  $(id+"Feedback").className="auth-field-message"+(message?" error":"");
+  $(id+"Feedback").textContent=message;
+}
+function validateAuthEmail(){
+  const input=$("authEmail");input.value=input.value.trim();
+  const error=!input.value?"Écris ton adresse e-mail pour continuer."
+    :!input.checkValidity()?"Vérifie ton adresse e-mail, par exemple nom@gmail.com.":"";
+  setAuthFieldFeedback("authEmail",error);
+  if(error)input.focus();
+  return !error;
+}
+function updateSignupPasswordChecks(){
+  const password=$("authPassword").value,confirmation=$("authPasswordConfirm").value;
+  $("signupLengthCheck").classList.toggle("met",password.length>=6);
+  $("signupMatchCheck").classList.toggle("met",!!password&&password===confirmation);
+}
+function setSignupStep(step,{focus=true}={}){
+  if(authBusy)return;
+  signupStep=step;
+  const guided=authMode==="signup",emailStep=guided&&step===1,passwordStep=guided&&step===2;
+  $("signupEmailGuide").classList.toggle("hidden",!emailStep);
+  $("signupPasswordGuide").classList.toggle("hidden",!passwordStep);
+  $("authEmailField").classList.toggle("hidden",passwordStep);
+  $("authPasswordField").classList.toggle("hidden",emailStep);
+  $("signupConfirmField").classList.toggle("hidden",!passwordStep);
+  $("signupBackBtn").classList.toggle("hidden",!passwordStep);
+  $("authPassword").required=!emailStep;
+  $("authPassword").disabled=emailStep;
+  $("authPasswordConfirm").required=passwordStep;
+  $("authPasswordConfirm").disabled=!passwordStep;
+  $("signupEmailPreview").textContent=$("authEmail").value.trim();
+  $("authSubmitBtn").textContent=emailStep?"Continuer →":guided?"Créer mon compte":"Se connecter";
+  $("authModeHint").textContent=emailStep?"La création du compte est gratuite. Ton adresse servira à confirmer ton inscription."
+    :passwordStep?"Utilise au moins 6 caractères. Le bouton « Afficher » permet de vérifier ce que tu as écrit."
+    :"Entre les identifiants utilisés lors de la création de ton compte.";
+  $("authMessage").textContent="";
+  if(guided)updateSignupProgress(step);
+  else $("signupProgress").classList.add("hidden");
+  updateSignupPasswordChecks();
+  if(focus){
+    const card=authModal.querySelector(".auth-card");if(card)card.scrollTop=0;
+    $(passwordStep?"authPassword":"authEmail").focus();
+  }
 }
 
 function confirmationRedirectUrl(){return location.origin+location.pathname}
@@ -1357,6 +1420,8 @@ function showEmailConfirmation(email,{sent=false}={}){
   lastUnconfirmedEmail=email;
   if(sent)confirmationResendAt=Date.now()+60000;
   $("authPassword").value="";
+  $("authPasswordConfirm").value="";
+  signupStep=3;updateSignupProgress(3);
   $("authEntry").classList.add("hidden");
   $("emailConfirmation").classList.remove("hidden");
   $("authTitle").textContent="Vérifie ta boîte e-mail";
@@ -1388,9 +1453,11 @@ function showEmailConfirmation(email,{sent=false}={}){
 }
 function setAuthBusy(busy){
   authBusy=busy;
-  ["authSubmitBtn","authEmail","authPassword","signInTab","signUpTab"].forEach(id=>$(id).disabled=busy);
+  ["authSubmitBtn","authEmail","signInTab","signUpTab","signupBackBtn"].forEach(id=>$(id).disabled=busy);
+  $("authPassword").disabled=busy||(authMode==="signup"&&signupStep===1);
+  $("authPasswordConfirm").disabled=busy||authMode!=="signup"||signupStep!==2;
   $("authForm").setAttribute("aria-busy",String(busy));
-  $("authSubmitBtn").textContent=busy?"Traitement…":authMode==="signin"?"Se connecter":"Créer mon compte";
+  $("authSubmitBtn").textContent=busy?"Traitement…":authMode==="signin"?"Se connecter":signupStep===1?"Continuer →":"Créer mon compte";
 }
 
 function setAuthMode(mode){
@@ -1398,6 +1465,9 @@ function setAuthMode(mode){
   clearInterval(confirmationTimer);confirmationTimer=null;
   $("authEntry").classList.remove("hidden");
   $("emailConfirmation").classList.add("hidden");
+  if(authMode!==mode)$("authPassword").value="";
+  $("authPasswordConfirm").value="";
+  ["authEmail","authPassword","authPasswordConfirm"].forEach(id=>setAuthFieldFeedback(id));
   authMode=mode;
   $("signInTab").classList.toggle("active",mode==="signin");
   $("signUpTab").classList.toggle("active",mode==="signup");
@@ -1407,11 +1477,8 @@ function setAuthMode(mode){
   $("authPassword").placeholder=mode==="signin"?"Ton mot de passe":"Au moins 6 caractères";
   $("authLead").textContent=mode==="signin"
     ?"Connecte-toi avec ton adresse e-mail. Si tu n’as pas encore de compte, choisis « Créer un compte »."
-    :"Crée ton compte gratuitement pour synchroniser tes favoris, publier des avis et accéder à tes espaces autorisés.";
-  $("authModeHint").textContent=mode==="signin"
-    ?"Entre les identifiants utilisés lors de la création de ton compte."
-    :"Choisis un mot de passe d’au moins 6 caractères, puis suis les instructions de confirmation par e-mail.";
-  $("authMessage").textContent="";
+    :"On te guide pas à pas : ton adresse e-mail, un mot de passe, puis la confirmation de ton compte.";
+  setSignupStep(mode==="signup"?1:0,{focus:false});
 }
 async function refreshAuthUI(){
   if(currentUser&&!authBusy&&!$("emailConfirmation").classList.contains("hidden"))setAuthMode("signin");
@@ -1640,9 +1707,29 @@ $("loginFromReviewBtn").addEventListener("click",()=>{setAuthMode("signin");open
 $("signInTab").addEventListener("click",()=>setAuthMode("signin"));
 $("signUpTab").addEventListener("click",()=>setAuthMode("signup"));
 
+$("signupBackBtn").addEventListener("click",()=>setSignupStep(1));
+$("authEmail").addEventListener("input",()=>{
+  setAuthFieldFeedback("authEmail");
+});
+["authPassword","authPasswordConfirm"].forEach(id=>$(id).addEventListener("input",()=>{
+  setAuthFieldFeedback(id);
+  if(id==="authPassword")setAuthFieldFeedback("authPasswordConfirm");
+  updateSignupPasswordChecks();
+}));
+
 $("authForm").addEventListener("submit",async e=>{
   e.preventDefault();
   if(authBusy)return;
+  if(!validateAuthEmail())return;
+  if(authMode==="signup"&&signupStep===1){setSignupStep(2);return}
+  const passwordError=$("authPassword").value.length<6?"Choisis un mot de passe d’au moins 6 caractères.":"";
+  setAuthFieldFeedback("authPassword",passwordError);
+  if(passwordError){$("authPassword").focus();return}
+  if(authMode==="signup"){
+    const mismatch=$("authPasswordConfirm").value!==$("authPassword").value;
+    setAuthFieldFeedback("authPasswordConfirm",mismatch?"Les deux mots de passe doivent être identiques. Vérifie-les avec « Afficher ».":"");
+    if(mismatch){$("authPasswordConfirm").focus();return}
+  }
   const email=$("authEmail").value.trim(),password=$("authPassword").value;
   const msg=$("authMessage");msg.className="form-message";msg.textContent="Traitement…";
   const mode=authMode;
@@ -1665,6 +1752,10 @@ $("authForm").addEventListener("submit",async e=>{
   }catch(error){
     msg.className="form-message error";
     msg.textContent=error.status===429?confirmationRateLimitMessage(error)
+      :error.code==="invalid_credentials"?"L’adresse e-mail ou le mot de passe ne correspond pas. Vérifie-les, puis réessaie."
+      :["user_already_exists","email_exists"].includes(error.code)?"Ce compte existe déjà. Choisis « Connexion » pour te connecter."
+      :error.code==="weak_password"?"Ce mot de passe est trop facile à deviner. Essaie un mot de passe plus long."
+      :error.code==="email_address_invalid"?"Cette adresse e-mail n’est pas acceptée. Vérifie-la ou utilise une autre adresse."
       :error.name==="TypeError"?"Connexion impossible. Vérifie ta connexion Internet et réessaie."
       :error.message||"Connexion impossible. Vérifie ta connexion Internet et réessaie.";
   }finally{
@@ -1923,6 +2014,7 @@ $("togglePasswordBtn")?.addEventListener("click",()=>{
   const input=$("authPassword");
   const reveal=input.type==="password";
   input.type=reveal?"text":"password";
+  $("authPasswordConfirm").type=input.type;
   $("togglePasswordBtn").textContent=reveal?"Masquer":"Afficher";
   $("togglePasswordBtn").setAttribute("aria-label",reveal?"Masquer le mot de passe":"Afficher le mot de passe");
   $("togglePasswordBtn").setAttribute("aria-pressed",reveal?"true":"false");

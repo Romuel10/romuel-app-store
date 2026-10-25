@@ -10,7 +10,8 @@ const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 // Execute the production auth functions and event listeners with a small DOM
 // and mocked Supabase. These tests never create accounts or send real emails.
 const functions = source.slice(source.indexOf('function openAuth(){'), source.indexOf('async function refreshAuthUI(){'));
-const listeners = source.slice(source.indexOf('$("authForm").addEventListener("submit"'), source.indexOf('$("signOutBtn").addEventListener("click"'));
+const listeners = source.slice(source.indexOf('$("signupBackBtn").addEventListener("click"'), source.indexOf('$("signOutBtn").addEventListener("click"'));
+const passwordToggle = source.slice(source.indexOf('$("togglePasswordBtn")?.addEventListener("click"'), source.indexOf('$("mobileHomeBtn")?.addEventListener("click"'));
 
 function setup(overrides = {}) {
   const elements = new Map();
@@ -24,7 +25,7 @@ function setup(overrides = {}) {
     const classes = new Set((attrs.get('class') || '').split(/\s+/).filter(Boolean));
     const events = new Map();
     const element = {
-      value: '', textContent: '', disabled: false, scrollTop: 200,
+      value: '', textContent: '', disabled: false, scrollTop: 200, type: attrs.get('type'),
       classList: {
         add: (...names) => names.forEach(name => classes.add(name)),
         remove: (...names) => names.forEach(name => classes.delete(name)),
@@ -41,6 +42,7 @@ function setup(overrides = {}) {
       focus() { document.activeElement = element; },
       select() { element.selected = true; },
       querySelector: () => elements.get('authCard'),
+      checkValidity() { return element.type !== 'email' || /^[^\s@]+@[^\s@]+$/.test(element.value); },
     };
     elements.set(tag[1], element);
   }
@@ -62,8 +64,8 @@ function setup(overrides = {}) {
     setInterval: callback => { intervals.set(++nextTimer, callback); return nextTimer; },
     clearInterval: id => intervals.delete(id),
   });
-  vm.runInContext('let authMode="signin",authBusy=false,confirmationResendBusy=false,confirmationResendAt=0,confirmationTimer=null,lastUnconfirmedEmail="";', context);
-  vm.runInContext(functions + '\n' + listeners, context, { filename: 'production-auth.js' });
+  vm.runInContext('let authMode="signin",signupStep=0,authBusy=false,confirmationResendBusy=false,confirmationResendAt=0,confirmationTimer=null,lastUnconfirmedEmail="";', context);
+  vm.runInContext(functions + '\n' + listeners + '\n' + passwordToggle, context, { filename: 'production-auth.js' });
   context.openAuth();
   return {
     context, calls, elements, intervals,
@@ -72,7 +74,9 @@ function setup(overrides = {}) {
     async submit(mode = 'signup', email = 'test@gmail.com') {
       context.setAuthMode(mode);
       elements.get('authEmail').value = email;
+      if (mode === 'signup') await elements.get('authForm').emit('submit');
       elements.get('authPassword').value = 'test-password';
+      elements.get('authPasswordConfirm').value = 'test-password';
       await elements.get('authForm').emit('submit');
     },
     advance(ms) { now += ms; [...intervals.values()].forEach(callback => callback()); },
@@ -148,7 +152,12 @@ for (const mode of ['signin', 'signup']) {
 test('duplicate submits are ignored and mode switches stay disabled during a request', async () => {
   let resolve;
   const app = setup({ signUp: () => new Promise(done => { resolve = done; }) });
-  const pending = app.submit();
+  app.context.setAuthMode('signup');
+  app.el('authEmail').value = 'test@gmail.com';
+  await app.el('authForm').emit('submit');
+  app.el('authPassword').value = 'test-password';
+  app.el('authPasswordConfirm').value = 'test-password';
+  const pending = app.el('authForm').emit('submit');
   await app.el('authForm').emit('submit');
   app.context.setAuthMode('signin');
   assert.equal(app.calls.signup.length, 1);
@@ -229,4 +238,129 @@ test('closing and reopening stops and resumes the timer without resetting the co
   app.context.openAuth();
   assert.match(app.el('confirmResendHint').textContent, /50 s/);
   assert.equal(app.intervals.size, 1);
+});
+
+test('signup asks for the email first and never sends a request on Continue', async () => {
+  const app = setup();
+  app.context.setAuthMode('signup');
+  assert.equal(app.el('signupEmailGuide').classList.contains('hidden'), false);
+  assert.equal(app.el('authPasswordField').classList.contains('hidden'), true);
+  assert.equal(app.el('authPassword').disabled, true);
+  assert.equal(app.el('signupEmailProgress').getAttribute('aria-current'), 'step');
+  app.el('authEmail').value = '  test@gmail.com  ';
+  await app.el('authForm').emit('submit');
+  assert.equal(app.calls.signup.length, 0);
+  assert.equal(app.calls.signin.length, 0);
+  assert.equal(app.run('signupStep'), 2);
+  assert.equal(app.el('signupEmailPreview').textContent, 'test@gmail.com');
+  assert.equal(app.el('authPassword').disabled, false);
+  assert.equal(app.el('authPasswordConfirm').disabled, false);
+  assert.equal(app.el('signupPasswordProgress').getAttribute('aria-current'), 'step');
+  assert.equal(app.context.document.activeElement, app.el('authPassword'));
+});
+
+for (const email of ['', 'sans-arobase', 'nom @gmail.com']) {
+  test('invalid email stays at step one: ' + (email || 'empty'), async () => {
+    const app = setup();
+    app.context.setAuthMode('signup');
+    app.el('authEmail').value = email;
+    await app.el('authForm').emit('submit');
+    assert.equal(app.run('signupStep'), 1);
+    assert.equal(app.calls.signup.length, 0);
+    assert.equal(app.el('authEmail').getAttribute('aria-invalid'), 'true');
+    assert.ok(app.el('authEmailFeedback').textContent);
+    assert.equal(app.context.document.activeElement, app.el('authEmail'));
+  });
+}
+
+test('short passwords and different confirmations never submit an account', async () => {
+  const app = setup();
+  app.context.setAuthMode('signup');
+  app.el('authEmail').value = 'test@gmail.com';
+  await app.el('authForm').emit('submit');
+  app.el('authPassword').value = '123';
+  app.el('authPasswordConfirm').value = '123';
+  await app.el('authForm').emit('submit');
+  assert.equal(app.calls.signup.length, 0);
+  assert.match(app.el('authPasswordFeedback').textContent, /6 caractères/);
+  app.el('authPassword').value = 'test-password';
+  app.el('authPasswordConfirm').value = 'other-password';
+  await app.el('authForm').emit('submit');
+  assert.equal(app.calls.signup.length, 0);
+  assert.match(app.el('authPasswordConfirmFeedback').textContent, /identiques/);
+  assert.equal(app.context.document.activeElement, app.el('authPasswordConfirm'));
+});
+
+test('password checks and show/hide work for both signup password fields', async () => {
+  const app = setup();
+  app.context.setAuthMode('signup');
+  app.el('authEmail').value = 'test@gmail.com';
+  await app.el('authForm').emit('submit');
+  app.el('authPassword').value = 'test-password';
+  await app.el('authPassword').emit('input');
+  assert.equal(app.el('signupLengthCheck').classList.contains('met'), true);
+  assert.equal(app.el('signupMatchCheck').classList.contains('met'), false);
+  app.el('authPasswordConfirm').value = 'test-password';
+  await app.el('authPasswordConfirm').emit('input');
+  assert.equal(app.el('signupMatchCheck').classList.contains('met'), true);
+  await app.el('togglePasswordBtn').emit('click');
+  assert.equal(app.el('authPassword').type, 'text');
+  assert.equal(app.el('authPasswordConfirm').type, 'text');
+  await app.el('togglePasswordBtn').emit('click');
+  assert.equal(app.el('authPasswordConfirm').type, 'password');
+});
+
+test('back lets the user correct the email before creating the account', async () => {
+  const app = setup();
+  app.context.setAuthMode('signup');
+  app.el('authEmail').value = 'typo@gmail.com';
+  await app.el('authForm').emit('submit');
+  await app.el('signupBackBtn').emit('click');
+  assert.equal(app.run('signupStep'), 1);
+  app.el('authEmail').value = 'correct@gmail.com';
+  await app.el('authForm').emit('submit');
+  app.el('authPassword').value = 'test-password';
+  app.el('authPasswordConfirm').value = 'test-password';
+  await app.el('authForm').emit('submit');
+  assert.equal(app.calls.signup.length, 1);
+  assert.equal(app.calls.signup[0].email, 'correct@gmail.com');
+  assert.equal(app.el('signupConfirmationProgress').getAttribute('aria-current'), 'step');
+  assert.equal(app.el('authPasswordConfirm').value, '');
+});
+
+test('switching to signin restores one form and disables password confirmation', async () => {
+  const app = setup();
+  app.context.setAuthMode('signup');
+  app.el('authEmail').value = 'test@gmail.com';
+  await app.el('authForm').emit('submit');
+  app.el('authPassword').value = 'signup-password';
+  app.el('authPasswordConfirm').value = 'signup-password';
+  app.context.setAuthMode('signin');
+  assert.equal(app.el('signupProgress').classList.contains('hidden'), true);
+  assert.equal(app.el('authEmailField').classList.contains('hidden'), false);
+  assert.equal(app.el('authPasswordField').classList.contains('hidden'), false);
+  assert.equal(app.el('authPasswordConfirm').disabled, true);
+  assert.equal(app.el('authPasswordConfirm').required, false);
+  assert.equal(app.el('authPassword').value, '');
+  app.el('authPassword').value = 'signin-password';
+  await app.el('authForm').emit('submit');
+  assert.equal(app.calls.signin.length, 1);
+  assert.equal(app.calls.signup.length, 0);
+});
+
+test('closing the guide clears both password values', async () => {
+  const app = setup();
+  app.el('authPassword').value = 'test-password';
+  app.el('authPasswordConfirm').value = 'test-password';
+  app.context.closeAuth();
+  assert.equal(app.el('authPassword').value, '');
+  assert.equal(app.el('authPasswordConfirm').value, '');
+  assert.equal(app.el('signupLengthCheck').classList.contains('met'), false);
+});
+
+test('common authentication errors are explained in French', async () => {
+  const app = setup({ signUp: () => ({ error: { code: 'weak_password', message: 'Password is too weak' } }) });
+  await app.submit();
+  assert.match(app.el('authMessage').textContent, /mot de passe plus long/);
+  assert.equal(app.el('authSubmitBtn').disabled, false);
 });

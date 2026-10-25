@@ -11,7 +11,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Mada Apps">
-  <link rel="stylesheet" href="./style.css?v=15.9.1">
+  <link rel="stylesheet" href="./style.css?v=15.10">
 </head>
 <body>
 <header class="topbar">
@@ -622,24 +622,61 @@
     <p id="authLead" class="auth-lead">Connecte-toi avec ton adresse e-mail. Si tu n’as pas encore de compte, choisis « Créer un compte ».</p>
 
     <div id="authLoggedOut">
+      <div id="signupProgress" class="signup-progress hidden">
+        <p id="signupProgressText" class="signup-progress-text" role="status" aria-live="polite">Étape 1 sur 3</p>
+        <ol aria-label="Étapes de création du compte">
+          <li id="signupEmailProgress">1. Adresse e-mail</li>
+          <li id="signupPasswordProgress">2. Mot de passe</li>
+          <li id="signupConfirmationProgress">3. Confirmation</li>
+        </ol>
+      </div>
       <div id="authEntry">
       <div class="auth-tabs">
         <button class="auth-tab active" id="signInTab" type="button">Connexion</button>
         <button class="auth-tab" id="signUpTab" type="button">Créer un compte</button>
       </div>
 
-      <form id="authForm" class="auth-form">
-        <label for="authEmail">Adresse e-mail</label>
-        <input id="authEmail" type="email" required autocomplete="email" placeholder="exemple@email.com">
+      <form id="authForm" class="auth-form" novalidate>
+        <div id="signupEmailGuide" class="signup-guidance hidden">
+          <h3>Quelle est ton adresse e-mail ?</h3>
+          <p>Utilise une adresse dont tu peux ouvrir la boîte mail. Tu y recevras le lien pour confirmer ton compte.</p>
+          <details class="signup-email-help">
+            <summary>Où trouver mon adresse e-mail ?</summary>
+            <p>Ouvre ton application de messagerie, par exemple Gmail, puis appuie sur ta photo ou ton initiale en haut. Ton adresse contient le signe @, comme <strong>nom@gmail.com</strong>.</p>
+          </details>
+        </div>
+        <div id="signupPasswordGuide" class="signup-guidance hidden">
+          <h3>Choisis un mot de passe</h3>
+          <p>Ton compte utilisera l’adresse <strong id="signupEmailPreview"></strong>.</p>
+        </div>
 
+        <div id="authEmailField">
+        <label for="authEmail">Adresse e-mail</label>
+        <input id="authEmail" type="email" required autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false" aria-describedby="authEmailFeedback" placeholder="exemple@email.com">
+        <p id="authEmailFeedback" class="auth-field-message" aria-live="polite"></p>
+        </div>
+
+        <div id="authPasswordField">
         <label for="authPassword">Mot de passe</label>
         <div class="password-field">
-          <input id="authPassword" type="password" minlength="6" required autocomplete="current-password" placeholder="Ton mot de passe">
+          <input id="authPassword" type="password" minlength="6" required autocomplete="current-password" aria-describedby="authPasswordFeedback authModeHint" placeholder="Ton mot de passe">
           <button id="togglePasswordBtn" class="password-toggle" type="button" aria-label="Afficher le mot de passe" aria-pressed="false">Afficher</button>
+        </div>
+        <p id="authPasswordFeedback" class="auth-field-message" aria-live="polite"></p>
+        <div id="signupConfirmField" class="hidden">
+          <label for="authPasswordConfirm">Écris le même mot de passe une deuxième fois</label>
+          <input id="authPasswordConfirm" type="password" autocomplete="new-password" aria-describedby="authPasswordConfirmFeedback" placeholder="Répète ton mot de passe" disabled>
+          <p id="authPasswordConfirmFeedback" class="auth-field-message" aria-live="polite"></p>
+          <ul class="signup-password-checks" aria-label="Vérification du mot de passe">
+            <li id="signupLengthCheck">Au moins 6 caractères</li>
+            <li id="signupMatchCheck">Les deux mots de passe sont identiques</li>
+          </ul>
+        </div>
         </div>
         <small id="authModeHint" class="auth-mode-hint">Entre les identifiants utilisés lors de la création de ton compte.</small>
 
         <button class="primary-btn" id="authSubmitBtn" type="submit">Se connecter</button>
+        <button class="signup-back hidden" id="signupBackBtn" type="button">← Modifier mon adresse e-mail</button>
         <p id="authMessage" class="form-message" role="status" aria-live="polite" aria-atomic="true"></p>
       </form>
       </div>
@@ -674,7 +711,7 @@
 <script src="./supabase-config.js?v=15.9"></script>
 <script src="https://cdn.jsdelivr.net/npm/tus-js-client@4.3.1/dist/tus.min.js"></script>
 <script src="./storage-provider.js?v=15.9"></script>
-<script src="./script.js?v=15.9.2"></script>
+<script src="./script.js?v=15.10"></script>
 </body>
 </html>
 

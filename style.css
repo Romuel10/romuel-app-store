@@ -43,6 +43,18 @@ footer{border-top:1px solid var(--line);padding:28px 0 42px}.footer-inner{displa
 .email-confirmation button:disabled{opacity:.6;cursor:wait}
 #authTitle:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
 .auth-form input{margin-bottom:14px}.auth-form .primary-btn{width:100%;margin-top:4px}.signed-in-label{color:var(--muted)}.full-btn{width:100%;margin-top:20px}
+.signup-progress{margin:20px 0 8px}.signup-progress-text{margin:0 0 10px;color:var(--accent);font-size:13px;font-weight:800}
+.signup-progress ol{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;list-style:none;padding:0;margin:0}
+.signup-progress li{min-width:0;border-top:3px solid var(--line);padding-top:8px;color:var(--muted);font-size:11px;line-height:1.4;font-weight:700}
+.signup-progress li[aria-current="step"],.signup-progress li.completed{border-color:var(--accent);color:var(--accent)}
+.signup-guidance{padding:16px;margin-bottom:18px;border-radius:16px;background:var(--surface3);line-height:1.5}
+.signup-guidance h3{font-size:17px;margin:0 0 8px}.signup-guidance p{margin:0;font-size:14px}.signup-guidance strong{overflow-wrap:anywhere}
+.signup-email-help{margin-top:12px;font-size:13px}.signup-email-help summary{cursor:pointer;font-weight:700;color:var(--accent);padding:4px 0}.signup-email-help p{margin-top:8px;font-size:13px}
+.auth-field-message{font-size:13px;line-height:1.45;margin:4px 0 14px;color:var(--muted)}.auth-field-message:empty{display:none}.auth-field-message.error{color:var(--danger)}
+.auth-form input[aria-invalid="true"]{border-color:var(--danger)}
+.signup-password-checks{list-style:none;padding:0;margin:0 0 14px;font-size:13px;line-height:1.5;color:var(--muted)}.signup-password-checks li{margin:6px 0}.signup-password-checks li::before{content:"○";display:inline-block;width:20px}.signup-password-checks li.met{color:var(--accent)}.signup-password-checks li.met::before{content:"✓"}
+.signup-back{display:block;width:100%;min-height:44px;margin-top:10px;padding:10px 4px;border:0;background:transparent;color:var(--accent);font-weight:700;cursor:pointer;text-decoration:underline}
+.auth-form button:disabled{opacity:.65;cursor:wait}
 @media(max-width:650px){.hero{min-height:260px;padding:24px;align-items:flex-start;flex-direction:column}.hero-badge{align-self:stretch}.toolbar,.actions,.detail-actions,.detail-grid{grid-template-columns:1fr}.footer-inner{flex-direction:column}.modal-sheet{margin:2vh auto;max-height:96vh;padding:20px}.app-detail-hero{align-items:flex-start}.app-detail-title h2{font-size:27px}.account-btn{max-width:135px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
 
 .sort-select{height:56px;border-radius:16px;border:1px solid var(--line);background:var(--surface);color:var(--text);padding:0 14px}

@@ -17,6 +17,7 @@ let publisherApps=[],publisherScreens=[],publisherAvailable=true,isPublisherSubm
 const FAVORITES_KEY="madaapps_favorites";
 let favorites=new Set(JSON.parse(localStorage.getItem(FAVORITES_KEY)||localStorage.getItem("romuelapps_favorites")||"[]"));
 let profile=null,isAdmin=false,isDeveloper=false,isGendarmerie=false,reportedReviewId=null,lastUnconfirmedEmail="";
+let authBusy=false,confirmationResendBusy=false,confirmationResendAt=0,confirmationTimer=null;
 let selectedAvatarFile=null,removeAvatarRequested=false;
 let notifications=[],notificationChannel=null;
 let serviceWorkerRegistration=null,pushSubscription=null,pushLinkedToCurrentUser=false,deferredInstallPrompt=null,pushVapidPublicKey="";
@@ -505,7 +506,7 @@ async function loadReviewsForCurrentApp(){
         <div><div class="review-name">${esc(r.user_name||"Utilisateur")}</div><div class="stars">${starsFrom(r.rating)}</div></div>
         <span class="review-date">${esc(fmtDate(r.created_at))}</span>
       </div>
-      <p class="review-comment">${esc(r.comment)}</p>
+      ${r.comment?`<p class="review-comment">${esc(r.comment)}</p>`:""}
       ${currentUser && currentUser.id!==r.user_id ? `<div class="review-actions"><button class="report-btn" type="button" data-report-review="${r.id}">🚩 Signaler</button></div>` : ""}
     </article>`).join(""):'<p class="form-message">Sois le premier à donner ton avis.</p>';
 
@@ -1325,11 +1326,78 @@ function openAuth(){
   $("togglePasswordBtn").setAttribute("aria-label","Afficher le mot de passe");
   $("togglePasswordBtn").setAttribute("aria-pressed","false");
   refreshAuthUI();
-  setTimeout(()=>$("authEmail")?.focus(),60);
+  if(!$("emailConfirmation").classList.contains("hidden"))updateConfirmationResend();
+  setTimeout(()=>($("emailConfirmation").classList.contains("hidden")?$("authEmail"):$("authTitle"))?.focus(),60);
 }
-function closeAuth(){authModal.classList.remove("show");authModal.setAttribute("aria-hidden","true");document.body.classList.remove("modal-open")}
+function closeAuth(){
+  authModal.classList.remove("show");authModal.setAttribute("aria-hidden","true");document.body.classList.remove("modal-open");
+  clearInterval(confirmationTimer);confirmationTimer=null;
+}
+
+function confirmationRedirectUrl(){return location.origin+location.pathname}
+function confirmationRateLimitMessage(error){
+  return /email rate limit exceeded/i.test(error.message||"")
+    ?"La limite d’envoi d’e-mails est atteinte. Réessaie plus tard. Si le problème persiste, contacte Mada Apps."
+    :"Trop de demandes. Patiente au moins une minute avant de réessayer.";
+}
+function updateConfirmationResend(){
+  clearInterval(confirmationTimer);confirmationTimer=null;
+  const remaining=Math.max(0,Math.ceil((confirmationResendAt-Date.now())/1000));
+  $("resendConfirmBtn").disabled=confirmationResendBusy||remaining>0;
+  $("confirmationSignInBtn").disabled=confirmationResendBusy;
+  $("changeConfirmationEmailBtn").disabled=confirmationResendBusy;
+  $("resendConfirmBtn").textContent=confirmationResendBusy?"Envoi en cours…":"Renvoyer l’e-mail de confirmation";
+  $("confirmResendHint").textContent=remaining>0?`Tu pourras demander un nouveau lien dans ${remaining} s.`:"";
+  if(remaining>0&&authModal.classList.contains("show")&&!$("emailConfirmation").classList.contains("hidden")){
+    confirmationTimer=setInterval(updateConfirmationResend,1000);
+  }
+}
+function showEmailConfirmation(email,{sent=false}={}){
+  if(lastUnconfirmedEmail!==email)confirmationResendAt=0;
+  lastUnconfirmedEmail=email;
+  if(sent)confirmationResendAt=Date.now()+60000;
+  $("authPassword").value="";
+  $("authEntry").classList.add("hidden");
+  $("emailConfirmation").classList.remove("hidden");
+  $("authTitle").textContent="Vérifie ta boîte e-mail";
+  $("authLead").textContent="Il reste une étape : confirme ton adresse e-mail pour pouvoir te connecter.";
+  $("confirmationEmail").textContent=email;
+  $("confirmationMessage").className="form-message";
+  $("confirmationMessage").textContent="";
+  const domain=email.split("@").pop().toLowerCase();
+  const mailboxProviders={
+    "gmail.com":["Gmail","https://mail.google.com/"],
+    "googlemail.com":["Gmail","https://mail.google.com/"],
+    "outlook.com":["Outlook","https://outlook.live.com/mail/"],
+    "outlook.fr":["Outlook","https://outlook.live.com/mail/"],
+    "hotmail.com":["Outlook","https://outlook.live.com/mail/"],
+    "hotmail.fr":["Outlook","https://outlook.live.com/mail/"],
+    "live.com":["Outlook","https://outlook.live.com/mail/"],
+    "yahoo.com":["Yahoo Mail","https://mail.yahoo.com/"],
+    "yahoo.fr":["Yahoo Mail","https://mail.yahoo.com/"]
+  };
+  const provider=Object.prototype.hasOwnProperty.call(mailboxProviders,domain)?mailboxProviders[domain]:null;
+  const mailbox=$("openMailboxLink");
+  mailbox.classList.toggle("hidden",!provider);
+  if(provider){mailbox.href=provider[1];mailbox.textContent=`Ouvrir ${provider[0]}`}
+  else mailbox.removeAttribute("href");
+  updateConfirmationResend();
+  const card=authModal.querySelector(".auth-card");
+  if(card)card.scrollTop=0;
+  $("authTitle").focus();
+}
+function setAuthBusy(busy){
+  authBusy=busy;
+  ["authSubmitBtn","authEmail","authPassword","signInTab","signUpTab"].forEach(id=>$(id).disabled=busy);
+  $("authForm").setAttribute("aria-busy",String(busy));
+  $("authSubmitBtn").textContent=busy?"Traitement…":authMode==="signin"?"Se connecter":"Créer mon compte";
+}
 
 function setAuthMode(mode){
+  if(authBusy)return;
+  clearInterval(confirmationTimer);confirmationTimer=null;
+  $("authEntry").classList.remove("hidden");
+  $("emailConfirmation").classList.add("hidden");
   authMode=mode;
   $("signInTab").classList.toggle("active",mode==="signin");
   $("signUpTab").classList.toggle("active",mode==="signup");
@@ -1342,12 +1410,11 @@ function setAuthMode(mode){
     :"Crée ton compte gratuitement pour synchroniser tes favoris, publier des avis et accéder à tes espaces autorisés.";
   $("authModeHint").textContent=mode==="signin"
     ?"Entre les identifiants utilisés lors de la création de ton compte."
-    :"Choisis un mot de passe d’au moins 6 caractères. Un e-mail de confirmation peut être demandé.";
+    :"Choisis un mot de passe d’au moins 6 caractères, puis suis les instructions de confirmation par e-mail.";
   $("authMessage").textContent="";
-  $("resendConfirmBtn")?.classList.add("hidden");
-  lastUnconfirmedEmail="";
 }
 async function refreshAuthUI(){
+  if(currentUser&&!authBusy&&!$("emailConfirmation").classList.contains("hidden"))setAuthMode("signin");
   $("authLoggedOut").classList.toggle("hidden",!!currentUser);
   $("authLoggedIn").classList.toggle("hidden",!currentUser);
 
@@ -1575,58 +1642,67 @@ $("signUpTab").addEventListener("click",()=>setAuthMode("signup"));
 
 $("authForm").addEventListener("submit",async e=>{
   e.preventDefault();
+  if(authBusy)return;
   const email=$("authEmail").value.trim(),password=$("authPassword").value;
   const msg=$("authMessage");msg.className="form-message";msg.textContent="Traitement…";
-  let result;
-
-  if(authMode==="signin"){
-    result=await sb.auth.signInWithPassword({email,password});
-
+  const mode=authMode;
+  setAuthBusy(true);
+  try{
+    const result=mode==="signin"
+      ?await sb.auth.signInWithPassword({email,password})
+      :await sb.auth.signUp({email,password,options:{emailRedirectTo:confirmationRedirectUrl(),data:{display_name:email.split("@")[0]}}});
     if(result.error){
-      if(result.error.message.includes("Email not confirmed")){
-        lastUnconfirmedEmail=email;
-        $("resendConfirmBtn")?.classList.remove("hidden");
-        msg.className="form-message error";
-        msg.textContent="⚠️ Votre e-mail n’est pas encore confirmé. Vérifiez votre boîte mail ou renvoyez le lien de confirmation.";
+      if(mode==="signin"&&(result.error.code==="email_not_confirmed"||result.error.message?.includes("Email not confirmed"))){
+        showEmailConfirmation(email);
         return;
       }
-
-      msg.className="form-message error";
-      msg.textContent=result.error.message;
-      return;
+      throw result.error;
     }
-
-  }else{
-    result=await sb.auth.signUp({
-      email,
-      password,
-      options:{
-        emailRedirectTo:location.origin,
-        data:{display_name:email.split("@")[0]}
-      }
-    });
-
-    if(result.error){
-      msg.className="form-message error";
-      msg.textContent=result.error.message;
-      return;
-    }
+    if(mode==="signup"&&!result.data.session){showEmailConfirmation(email,{sent:true});return}
+    msg.className="form-message success";msg.textContent="Connexion réussie.";
+    $("authPassword").value="";
+    setTimeout(closeAuth,500);
+  }catch(error){
+    msg.className="form-message error";
+    msg.textContent=error.status===429?confirmationRateLimitMessage(error)
+      :error.name==="TypeError"?"Connexion impossible. Vérifie ta connexion Internet et réessaie."
+      :error.message||"Connexion impossible. Vérifie ta connexion Internet et réessaie.";
+  }finally{
+    setAuthBusy(false);
   }
-  if(authMode==="signup"&&!result.data.session){msg.className="form-message success";msg.textContent="Compte créé. Vérifie ton e-mail pour confirmer l'inscription.";return}
-  msg.className="form-message success";msg.textContent="Connexion réussie.";
-  setTimeout(closeAuth,500);
 });
 
 $("resendConfirmBtn")?.addEventListener("click",async()=>{
-  const email=lastUnconfirmedEmail||$("authEmail").value.trim();
-  const msg=$("authMessage");
-  if(!email){msg.className="form-message error";msg.textContent="Indique d’abord ton adresse e-mail.";return}
-  $("resendConfirmBtn").disabled=true;
+  if(confirmationResendBusy||Date.now()<confirmationResendAt||!lastUnconfirmedEmail)return;
+  const msg=$("confirmationMessage");
+  confirmationResendBusy=true;updateConfirmationResend();
   msg.className="form-message";msg.textContent="Envoi du lien…";
-  const {error}=await sb.auth.resend({type:"signup",email,options:{emailRedirectTo:location.origin+location.pathname}});
-  $("resendConfirmBtn").disabled=false;
-  if(error){msg.className="form-message error";msg.textContent=error.message;return}
-  msg.className="form-message success";msg.textContent="E-mail de confirmation renvoyé. Vérifie aussi le dossier spam.";
+  try{
+    const {error}=await sb.auth.resend({type:"signup",email:lastUnconfirmedEmail,options:{emailRedirectTo:confirmationRedirectUrl()}});
+    if(error)throw error;
+    confirmationResendAt=Date.now()+60000;
+    msg.className="form-message success";
+    msg.textContent="Un nouveau lien a été demandé. Vérifie ta boîte mail et les spams, puis utilise le lien le plus récent.";
+  }catch(error){
+    msg.className="form-message error";
+    if(error.status===429||["over_email_send_rate_limit","over_request_rate_limit"].includes(error.code)){
+      confirmationResendAt=Date.now()+60000;
+      msg.textContent=confirmationRateLimitMessage(error);
+    }else{
+      msg.textContent="Le renvoi a échoué. Vérifie ta connexion Internet et réessaie dans un instant.";
+    }
+  }finally{
+    confirmationResendBusy=false;updateConfirmationResend();
+  }
+});
+
+$("confirmationSignInBtn").addEventListener("click",()=>{
+  setAuthMode("signin");
+  $("authPassword").focus();
+});
+$("changeConfirmationEmailBtn").addEventListener("click",()=>{
+  setAuthMode("signup");
+  $("authEmail").focus();$("authEmail").select();
 });
 
 $("signOutBtn").addEventListener("click",async()=>{await disablePushNotifications({silent:true});await sb.auth.signOut();closeAuth()});
@@ -1661,7 +1737,6 @@ $("reviewForm").addEventListener("submit",async e=>{
   if(!currentUser||!currentApp)return;
   if(!currentRating){msg.className="form-message error";msg.textContent="Choisis une note entre 1 et 5 étoiles.";return}
   const comment=$("reviewComment").value.trim();
-  if(comment.length<2){msg.className="form-message error";msg.textContent="Écris un commentaire un peu plus long.";return}
   msg.textContent="Publication…";
   const userName=(currentUser.email||"Utilisateur").split("@")[0];
   const payload={app_id:currentApp.id,user_id:currentUser.id,user_name:userName,rating:currentRating,comment};
@@ -1734,7 +1809,7 @@ async function loadAdminReports(){
     return `<article class="admin-report-card">
       <h3>${esc(r.user_name||"Utilisateur")} • ${esc(r.app_id||"")}</h3>
       <div class="admin-report-meta">${esc(fmtDate(x.created_at))} • Signalement #${x.id}</div>
-      <p class="review-comment">${esc(r.comment||"Avis indisponible")}</p>
+      <p class="review-comment">${esc(r.comment||(r.id?"Sans commentaire":"Avis indisponible"))}</p>
       <div class="admin-report-reason"><strong>Motif :</strong> ${esc(x.reason)}</div>
       <div class="admin-actions">
         <button type="button" class="success" data-admin-action="dismiss" data-report-id="${x.id}">Rejeter le signalement</button>
@@ -3072,3 +3147,4 @@ elQ.addEventListener("input",()=>{
 });
 elReload.addEventListener("click",loadApps);
 loadApps();
+

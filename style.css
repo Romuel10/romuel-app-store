@@ -31,6 +31,17 @@ footer{border-top:1px solid var(--line);padding:28px 0 42px}.footer-inner{displa
 .form-actions{display:flex;gap:12px;align-items:center}.danger-link{border:0;background:transparent;color:var(--danger);font-weight:800}.form-message{min-height:20px;color:var(--muted);font-size:13px}.form-message.error{color:var(--danger)}.form-message.success{color:var(--accent2)}
 .reviews-list{display:grid;gap:12px;margin-top:18px}.review-item{border-top:1px solid var(--line);padding-top:16px}.review-item:first-child{border-top:0}.review-top{display:flex;justify-content:space-between;gap:12px}.review-name{font-weight:850}.review-date{color:var(--muted);font-size:12px}.review-comment{color:color-mix(in srgb,var(--text) 86%,var(--muted));line-height:1.55;margin:8px 0 0}
 .auth-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:22px 0}.auth-tab{height:44px;border-radius:13px;border:1px solid var(--line);background:var(--surface);color:var(--muted)}.auth-tab.active{background:var(--surface2);color:var(--text);border-color:var(--accent)}
+.email-confirmation{margin-top:20px;line-height:1.55}
+.confirmation-icon{display:grid;place-items:center;width:56px;height:56px;border-radius:18px;background:var(--surface3);color:var(--accent);font-size:30px}
+.confirmation-recipient{padding:14px;border:1px solid var(--line);border-radius:14px;background:var(--surface);margin:16px 0}
+.confirmation-recipient strong{display:block;color:var(--accent);overflow-wrap:anywhere}
+.confirmation-steps{padding-left:24px;margin:16px 0}.confirmation-steps li{padding-left:4px;margin-bottom:10px}
+.confirmation-help{padding:14px;border-radius:14px;background:var(--surface2);font-size:14px;color:var(--muted)}
+.email-confirmation .full-btn{display:flex;align-items:center;justify-content:center;min-height:48px;margin-top:12px;height:auto;padding:12px 16px;text-align:center;white-space:normal;line-height:1.4}
+.confirmation-resend-hint{display:block;margin-top:8px;color:var(--muted);font-size:12px}
+.confirmation-edit{display:block;width:100%;padding:12px 4px;margin-top:8px;border:0;background:transparent;color:var(--accent);text-decoration:underline;cursor:pointer;min-height:44px}
+.email-confirmation button:disabled{opacity:.6;cursor:wait}
+#authTitle:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
 .auth-form input{margin-bottom:14px}.auth-form .primary-btn{width:100%;margin-top:4px}.signed-in-label{color:var(--muted)}.full-btn{width:100%;margin-top:20px}
 @media(max-width:650px){.hero{min-height:260px;padding:24px;align-items:flex-start;flex-direction:column}.hero-badge{align-self:stretch}.toolbar,.actions,.detail-actions,.detail-grid{grid-template-columns:1fr}.footer-inner{flex-direction:column}.modal-sheet{margin:2vh auto;max-height:96vh;padding:20px}.app-detail-hero{align-items:flex-start}.app-detail-title h2{font-size:27px}.account-btn{max-width:135px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
 
@@ -1241,3 +1252,4 @@ footer{background:var(--surface);border-top:1px solid var(--line)}
 @media(display-mode:standalone){
   .pwa-install-card{display:none!important}
 }
+

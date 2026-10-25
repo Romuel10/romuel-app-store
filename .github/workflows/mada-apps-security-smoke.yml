@@ -6,6 +6,8 @@ on:
     paths:
       - "index.html"
       - "script.js"
+      - "style.css"
+      - "tests/auth-confirmation.test.cjs"
       - "sw.js"
       - "manifest.webmanifest"
       - "developer-dashboard.html"
@@ -30,6 +32,8 @@ on:
     paths:
       - "index.html"
       - "script.js"
+      - "style.css"
+      - "tests/auth-confirmation.test.cjs"
       - "sw.js"
       - "manifest.webmanifest"
       - "developer-dashboard.html"
@@ -69,6 +73,10 @@ jobs:
           node --check storage-provider.js
           node --check gendarmerie.js
           node --check apps.js
+
+      - name: Verify email confirmation flow
+        # Authentication tests only use mocks; no confirmation email is sent.
+        run: node --test tests/auth-confirmation.test.cjs
 
       - name: Verify PWA manifest
         run: |
@@ -233,3 +241,4 @@ jobs:
           assert "configured" in data
           assert data.get("provider") in ("r2","supabase")
           PY
+

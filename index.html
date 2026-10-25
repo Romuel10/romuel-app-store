@@ -11,7 +11,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Mada Apps">
-  <link rel="stylesheet" href="./style.css?v=15.9">
+  <link rel="stylesheet" href="./style.css?v=15.9.1">
 </head>
 <body>
 <header class="topbar">
@@ -349,7 +349,7 @@
 
       <div id="reviewComposer" class="review-composer">
         <div id="loggedOutReview" class="review-login-note">
-          <p>Connecte-toi pour donner une note et écrire un commentaire.</p>
+          <p>Connecte-toi pour donner une note. Le commentaire est facultatif.</p>
           <button class="secondary-btn" id="loginFromReviewBtn" type="button">Se connecter</button>
         </div>
 
@@ -363,8 +363,8 @@
             <button type="button" data-rating="5">★</button>
           </div>
 
-          <label for="reviewComment">Ton commentaire</label>
-          <textarea id="reviewComment" minlength="2" maxlength="1000" placeholder="Partage ton expérience…" required></textarea>
+          <label for="reviewComment">Ton commentaire (facultatif)</label>
+          <textarea id="reviewComment" maxlength="1000" placeholder="Ajoute un commentaire si tu le souhaites…"></textarea>
 
           <div class="form-actions">
             <button class="primary-btn" type="submit">Publier mon avis</button>
@@ -618,10 +618,11 @@
   <section class="auth-card" role="dialog" aria-modal="true" aria-labelledby="authTitle">
     <button class="modal-close" type="button" data-close-auth aria-label="Fermer">×</button>
     <span class="eyebrow">COMPTE MADA APPS</span>
-    <h2 id="authTitle">Connexion</h2>
+    <h2 id="authTitle" tabindex="-1">Connexion</h2>
     <p id="authLead" class="auth-lead">Connecte-toi avec ton adresse e-mail. Si tu n’as pas encore de compte, choisis « Créer un compte ».</p>
 
     <div id="authLoggedOut">
+      <div id="authEntry">
       <div class="auth-tabs">
         <button class="auth-tab active" id="signInTab" type="button">Connexion</button>
         <button class="auth-tab" id="signUpTab" type="button">Créer un compte</button>
@@ -639,9 +640,26 @@
         <small id="authModeHint" class="auth-mode-hint">Entre les identifiants utilisés lors de la création de ton compte.</small>
 
         <button class="primary-btn" id="authSubmitBtn" type="submit">Se connecter</button>
-        <button class="secondary-btn full-btn hidden" id="resendConfirmBtn" type="button">Renvoyer l’e-mail de confirmation</button>
-        <p id="authMessage" class="form-message"></p>
+        <p id="authMessage" class="form-message" role="status" aria-live="polite" aria-atomic="true"></p>
       </form>
+      </div>
+
+      <section id="emailConfirmation" class="email-confirmation hidden" aria-label="Confirmation de l’adresse e-mail">
+        <div class="confirmation-icon" aria-hidden="true">✉</div>
+        <p class="confirmation-recipient">Adresse à confirmer :<strong id="confirmationEmail"></strong></p>
+        <ol class="confirmation-steps">
+          <li>Ouvre la boîte mail de cette adresse.</li>
+          <li>Cherche l’e-mail de confirmation de ton compte Mada Apps. Il peut être envoyé au nom de <strong>Supabase</strong>.</li>
+          <li>Ouvre l’e-mail et appuie sur le <strong>lien de confirmation</strong>, puis reviens ici pour te connecter.</li>
+        </ol>
+        <p class="confirmation-help">Tu ne le trouves pas ? Vérifie les dossiers <strong>Spam / Courrier indésirable</strong> et <strong>Promotions</strong>. L’arrivée du message peut prendre quelques minutes.</p>
+        <a id="openMailboxLink" class="primary-btn full-btn hidden" target="_blank" rel="noopener noreferrer">Ouvrir ma boîte mail</a>
+        <button class="secondary-btn full-btn" id="resendConfirmBtn" type="button">Renvoyer l’e-mail de confirmation</button>
+        <small id="confirmResendHint" class="confirmation-resend-hint"></small>
+        <p id="confirmationMessage" class="form-message" role="status" aria-live="polite" aria-atomic="true"></p>
+        <button class="primary-btn full-btn" id="confirmationSignInBtn" type="button">J’ai confirmé mon e-mail · Me connecter</button>
+        <button class="confirmation-edit" id="changeConfirmationEmailBtn" type="button">Utiliser une autre adresse e-mail</button>
+      </section>
     </div>
 
     <div id="authLoggedIn" class="hidden">
@@ -656,6 +674,7 @@
 <script src="./supabase-config.js?v=15.9"></script>
 <script src="https://cdn.jsdelivr.net/npm/tus-js-client@4.3.1/dist/tus.min.js"></script>
 <script src="./storage-provider.js?v=15.9"></script>
-<script src="./script.js?v=15.9"></script>
+<script src="./script.js?v=15.9.2"></script>
 </body>
 </html>
+

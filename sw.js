@@ -1,9 +1,9 @@
-const CACHE_NAME="mada-apps-v15.9";
+const CACHE_NAME="mada-apps-v15.9.2";
 const CORE_ASSETS=[
   "./",
   "./index.html",
-  "./style.css?v=15.9",
-  "./script.js?v=15.9","./storage-provider.js?v=15.9",
+  "./style.css?v=15.9.1",
+  "./script.js?v=15.9.2","./storage-provider.js?v=15.9",
   "./manifest.webmanifest?v=15.9"
 ];
 
@@ -107,3 +107,4 @@ self.addEventListener("notificationclick",event=>{
     return self.clients.openWindow(targetUrl);
   })());
 });
+

@@ -349,7 +349,7 @@
 
       <div id="reviewComposer" class="review-composer">
         <div id="loggedOutReview" class="review-login-note">
-          <p>Connecte-toi pour donner une note et écrire un commentaire.</p>
+          <p>Connecte-toi pour donner une note. Le commentaire est facultatif.</p>
           <button class="secondary-btn" id="loginFromReviewBtn" type="button">Se connecter</button>
         </div>
 
@@ -363,8 +363,8 @@
             <button type="button" data-rating="5">★</button>
           </div>
 
-          <label for="reviewComment">Ton commentaire</label>
-          <textarea id="reviewComment" minlength="2" maxlength="1000" placeholder="Partage ton expérience…" required></textarea>
+          <label for="reviewComment">Ton commentaire (facultatif)</label>
+          <textarea id="reviewComment" maxlength="1000" placeholder="Ajoute un commentaire si tu le souhaites…"></textarea>
 
           <div class="form-actions">
             <button class="primary-btn" type="submit">Publier mon avis</button>
@@ -674,7 +674,7 @@
 <script src="./supabase-config.js?v=15.9"></script>
 <script src="https://cdn.jsdelivr.net/npm/tus-js-client@4.3.1/dist/tus.min.js"></script>
 <script src="./storage-provider.js?v=15.9"></script>
-<script src="./script.js?v=15.9.1"></script>
+<script src="./script.js?v=15.9.2"></script>
 </body>
 </html>
 

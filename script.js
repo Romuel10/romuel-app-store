@@ -506,7 +506,7 @@ async function loadReviewsForCurrentApp(){
         <div><div class="review-name">${esc(r.user_name||"Utilisateur")}</div><div class="stars">${starsFrom(r.rating)}</div></div>
         <span class="review-date">${esc(fmtDate(r.created_at))}</span>
       </div>
-      <p class="review-comment">${esc(r.comment)}</p>
+      ${r.comment?`<p class="review-comment">${esc(r.comment)}</p>`:""}
       ${currentUser && currentUser.id!==r.user_id ? `<div class="review-actions"><button class="report-btn" type="button" data-report-review="${r.id}">🚩 Signaler</button></div>` : ""}
     </article>`).join(""):'<p class="form-message">Sois le premier à donner ton avis.</p>';
 
@@ -1737,7 +1737,6 @@ $("reviewForm").addEventListener("submit",async e=>{
   if(!currentUser||!currentApp)return;
   if(!currentRating){msg.className="form-message error";msg.textContent="Choisis une note entre 1 et 5 étoiles.";return}
   const comment=$("reviewComment").value.trim();
-  if(comment.length<2){msg.className="form-message error";msg.textContent="Écris un commentaire un peu plus long.";return}
   msg.textContent="Publication…";
   const userName=(currentUser.email||"Utilisateur").split("@")[0];
   const payload={app_id:currentApp.id,user_id:currentUser.id,user_name:userName,rating:currentRating,comment};
@@ -1810,7 +1809,7 @@ async function loadAdminReports(){
     return `<article class="admin-report-card">
       <h3>${esc(r.user_name||"Utilisateur")} • ${esc(r.app_id||"")}</h3>
       <div class="admin-report-meta">${esc(fmtDate(x.created_at))} • Signalement #${x.id}</div>
-      <p class="review-comment">${esc(r.comment||"Avis indisponible")}</p>
+      <p class="review-comment">${esc(r.comment||(r.id?"Sans commentaire":"Avis indisponible"))}</p>
       <div class="admin-report-reason"><strong>Motif :</strong> ${esc(x.reason)}</div>
       <div class="admin-actions">
         <button type="button" class="success" data-admin-action="dismiss" data-report-id="${x.id}">Rejeter le signalement</button>
